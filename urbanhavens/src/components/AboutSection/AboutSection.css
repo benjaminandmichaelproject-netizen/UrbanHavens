@@ -1,0 +1,91 @@
+:root{
+    --primary-color: #4CAF50;
+    --secondary-color: #f0f0f0;
+    --text-color: #333;
+    --background-color: #fff;
+    --black-color: #000;
+    --Yellow-color: #cc9900;
+    --text-color2: #ffffff66;
+    --secondary-color2: #111116;
+    --secondary-color3: #111116;
+;
+}
+.about-container{
+    padding: 40px 8%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    color: var(--text-color2);
+}
+
+.about
+{
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+padding-top: 40px;
+    gap: 20px;
+}
+
+
+.statements{
+   padding: 50px 0;
+    display: flex;
+    gap: 20px;
+   
+}
+
+.col{
+    width: 100%;
+    max-width: 100%;
+    min-height: 7vh;
+    border: solid 1px #ffffff66;
+    border-radius: 20px;
+    padding: 20px;
+}  
+
+.col h3{
+    color: var(--Yellow-color);
+    margin-bottom: 10px;
+}
+
+.readmore-counter{
+    display: flex;
+    align-items: center;
+    align-items: center;
+   gap: 30px; 
+}
+.readmore button{
+    width: 200px;
+    min-height: 7vh;
+    border-radius: 20px;
+    cursor: pointer;
+    background-color: var(--Yellow-color);
+    border: none;
+
+}
+.counter-container{
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    text-align: center;
+}
+
+/* Responsive */
+
+@media (max-width: 768px) {
+   
+  .statements {
+    flex-direction: column;
+  } 
+  
+}
+@media (max-width: 568px) {
+   
+.readmore-counter{
+    flex-direction: column;
+}
+  
+}
