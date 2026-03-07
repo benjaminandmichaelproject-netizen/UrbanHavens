@@ -1,0 +1,77 @@
+:root{
+    --primary-color: #4CAF50;
+    --secondary-color: #f0f0f0;
+    --text-color: #333;
+    --background-color: #fff;
+    --black-color: #000;
+    --Yellow-color: #cc9900;
+    --text-color2: #ffffff66;
+    --secondary-color2: #111116;
+    --secondary-color3: #111116;
+;
+}
+
+
+
+.bookingForm{
+    width: 100%;
+    background-color: var(--secondary-color2);
+    padding: 20px;
+    border-radius: 12px;
+}
+
+form{
+    width: 100%;
+}
+
+.input-group{
+    width: 100%;
+}
+input{
+    width: 100%;
+    padding: 10px;
+    margin: 15px 0;
+    border: solid 1px #333; 
+    border-radius: 6px;
+    background-color: transparent;
+    outline: none;
+    min-height: 6vh;
+}
+textarea{
+    width: 100%;
+    padding: 10px;
+    margin: 15px 0;
+    border: solid 1px #333; 
+    border-radius: 6px;
+    background-color: transparent;
+    outline: none;
+    resize: none;
+    min-height: 14vh;
+}
+ .form-container button{
+    width: 100%;
+    padding: 10px;
+    margin: 15px 0;
+    border: solid 1px #333; 
+    border-radius: 6px;
+    background-color: var(--Yellow-color);
+    outline: none;
+    resize: none;
+    min-height: 7vh;
+    cursor: pointer;
+    color: var(--secondary-color3);
+}
+.form-container{
+    margin: 20px 0;
+}
+
+.headings{
+    margin-bottom: 30px;
+}
+
+.headings h2 {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: var(--Yellow-color);
+}

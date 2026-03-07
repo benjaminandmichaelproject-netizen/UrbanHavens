@@ -10,7 +10,7 @@ import Register from './Pages/Register';
 import TermsPage from './Pages/TermsPage/TermsPage';
 import FavoritesPage from "./Pages/Favorites/FavoritesPage.jsx";
 import './App.css';
-
+import Detail from "./Pages/Detail/Detail.jsx";
 const App = () => {
   return (
     <div>
@@ -23,7 +23,8 @@ const App = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/terms/:id" element={<TermsPage />} />
-        <Route path="/favorites" element={<FavoritesPage />} /> {/* ✅ FIXED */}
+        <Route path="/favorites" element={<FavoritesPage />} /> 
+<Route path="/detail/:id" element={<Detail />} />
       </Routes>
 
       <MobileBottomNav />

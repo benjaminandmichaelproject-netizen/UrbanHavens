@@ -1,14 +1,11 @@
 import "./AgreementModal.css";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 
-const AgreementModal = ({ isOpen, onClose, rental }) => {
-  const navigate = useNavigate();
-
-  if (!isOpen) return null;
+const AgreementModal = ({ isOpen, onClose, rental, onAccept }) => {
+  if (!isOpen || !rental) return null;
 
   const handleAccept = () => {
-    navigate(`/details/${rental.id}`);
-    onClose();
+    onAccept(rental);
   };
 
   return (
@@ -22,7 +19,6 @@ const AgreementModal = ({ isOpen, onClose, rental }) => {
 
         <div className="terms-box">
           <h3>Key Terms & Conditions:</h3>
-
           <ul>
             <li>Full payment required before rental commencement</li>
             <li>Reservation confirmed upon payment verification</li>
@@ -34,13 +30,11 @@ const AgreementModal = ({ isOpen, onClose, rental }) => {
           </ul>
         </div>
 
-        {/* ✅ NEW LINK SECTION */}
         <div className="complete-terms-card">
           <div className="terms-icon">↗</div>
 
           <div className="terms-content">
             <h4>Complete Terms & Conditions</h4>
-
             <Link
               to={`/terms/${rental.id}`}
               className="terms-link"

@@ -1,44 +1,34 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./FeaturedRentals.css";
 import RentalCard from "./RentalCard";
 import AgreementModal from "../AgreementModal/AgreementModal";
-import { city, city2 } from "../../assets/assets";
 
 const FeaturedRentals = () => {
+  const navigate = useNavigate();
 
+  const [rentals, setRentals] = useState([]); // now from backend
   const [selectedRental, setSelectedRental] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
-  const rentals = [
-    {
-      id: 1,
-      image: city,
-      title: "Modern Apartment",
-      beds: 2,
-      bath: 1,
-      price: 1200
-    },
-    {
-      id: 2,
-      image: city2,
-      title: "Luxury Condo",
-      beds: 3,
-      bath: 2,
-      price: 2200
-    },
-    {
-      id: 3,
-      image: city,
-      title: "Family House",
-      beds: 4,
-      bath: 3,
-      price: 3200
-    }
-  ];
-
+  // 🔥 Fetch from Django API
+useEffect(() => {
+  fetch("http://127.0.0.1:8000/api/properties/")
+    .then((res) => res.json())
+    .then((data) => {
+      console.log("Fetched Data:", data); // 👈 ADD THIS
+      setRentals(data);
+    })
+    .catch((err) => console.error("Error fetching properties:", err));
+}, []);
   const handleBook = (rental) => {
     setSelectedRental(rental);
     setShowModal(true);
+  };
+
+  const handleAccept = (rental) => {
+    setShowModal(false);
+    navigate(`/detail/${rental.id}`);
   };
 
   return (
@@ -50,10 +40,11 @@ const FeaturedRentals = () => {
       </div>
 
       <div className="rentals-container">
-        {rentals.map(rental => (
+        {rentals.map((rental) => (
           <RentalCard
             key={rental.id}
             {...rental}
+            image={`http://127.0.0.1:8000${rental.image}`} // important for images
             onBook={() => handleBook(rental)}
           />
         ))}
@@ -64,6 +55,7 @@ const FeaturedRentals = () => {
           isOpen={showModal}
           rental={selectedRental}
           onClose={() => setShowModal(false)}
+          onAccept={handleAccept}
         />
       )}
 
