@@ -59,6 +59,11 @@ useEffect(() => {
         />
       )}
 
+<div className="view-all-house">
+        <button onClick={() => navigate("/rentals")} className="view-all-btn">
+          View All Rentals
+        </button>
+</div>
     </div>
   );
 };

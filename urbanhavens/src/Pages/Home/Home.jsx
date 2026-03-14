@@ -3,6 +3,8 @@ import Hero from '../../components/Hero/Hero'
 import AboutSection from '../../components/AboutSection/AboutSection'
 import FeaturedRentals from '../../components/FeaturedRentals/FeaturedRentals'
 import "./Home.css"
+import PropertyOwnersSection from '../../components/PropertyOwnersSection/PropertyOwnersSection.jsx'
+import RentalProcess from '../../components/RentalProcess/RentalProcess.jsx'
 
 const Home = () => {
   return (
@@ -10,6 +12,8 @@ const Home = () => {
         <Hero />
         <AboutSection />
          <FeaturedRentals />
+         <PropertyOwnersSection />
+         <RentalProcess/>
     </div>
   )
 }

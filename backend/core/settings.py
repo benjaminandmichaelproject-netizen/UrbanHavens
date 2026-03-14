@@ -41,6 +41,9 @@ INSTALLED_APPS = [
     'rentals',
     'properties',
     'corsheaders',
+      'users',
+          'rest_framework_simplejwt',
+
 ]
 
 MIDDLEWARE = [
@@ -122,3 +125,21 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_HEADERS = [
+    'content-type',
+    'authorization',
+]
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ]
+}
+
+AUTH_USER_MODEL = 'users.User'
+
+# Email settings for development
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'webmaster@localhost'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

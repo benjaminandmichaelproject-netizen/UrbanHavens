@@ -1,0 +1,53 @@
+:root{
+    --primary-color: #4CAF50;
+    --secondary-color: #f0f0f0;
+    --text-color: #333;
+    --background-color: #fff;
+    --black-color: #000;
+    --Yellow-color: #cc9900;
+    --text-color2: #ffffff66;
+    --secondary-color2: #111116;
+    --secondary-color3: #101014;
+    --seconYellow:#d38b09;
+}
+
+
+/* Hide the default radio button */
+input[type="radio"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  width: 40px;
+  height: 40px;
+  border: 2px solid #1e293b;
+  border-radius: 50%; /* makes it circular */
+  outline: none;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+/* Hover effect */
+input[type="radio"]:hover {
+  border-color: #3b82f6;
+}
+
+/* Checked state */
+input[type="radio"]:checked {
+  background-color: #1e293b;
+  border-color: #1e293b;
+}
+
+/* Inner dot when checked */
+input[type="radio"]:checked::after {
+  content: "";
+  display: block;
+  width: 30px;
+  height: 30px;
+  background: var(--Yellow-color);
+  border-radius: 50%;
+  position: relative;
+  top: 3px;
+  left: 3px;
+}
