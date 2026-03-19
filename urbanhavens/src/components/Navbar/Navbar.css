@@ -15,7 +15,7 @@
 
 
 .navbar {
-  position: relative;
+  position: absolute;
   width: 100%;
   height: 10vh;
   display: flex;
@@ -71,7 +71,7 @@
 
 /* Dropdown Menu */
 
-.dropdown-menu{
+.dropdown-menus{
   position: absolute;
   top: 40px;
   right: 0;
@@ -91,8 +91,8 @@
 
 /* Dropdown links */
 
-.dropdown-menu a,
-.dropdown-menu button{
+.dropdown-menus a,
+.dropdown-menus button{
   padding: 12px 15px;
   text-decoration: none;
   border: none;
@@ -103,8 +103,8 @@
   font-size: 14px;
 }
 
-.dropdown-menu a:hover,
-.dropdown-menu button:hover{
+.dropdown-menus a:hover,
+.dropdown-menus button:hover{
   background: #f1f5f9;
 }
 
@@ -156,7 +156,7 @@
     position: relative;
   }
 
-  .dropdown-menu {
+  .dropdown-menus {
     position: relative; /* part of the nav flow */
     top: 0;
     left: 0;
@@ -172,15 +172,15 @@
     flex-direction: column;
   }
 
-  .dropdown-menu a,
-  .dropdown-menu button {
+  .dropdown-menus a,
+  .dropdown-menus button {
     color: white;
     padding: 10px 20px;
     display: block;
   }
 
-  .dropdown-menu a:hover,
-  .dropdown-menu button:hover {
+  .dropdown-menus a:hover,
+  .dropdown-menus button:hover {
     background: rgba(255, 255, 255, 0.1);
   }
 

@@ -1,34 +1,45 @@
 :root{
     --primary-color: #4CAF50;
-    --secondary-color: #f0f0f0;
+    --secondary-color1: #f0f0f0;
     --text-color: #333;
     --background-color: #fff;
     --black-color: #000;
     --Yellow-color: #cc9900;
     --text-color2: #ffffff66;
-    --secondary-color2: #111116;
-    --secondary-color3: #101014;
+    --secondary-color2: #101014;
+    --secondary-colo: #09090b;
 ;
 }
 
 
 
+
 .rentals-main-container {
   padding: 60px 8%;
-  background-color: var(--secondary-color3);
+  background-color: var(--secondary-color2);
 }
 
-.heading {
+.subtitle {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
+   letter-spacing:4px;
+  font-size:12px;
+
 }
-.heading h1{
-  color: var(--secondary-color);
-  font-size: 3rem;
-  margin-bottom: 10px;
+
+
+.subtitle h1{
+  font-size:40px;
+  margin:10px 0;
+  color: var(--background-color);
 }
+
+.subtitle span{
+  color:var(--Yellow-color);
+}
+
 .heading p{
   color: var(--text-color2);
   font-size: 1.2rem;

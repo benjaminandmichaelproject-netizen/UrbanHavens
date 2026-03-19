@@ -7,9 +7,11 @@ const RentalProcess = () => {
     <section className="rental-process-section">
       <div className="rental-process-container">
 
-        <h2 className="rental-process-title">
-          House Rental <span className="highlight-text">Process</span>
+        <div className="subtitle">
+          <h2 >
+          House Rental <span>Process</span>
         </h2>
+        </div>
 
         <div className="process-cards">
 

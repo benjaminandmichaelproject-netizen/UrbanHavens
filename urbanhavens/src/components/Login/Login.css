@@ -1,131 +1,166 @@
+/* ================= PAGE BACKGROUND & HERO ================= */
 
-:root{
-    --primary-color: #1e293b;
-    --secondary-color: #f0f0f0;
-    --text-color: #333;
-    --background-color: #fff;
-    --black-color: #000;
-    --Yellow-color: #cc9900;
-    --text-color2: #ffffff66;
-    --secondary-color2: #111116;
-    --secondary-color3: #101014;
-    --seconYellow:#d38b09;
-}
-
-
-
-
+/* Replaces the green gradient with the dark registration theme */
 .login-container,
 .forgot-password-container,
 .confirm-reset-container,
 .reset-password-container {
   display: flex;
-  justify-content: center;
+  flex-direction: column; /* Stack Hero and Card */
   align-items: center;
-  min-height: 100vh; 
-  padding: 0 10px;
-  /* background: #f5f5f5; */
+  min-height: 100vh;
+  background-color: #000; /* Match registration wrapper */
 }
 
-/* Card style for all forms */
+/* HERO SECTION (Reusing your hero-banner styles) */
+.hero-banner {
+  width: 100%;
+  min-height: 40vh;
+  background: url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=2070&q=80') no-repeat center center/cover;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hero-overlay {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to bottom,
+      rgba(0, 0, 0, 0.6) 0%,
+      rgba(0, 0, 0, 0.6) 45%,
+      #000 100%);
+  padding: 8% 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  text-align: center;
+}
+
+/* ================= LOGIN CARD (Maintained Class Names) ================= */
+
 .login-card,
 .forgot-password-card,
 .confirm-reset-card,
 .reset-password-card {
   width: 100%;
-  max-width: 400px;
-  padding: 30px;
-  border-radius: 10px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-  /* background: white; */
+  max-width: 500px; /* Matched to account-card */
+ 
+  padding: 40px;
+  border-radius: 12px;
+  margin: -20px 0px 60px 20px; /* Pull card up slightly into hero */
+  position: relative;
+  z-index: 2;
   display: flex;
+  justify-content: center;
   flex-direction: column;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
-/* Form headings */
-.login-card h2,
-.forgot-password-card h2,
-.confirm-reset-card h2,
-.reset-password-card h2 {
+.login-card h2 {
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   font-size: 24px;
+  font-weight: 700;
+  color: white;
 }
 
-/* Input fields */
-.login-input,
-.forgot-password-card input,
-.confirm-reset-card input,
-.reset-password-card input {
+/* ================= INPUTS & LABELS ================= */
+
+.login-input {
   display: flex;
   flex-direction: column;
-  margin-bottom: 15px;
+  margin-bottom: 20px;
+}
+.reset-have-account{
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.login-input label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--yellow-color); /* Updated to Gold */
+  margin-bottom: 8px;
+  text-transform: uppercase;
 }
 
-.login-input input,
-.forgot-password-card input,
-.confirm-reset-card input,
-.reset-password-card input {
-  padding: 12px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 16px;
+.login-input input {
+  padding: 12px 15px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.3s;
 }
 
-/* Buttons */
+.login-input input:focus {
+  border-color: var(--yellow-color);
+  box-shadow: none;
+}
+
+/* ================= BUTTONS ================= */
+
 .login-btn,
-.forgot-password-card button,
-.confirm-reset-card button,
-.reset-password-card button {
+.forgot-password-card button {
   width: 100%;
-  padding: 12px;
-  border: none;
-  background-color: var(--Yellow-color);
+  padding: 14px;
+  background: var(--yellow-color); /* Updated to Gold */
   color: white;
-  border-radius: 6px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
   cursor: pointer;
   font-size: 16px;
-  margin-top: 5px;
-  transition: background 0.3s;
+  transition: background-color 0.2s;
 }
 
-.login-btn:hover,
-.forgot-password-card button:hover,
-.confirm-reset-card button:hover,
-.reset-password-card button:hover {
-  background-color: var(--seconYellow);
+.login-btn:hover {
+  filter: brightness(1.1);
+  transform: none; /* Removed the translateY from green version */
 }
 
-/* Error messages */
-.login-error,
-.forgot-password-error,
-.confirm-reset-error,
-.reset-password-error {
-  color: red;
-  margin-bottom: 10px;
+/* ================= LINKS & SUBTEXT ================= */
+
+.login-subtext {
   text-align: center;
+  margin-top: 20px;
+  font-size: 14px;
+  color: var(--light-gray);
 }
 
-/* Responsive tweaks */
-@media (max-width: 500px) {
-  .login-card,
-  .forgot-password-card,
-  .confirm-reset-card,
-  .reset-password-card {
-    padding: 20px;
+.forgot-password-link, 
+.login-subtext a {
+  color: var(--yellow-color);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.login-error, .login-success{
+  padding-bottom: 20px;
+}
+
+/* ================= RESPONSIVE (Fixing the 30px Gap) ================= */
+
+@media (max-width: 768px) {
+  .hero-banner{
+    min-height: 30vh;
+  }
+  .hero-overlay {
+    /* Navbar height (approx 60px) + 30px gap = 90px */
+    padding-top: 90px; 
   }
 
-  .login-btn,
-  .forgot-password-card button,
-  .confirm-reset-card button,
-  .reset-password-card button {
-    font-size: 14px;
+  .login-card {
+    margin-top: -80px; /* Tighter overlap on mobile */
+    padding: 30px 20px;
+    max-width: 90%;
   }
 
-  .login-card h2,
-  .forgot-password-card h2,
-  .confirm-reset-card h2,
-  .reset-password-card h2 {
-    font-size: 20px;
+  .login-card h2 {
+    font-size: 22px;
   }
 }

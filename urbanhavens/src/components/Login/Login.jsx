@@ -1,24 +1,19 @@
-import React, { useState } from "react";
+import { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 import "./Login.css";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [formData, setFormData] = useState({
-    email: "",
-    password: ""
-  });
-
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
+  const successMessage = location.state?.message || "";
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    setError(""); // clear previous error
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError("");
   };
 
   const handleSubmit = async (e) => {
@@ -27,50 +22,51 @@ const Login = () => {
     try {
       const res = await axios.post("http://127.0.0.1:8000/api/users/login/", formData);
 
-      // Destructure correct fields from backend response
-      const { token, username, role, is_superuser } = res.data;
-
-      // Determine role: superuser is admin
+      const { access, refresh, id, username, role, is_superuser } = res.data;
       const userRole = is_superuser ? "admin" : role.toLowerCase();
 
-      // Store in localStorage for dashboard
-      localStorage.setItem("token", token);
-      localStorage.setItem("role", userRole);
+      localStorage.setItem("token", access);
+      localStorage.setItem("refresh", refresh);
+      localStorage.setItem("userId", id);
       localStorage.setItem("username", username);
+      localStorage.setItem("role", userRole);
 
-      // Redirect based on role
-      if (userRole === "owner") {
-        navigate("/dashboard/owner");
-      } else if (userRole === "admin") {
-        navigate("/dashboard/admin");
-      } else {
-        navigate("/");
-      }
-
+      if (userRole === "owner") navigate("/dashboard/owner");
+      else if (userRole === "admin") navigate("/dashboard/admin");
+      else navigate("/");
     } catch (err) {
-      if (err.response?.data?.detail) {
-        setError(err.response.data.detail);
-      } else if (err.response?.data?.error) {
-        setError(err.response.data.error);
-      } else {
-        setError("Invalid email or password");
-      }
+      setError(
+        err.response?.data?.detail ||
+        err.response?.data?.error ||
+        "Invalid credentials"
+      );
     }
   };
 
   return (
     <div className="login-container">
+      <div className="hero-banner">
+        <div className="hero-overlay">
+          <span className="small-title">PROPERTY RENTALS</span>
+          <h1>Welcome Back</h1>
+          <p>Log in to manage your properties or find your next home.</p>
+        </div>
+      </div>
+
       <div className="login-card">
         <h2>Login</h2>
+
+        {successMessage && <p className="login-success">{successMessage}</p>}
         {error && <p className="login-error">{error}</p>}
 
         <form onSubmit={handleSubmit}>
           <div className="login-input">
-            <label>Email</label>
+            <label>Email Address</label>
             <input
               type="email"
               name="email"
-              placeholder="Enter your email"
+              placeholder="Enter email"
+              value={formData.email}
               onChange={handleChange}
               required
             />
@@ -82,28 +78,25 @@ const Login = () => {
               type="password"
               name="password"
               placeholder="Enter password"
+              value={formData.password}
               onChange={handleChange}
               required
             />
           </div>
 
-          <button className="login-btn" type="submit">
-            Login
-          </button>
+          <button type="submit" className="login-btn">Login</button>
         </form>
 
-        <div className="login-subtext">
-          <p>
-            Forgot your password?{" "}
-            <span
-              className="forgot-password-link"
-              onClick={() => navigate("/forgot-password")}
-              style={{ color: "#38bdf8", cursor: "pointer" }}
-            >
-              Reset here
-            </span>
-          </p>
-        </div>
+       <div className="reset-have-account">
+         <p>
+          Forgot your password?{" "}
+          <span onClick={() => navigate("/forgot-password")}>Reset here</span>
+        </p>
+        <p>
+          Don't have an account?{" "}
+          <span onClick={() => navigate("/register")}>Register here</span>
+        </p>
+       </div>
       </div>
     </div>
   );

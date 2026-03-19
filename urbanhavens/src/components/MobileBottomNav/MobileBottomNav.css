@@ -1,9 +1,25 @@
+:root{
+    --primary-color: #4CAF50;
+    --secondary-color: #f0f0f0;
+    --text-color: #333;
+    --background-color: #fff;
+    --black-color: #000;
+    --Yellow-color: #cc9900;
+    --text-color2: #ffffff66;
+    --secondary-color2: #111116;
+    --secondary-color3: #101014;
+    --seconYellow:#d38b09;
+}
+
+
+
+
 .mobile-bottom-nav {
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
-  background: #0f172a;
+  background: var(--secondary-color2);
   border-top: 1px solid #1e293b;
   display: flex;
   justify-content: space-around;
@@ -48,4 +64,29 @@
   .mobile-bottom-nav {
     display: none;
   }
+}.notification-nav-item {
+  position: relative;
+}
+
+.notification-icon-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -7px;
+  right: -10px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }

@@ -1,4 +1,3 @@
-// RegisterForm.jsx
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import axios from "axios";
@@ -10,155 +9,220 @@ const RegisterForm = () => {
   const accountType = location.state?.accountType || "tenant";
 
   const [formData, setFormData] = useState({
-    username: "",
+    firstName: "",
+    surname: "",
     email: "",
     phone: "",
     password: "",
     confirmPassword: "",
-    documentType: "",
-    documentFile: null,
-    businessName: ""
+    businessName: "",
+    idType: "",
+    idNumber: "",
+    idFile: null
   });
 
   const [errors, setErrors] = useState({});
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
     setErrors({ ...errors, [e.target.name]: "" });
   };
 
   const handleFileChange = (e) => {
-    setFormData({ ...formData, documentFile: e.target.files[0] });
+    setFormData({ ...formData, idFile: e.target.files[0] });
+    setErrors({ ...errors, idFile: "" });
   };
-const handleSubmit = async (e) => {
-  e.preventDefault();
 
-  // Basic frontend validation
-  if (formData.password !== formData.confirmPassword) {
-    setErrors({ confirmPassword: "Passwords do not match" });
-    return;
-  }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  const data = new FormData();
-  data.append("username", formData.username);
-  data.append("email", formData.email);
-  data.append("phone", formData.phone || ""); // optional
-  data.append("password", formData.password);
-  data.append("role", accountType === "landlord" ? "owner" : "tenant");
+    let newErrors = {};
 
-  // Only add landlord-specific fields if accountType is landlord
-  if (accountType === "landlord") {
-    if (formData.documentType) data.append("document_type", formData.documentType);
-    if (formData.documentFile) data.append("document_file", formData.documentFile);
-    if (formData.businessName) data.append("business_name", formData.businessName);
-  }
+    if (!formData.firstName.trim()) newErrors.firstName = "First name is required!";
+    if (!formData.surname.trim()) newErrors.surname = "Surname is required!";
+    if (!formData.email.trim()) newErrors.email = "Email is required!";
+    if (!formData.password) newErrors.password = "Password is required!";
+    if (!formData.confirmPassword) newErrors.confirmPassword = "Confirm your password!";
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = "Passwords do not match!";
+    }
 
-  try {
-    const res = await axios.post(
-      "http://127.0.0.1:8000/api/users/register/",
-      data,
-      { headers: { "Content-Type": "multipart/form-data" } }
-    );
+    if (accountType === "landlord") {
+      if (!formData.businessName.trim()) newErrors.businessName = "Business name is required!";
+      if (!formData.idType) newErrors.idType = "Select ID type!";
+      if (!formData.idNumber.trim()) newErrors.idNumber = "ID number is required!";
+      if (!formData.idFile) newErrors.idFile = "Upload your ID document!";
+    }
 
-    const user = res.data.user;
-    localStorage.setItem("username", user.username);
-    localStorage.setItem("role", user.role);
-    navigate("/success", { state: { accountType: user.role } });
-  } catch (err) {
-    console.log("Registration error:", err.response?.data);
-    if (err.response?.data) setErrors(err.response.data);
-  }
-};
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    const data = new FormData();
+    data.append("first_name", formData.firstName);
+    data.append("last_name", formData.surname);
+    data.append("email", formData.email);
+    data.append("phone", formData.phone || "");
+    data.append("password", formData.password);
+    data.append("confirm_password", formData.confirmPassword);
+    data.append("role", accountType === "landlord" ? "owner" : "tenant");
+
+    if (accountType === "landlord") {
+      data.append("business_name", formData.businessName);
+      data.append("document_type", formData.idType);
+      data.append("id_number", formData.idNumber);
+      data.append("document_file", formData.idFile);
+    }
+
+    try {
+      const res = await axios.post(
+        "http://127.0.0.1:8000/api/users/register/",
+        data,
+        {
+          headers: { "Content-Type": "multipart/form-data" }
+        }
+      );
+
+      const user = res.data.user;
+
+      localStorage.removeItem("token");
+      localStorage.setItem("username", user.username || "");
+      localStorage.setItem("role", user.role || "");
+
+      navigate("/login", {
+        state: {
+          message: "Account created successfully. Please log in."
+        }
+      });
+    } catch (err) {
+      console.error(err.response?.data);
+
+      if (err.response?.data) {
+        const backendErrors = {};
+
+        Object.keys(err.response.data).forEach((key) => {
+          const value = err.response.data[key];
+          backendErrors[key] = Array.isArray(value) ? value[0] : value;
+        });
+
+        setErrors(backendErrors);
+      }
+    }
+  };
+
   return (
-    <div className="registration-containers">
-      <h2>Create your {accountType} Account</h2>
-  <form onSubmit={handleSubmit} className="registration-form">
+    <div className="login-container">
+      <section className="hero-banner">
+        <div className="hero-overlay">
+          <span className="small-title">PROPERTY RENTALS</span>
+          <h2>Create your {accountType} Account</h2>
+        </div>
+      </section>
 
-  <div className="form-row">
-    <div className="input-group">
-      <label>Full Name</label>
-      <input type="text" name="username" placeholder="Enter full name" onChange={handleChange} />
-      {errors.username && <p className="error-text">{errors.username}</p>}
-    </div>
+      <div className="login-card" style={{ maxWidth: "800px", marginTop: "-60px" }}>
+        <form onSubmit={handleSubmit} className="registration-form">
+          <div className="form-row">
+            <div className="input-group">
+              <label>First Name</label>
+              <input name="firstName" value={formData.firstName} onChange={handleChange} />
+              {errors.firstName && <p className="error-text">{errors.firstName}</p>}
+            </div>
 
-    <div className="input-group">
-      <label>Email</label>
-      <input type="email" name="email" placeholder="Enter email" onChange={handleChange} />
-      {errors.email && <p className="error-text">{errors.email}</p>}
-    </div>
-  </div>
+            <div className="input-group">
+              <label>Surname</label>
+              <input name="surname" value={formData.surname} onChange={handleChange} />
+              {errors.surname && <p className="error-text">{errors.surname}</p>}
+            </div>
+          </div>
 
-  <div className="form-row">
-    <div className="input-group">
-      <label>Phone Number</label>
-      <input type="tel" name="phone" placeholder="Enter phone number" onChange={handleChange} />
-      {errors.phone && <p className="error-text">{errors.phone}</p>}
-    </div>
+          <div className="form-row">
+            <div className="input-group">
+              <label>Email</label>
+              <input type="email" name="email" value={formData.email} onChange={handleChange} />
+              {errors.email && <p className="error-text">{errors.email}</p>}
+            </div>
 
-    <div className="input-group">
-      <label>Password</label>
-      <input type="password" name="password" onChange={handleChange} />
-      {errors.password && <p className="error-text">{errors.password}</p>}
-    </div>
-  </div>
+            <div className="input-group">
+              <label>Phone</label>
+              <input name="phone" value={formData.phone} onChange={handleChange} />
+              {errors.phone && <p className="error-text">{errors.phone}</p>}
+            </div>
+          </div>
 
- <div className="form-row">
-  <div className="input-group">
-    <label>Confirm Password</label>
-    <input type="password" name="confirmPassword" onChange={handleChange} />
-    {errors.confirmPassword && <p className="error-text">{errors.confirmPassword}</p>}
-  </div>
+          <div className="form-row">
+            <div className="input-group">
+              <label>Password</label>
+              <input type="password" name="password" value={formData.password} onChange={handleChange} />
+              {errors.password && <p className="error-text">{errors.password}</p>}
+            </div>
 
-  <div className="input-group">
-    {accountType === "landlord" ? (
-      <>
-        <label>Document Type</label>
-        <select name="documentType" onChange={handleChange}>
-          <option value="">Select Document</option>
-          <option value="National ID">National ID</option>
-          <option value="Passport">Passport</option>
-          <option value="Driver's License">Driver's License</option>
-        </select>
-        {errors.documentType && <p className="error-text">{errors.documentType}</p>}
-      </>
-    ) : (
-      <div style={{ visibility: "hidden" }}>Placeholder</div> 
-      // invisible but takes up space for alignment
-    )}
-  </div>
-</div>
+            <div className="input-group">
+              <label>Confirm Password</label>
+              <input
+                type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+              />
+              {errors.confirmPassword && <p className="error-text">{errors.confirmPassword}</p>}
+            </div>
+          </div>
 
-<div className="form-row">
-  <div className="input-group">
-    {accountType === "landlord" ? (
-      <>
-        <label>Upload Document</label>
-        <input type="file" name="documentFile" onChange={handleFileChange} />
-        {errors.documentFile && <p className="error-text">{errors.documentFile}</p>}
-      </>
-    ) : (
-      <div style={{ visibility: "hidden" }}>Placeholder</div>
-    )}
-  </div>
+          {accountType === "landlord" && (
+            <>
+              <div className="form-row">
+                <div className="input-group">
+                  <label>Business Name</label>
+                  <input name="businessName" value={formData.businessName} onChange={handleChange} />
+                  {(errors.businessName || errors.business_name) && (
+                    <p className="error-text">{errors.businessName || errors.business_name}</p>
+                  )}
+                </div>
 
-  <div className="input-group">
-    {accountType === "landlord" ? (
-      <>
-        <label>Business / Agency Name (optional)</label>
-        <input type="text" name="businessName" placeholder="Enter business name" onChange={handleChange} />
-      </>
-    ) : (
-      <div style={{ visibility: "hidden" }}>Placeholder</div>
-    )}
-  </div>
-</div>
+                <div className="input-group">
+                  <label>ID Type</label>
+                  <select name="idType" value={formData.idType} onChange={handleChange}>
+                    <option value="">Select ID</option>
+                    <option value="Ghana Card">Ghana Card</option>
+                    <option value="Passport">Passport</option>
+                    <option value="Driver License">Driver License</option>
+                  </select>
+                  {(errors.idType || errors.document_type) && (
+                    <p className="error-text">{errors.idType || errors.document_type}</p>
+                  )}
+                </div>
+              </div>
 
-  <button type="submit" className="submit-btn">Create {accountType} Account</button>  
-  <p className="readyaccount">Already have an account? <Link to="/login">Sign in here</Link></p>
-</form>
+              <div className="form-row">
+                <div className="input-group">
+                  <label>ID Number</label>
+                  <input name="idNumber" value={formData.idNumber} onChange={handleChange} />
+                  {(errors.idNumber || errors.id_number) && (
+                    <p className="error-text">{errors.idNumber || errors.id_number}</p>
+                  )}
+                </div>
+
+                <div className="input-group">
+                  <label>Upload ID</label>
+                  <input type="file" onChange={handleFileChange} />
+                  {(errors.idFile || errors.document_file) && (
+                    <p className="error-text">{errors.idFile || errors.document_file}</p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+
+          <button className="login-btn" type="submit">
+            Create Account
+          </button>
+
+          <p className="readyaccount">
+            Already have an account? <Link to="/login">Sign in here</Link>
+          </p>
+        </form>
+      </div>
     </div>
   );
 };

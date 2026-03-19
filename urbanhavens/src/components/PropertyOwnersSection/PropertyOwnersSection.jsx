@@ -7,8 +7,8 @@ import { faBuilding, faChartLine, faCheck } from "@fortawesome/free-solid-svg-ic
 const PropertyOwnersSection = () => {
   return (
     <div className="PropertyOwnersSection">
-      <div className="heading">
-        <h2>For Property Owners</h2>
+      <div className="subtitle">
+        <h2>For Property <span> Owners</span></h2>
         <p>List and manage your properties with our comprehensive platform</p>
       </div>
 

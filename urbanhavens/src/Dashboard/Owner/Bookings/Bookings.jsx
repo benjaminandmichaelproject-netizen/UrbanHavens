@@ -1,0 +1,183 @@
+import React, { useEffect, useMemo, useState } from "react";
+import "./Bookings.css";
+import ScheduleMeeting from "../ScheduleMeeting/ScheduleMeeting";
+import { getOwnerBookings } from "../UploadDetails/api/api";
+
+const Bookings = () => {
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+
+  const totalBookings = useMemo(() => bookings.length, [bookings]);
+
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  const transformBookings = (data) => {
+    if (!Array.isArray(data)) return [];
+
+    return data.map((booking) => ({
+      ...booking,
+      property_name: booking.property_name || "Unknown Property",
+      tenant_name: booking.tenant_name || booking.name,
+      date: booking.created_at
+        ? new Date(booking.created_at).toLocaleDateString()
+        : "",
+      status: booking.status
+        ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1)
+        : "Pending",
+    }));
+  };
+
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      const data = await getOwnerBookings();
+      setBookings(transformBookings(data));
+    } catch (error) {
+      console.error("Failed to fetch bookings:", error);
+      setBookings([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openScheduleModal = (booking) => {
+    setSelectedBooking(booking);
+    setScheduleOpen(true);
+  };
+
+  const closeScheduleModal = () => {
+    setScheduleOpen(false);
+    setSelectedBooking(null);
+  };
+
+  if (loading) {
+    return (
+      <div className="bookings-page">
+        <div className="bookings-empty">
+          <h3>Loading bookings...</h3>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bookings-page">
+      <div className="bookings-header">
+        <div>
+          <h1>Bookings</h1>
+          <p>View all booking requests sent by tenants for your properties.</p>
+        </div>
+
+        <div className="bookings-summary">
+          <span>{totalBookings}</span>
+          <small>Total Requests</small>
+        </div>
+      </div>
+
+      {bookings.length === 0 ? (
+        <div className="bookings-empty">
+          <h3>No bookings yet</h3>
+          <p>When tenants send requests for your properties, they will appear here.</p>
+        </div>
+      ) : (
+        <>
+          <div className="bookings-table-wrapper">
+            <table className="bookings-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Property</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Contact</th>
+                  <th>Message</th>
+                  <th>Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {bookings.map((booking) => (
+                  <tr key={booking.id}>
+                    <td>#{booking.id}</td>
+                    <td>{booking.property_name}</td>
+                    <td>{booking.tenant_name}</td>
+                    <td>{booking.email}</td>
+                    <td>
+                      <a href={`tel:${booking.phone}`} className="call-link">
+                        {booking.phone}
+                      </a>
+                    </td>
+                    <td className="message-cell">{booking.message}</td>
+                    <td>{booking.date}</td>
+                    <td>
+                      <span className={`booking-status ${booking.status.toLowerCase()}`}>
+                        {booking.status}
+                      </span>
+                    </td>
+                    <td>
+                      <button
+                        className="schedule-btn"
+                        onClick={() => openScheduleModal(booking)}
+                      >
+                        Schedule Meeting
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="bookings-mobile-list">
+            {bookings.map((booking) => (
+              <div className="booking-card" key={booking.id}>
+                <div className="booking-card-top">
+                  <h3>{booking.property_name}</h3>
+                  <span className={`booking-status ${booking.status.toLowerCase()}`}>
+                    {booking.status}
+                  </span>
+                </div>
+
+                <p><strong>ID:</strong> #{booking.id}</p>
+                <p><strong>Name:</strong> {booking.tenant_name}</p>
+                <p><strong>Email:</strong> {booking.email}</p>
+                <p>
+                  <strong>Contact:</strong>{" "}
+                  <a href={`tel:${booking.phone}`} className="call-link">
+                    {booking.phone}
+                  </a>
+                </p>
+                <p><strong>Date:</strong> {booking.date}</p>
+                <p><strong>Message:</strong> {booking.message}</p>
+
+                <div className="booking-card-actions">
+                  <button
+                    className="schedule-btn"
+                    onClick={() => openScheduleModal(booking)}
+                  >
+                    Schedule Meeting
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {scheduleOpen && (
+        <ScheduleMeeting
+          booking={selectedBooking}
+          onClose={closeScheduleModal}
+        />
+      )}
+    </div>
+  );
+};
+
+export default Bookings;

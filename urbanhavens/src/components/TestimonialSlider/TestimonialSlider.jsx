@@ -40,7 +40,8 @@ const testimonials = [
 
 const TestimonialSlider = () => {
   return (
-    <section className="testimonial-section">
+ <div className="testi">
+   <section className="testimonial-section">
       <div className="testimonial-container">
 
         <p className="testimonial-label">TESTIMONIALS</p>
@@ -90,6 +91,9 @@ const TestimonialSlider = () => {
 
       </div>
     </section>
+
+
+ </div>
   );
 };
 

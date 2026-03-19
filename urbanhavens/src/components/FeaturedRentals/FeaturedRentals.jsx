@@ -2,68 +2,108 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import "./FeaturedRentals.css";
 import RentalCard from "./RentalCard";
-import AgreementModal from "../AgreementModal/AgreementModal";
 
 const FeaturedRentals = () => {
   const navigate = useNavigate();
 
-  const [rentals, setRentals] = useState([]); // now from backend
-  const [selectedRental, setSelectedRental] = useState(null);
-  const [showModal, setShowModal] = useState(false);
+  const [properties, setProperties] = useState([]);
+  const [error, setError] = useState("");
 
-  // 🔥 Fetch from Django API
-useEffect(() => {
-  fetch("http://127.0.0.1:8000/api/properties/")
-    .then((res) => res.json())
-    .then((data) => {
-      console.log("Fetched Data:", data); // 👈 ADD THIS
-      setRentals(data);
-    })
-    .catch((err) => console.error("Error fetching properties:", err));
-}, []);
-  const handleBook = (rental) => {
-    setSelectedRental(rental);
-    setShowModal(true);
+  useEffect(() => {
+    fetch("http://127.0.0.1:8000/api/properties/")
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("Fetched Data:", data);
+
+        if (Array.isArray(data)) {
+          setProperties(data);
+          setError("");
+        } else {
+          setProperties([]);
+          setError(data.detail || "Failed to fetch properties");
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching properties:", err);
+        setProperties([]);
+        setError("Error fetching properties");
+      });
+  }, []);
+
+  const handleBook = (property) => {
+    navigate(`/detail/${property.id}`, { state: { property } });
   };
 
-  const handleAccept = (rental) => {
-    setShowModal(false);
-    navigate(`/detail/${rental.id}`);
+  const getImageUrl = (property) => {
+    const firstImage = property?.images?.[0]?.image;
+
+    if (!firstImage) return "";
+
+    if (firstImage.startsWith("http")) {
+      return firstImage;
+    }
+
+    return `http://127.0.0.1:8000${firstImage}`;
+  };
+
+  const getAmenitiesPreview = (amenities) => {
+    if (!amenities) return [];
+
+    let parsedAmenities = amenities;
+
+    if (typeof amenities === "string") {
+      try {
+        parsedAmenities = JSON.parse(amenities);
+      } catch {
+        parsedAmenities = amenities.split(",").map((item) => item.trim());
+      }
+    }
+
+    if (Array.isArray(parsedAmenities)) {
+      return parsedAmenities.slice(0, 3);
+    }
+
+    return [];
   };
 
   return (
     <div className="rentals-main-container">
-
-      <div className="heading">
-        <h1>Featured Rentals</h1>
+      <div className="subtitle">
+        <h1>
+          Featured <span>Properties</span>
+        </h1>
         <p>Explore our handpicked selection of premium rental properties</p>
       </div>
 
+      {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
+
       <div className="rentals-container">
-        {rentals.map((rental) => (
-          <RentalCard
-            key={rental.id}
-            {...rental}
-            image={`http://127.0.0.1:8000${rental.image}`} // important for images
-            onBook={() => handleBook(rental)}
-          />
-        ))}
+        {properties.length > 0 ? (
+          properties.map((property) => (
+            <RentalCard
+              key={property.id}
+              id={property.id}
+              image={getImageUrl(property)}
+              title={property.property_name}
+              city={property.city}
+              price={property.price}
+              amenities={getAmenitiesPreview(property.amenities)}
+              onBook={() => handleBook(property)}
+            />
+          ))
+        ) : (
+          !error && <p style={{ textAlign: "center" }}>No properties available.</p>
+        )}
       </div>
 
-      {showModal && (
-        <AgreementModal
-          isOpen={showModal}
-          rental={selectedRental}
-          onClose={() => setShowModal(false)}
-          onAccept={handleAccept}
-        />
-      )}
-
-<div className="view-all-house">
-        <button onClick={() => navigate("/rentals")} className="view-all-btn">
-          View All Rentals
+      <div className="view-all-house">
+        <button
+          onClick={() => navigate("/propertylisting")}
+          className="view-all-btn"
+        >
+          View All Properties
         </button>
-</div>
+      </div>
     </div>
   );
 };

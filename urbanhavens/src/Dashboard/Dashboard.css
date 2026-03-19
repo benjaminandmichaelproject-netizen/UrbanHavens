@@ -1,65 +1,135 @@
 :root {
-  --primary-color: #4CAF50;
-  --secondary-color: #f0f0f0;
-  --text-color: #333;
-  --background-color: #fff;
-  --black-color: #000;
-  --yellow-color: #cc9900;
+  --primary-color: #f4d63f;      /* yellow highlight */
+  --secondary-color: #f7f7f7;    /* light panel */
+  --text-color: #2f2f2f;         /* main text */
+  --background-color: #ffffff;   /* page background */
+  --black-color: #ffffff;        /* navbar/sidebar base switched to white */
+  --yellow-color: #f4d63f;       /* active/hover */
+  --border-color: #e9e9e9;
+  --muted-text: #8a8a8a;
+  --shadow-soft: 0 4px 18px rgba(0, 0, 0, 0.06);
+  --black:#000;
 }
 
 /* ================= Navbar ================= */
 .dashboard-navbar {
-  height: 60px;
-  background-color: var(--black-color);
-  color: #fff;
+  height: 72px;
+  background-color: var(--background-color);
+  color: var(--text-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 20px;
+  padding: 0 24px;
   position: sticky;
   top: 0;
   z-index: 1001;
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
 .menu-toggle {
   display: none;
-  font-size: 24px;
+  font-size: 26px;
   cursor: pointer;
+  color: var(--text-color);
+  transition: 0.2s ease;
+}
+
+.menu-toggle:hover {
+  color: #111;
+}
+
+.user-name {
+  color: var(--text-color);
+  font-weight: 500;
+  font-size: 15px;
 }
 
 /* ================= Sidebar ================= */
 .dashboard-sidebar {
   width: 250px;
-  background-color: var(--black-color);
+  background-color: #fbfbfb;
   min-height: 100vh;
-  padding: 20px;
+  padding: 24px 18px;
   transition: transform 0.3s ease-in-out;
+  border-right: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
 }
 
 .dashboard-sidebar h3 {
-  margin-bottom: 20px;
-  color: var(--background-color);
+  margin-bottom: 24px;
+  color: var(--text-color);
+  font-size: 20px;
+  font-weight: 700;
 }
 
 .dashboard-sidebar ul {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
   list-style: none;
   padding: 0;
+  margin: 0;
+  gap: 8px;
+  flex: 1;
 }
 
 .dashboard-sidebar ul li {
-  margin: 10px 0;
+  margin: 0;
+  border: none;
 }
 
-.dashboard-sidebar ul li a {
+.dashboard-sidebar ul li a,
+.sidebar-link {
   text-decoration: none;
-  color: var(--background-color);
-  display: block;
-  padding: 8px 12px;
-  border-radius: 4px;
+  color:var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.25s ease;
+  background-color: transparent;
 }
 
-.dashboard-sidebar ul li a:hover {
-  color: var(--primary-color);
+.dashboard-sidebar ul li a:hover,
+.sidebar-link:hover {
+  background-color: #f4d63f;
+  color:var(--black);
+}
+
+.dashboard-sidebar ul li a.active,
+.sidebar-link.active-link {
+  background-color: #f4d63f;
+  color: var(--black);
+  font-weight: 600;
+}
+
+.sidebar-icon {
+  font-size: 15px;
+  min-width: 16px;
+  flex-shrink: 0;
+  color: var(--black);
+}
+
+.sidebar-link span,
+.dashboard-sidebar ul li a span {
+  display: inline-block;
+  line-height: 1;
+  color: var(--text-color);
+}
+
+.sidebar-logout-item {
+  margin-top: auto !important;
+  padding-top: 18px;
+}
+
+.dashboard-sidebar ul li a[style] {
+  background-color: #f4d63f1f;
+  border-radius: 10px;
 }
 
 /* Sidebar hidden on mobile by default */
@@ -69,23 +139,26 @@
   top: 0;
   left: 0;
   z-index: 1000;
+  box-shadow: var(--shadow-soft);
 }
 
 /* ================= Dashboard Layout ================= */
 .dashboard-layout {
   display: flex;
   min-height: 100vh;
+  background-color: #f3f3f3;
 }
 
 .dashboard-main {
   flex: 1;
   display: flex;
   flex-direction: column;
+  background-color: #f8f8f8;
 }
 
 .dashboard-content {
   padding: 20px;
-  background-color: #e5e7eb;
+  background-color: var(--background-color);
   flex: 1;
 }
 
@@ -101,6 +174,7 @@
     top: 0;
     left: 0;
     transform: translateX(-100%);
+    background-color: #fbfbfb;
   }
 
   .dashboard-sidebar.open {
@@ -113,6 +187,11 @@
 
   .dashboard-content {
     padding: 15px;
+  }
+
+  .dashboard-navbar {
+    padding: 0 16px;
+    height: 64px;
   }
 }
 

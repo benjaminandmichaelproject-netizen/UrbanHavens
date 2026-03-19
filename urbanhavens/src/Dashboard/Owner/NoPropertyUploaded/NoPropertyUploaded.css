@@ -1,0 +1,161 @@
+.no-property-wrapper {
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  text-align: center;
+  background: #f8f8f8;
+}
+
+.no-property-illustration {
+  position: relative;
+  width: 300px;
+  height: 180px;
+  margin-bottom: 18px;
+}
+
+.ghost-card {
+  position: absolute;
+  width: 220px;
+  height: 74px;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.ghost-back {
+  top: 8px;
+  left: 30px;
+  opacity: 0.45;
+  transform: scale(0.94);
+}
+
+.ghost-front {
+  top: 40px;
+  left: 44px;
+  z-index: 2;
+}
+
+.ghost-bottom {
+  top: 78px;
+  left: 62px;
+  opacity: 0.28;
+  transform: scale(0.9);
+}
+
+.ghost-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #f1f1f1;
+  color: #b8b8b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+.ghost-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ghost-lines span {
+  display: block;
+  height: 8px;
+  border-radius: 999px;
+  background: #efefef;
+}
+
+.ghost-lines span:nth-child(1) {
+  width: 72%;
+}
+
+.ghost-lines span:nth-child(2) {
+  width: 88%;
+}
+
+.ghost-lines span:nth-child(3) {
+  width: 64%;
+  background: #e0e0e0;
+}
+
+.no-property-wrapper h2 {
+  margin: 0 0 8px;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #202020;
+}
+
+.no-property-wrapper p {
+  margin: 0 0 22px;
+  color: #8d8d8d;
+  font-size: 0.98rem;
+}
+
+.add-property-btn {
+  border: none;
+  outline: none;
+  background: #f5d625;
+  color: #111;
+  font-weight: 700;
+  font-size: 0.98rem;
+  padding: 14px 28px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 10px 18px rgba(245, 214, 37, 0.28);
+}
+
+.add-property-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 24px rgba(245, 214, 37, 0.36);
+}
+
+@media (max-width: 768px) {
+  .no-property-wrapper {
+    min-height: 60vh;
+    padding: 18px;
+  }
+
+  .no-property-illustration {
+    width: 250px;
+    height: 160px;
+  }
+
+  .ghost-card {
+    width: 190px;
+    height: 68px;
+    padding: 12px 14px;
+  }
+
+  .ghost-back {
+    left: 18px;
+  }
+
+  .ghost-front {
+    left: 30px;
+  }
+
+  .ghost-bottom {
+    left: 45px;
+  }
+
+  .no-property-wrapper h2 {
+    font-size: 1.7rem;
+  }
+
+  .add-property-btn {
+    width: 100%;
+    max-width: 260px;
+  }
+}

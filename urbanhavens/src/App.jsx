@@ -12,25 +12,52 @@ import Login from "./Pages/Login";
 import Registration from "./Pages/Registration/Registration";
 import RegisterForm from "./Pages/Registration/RegisterForm";
 import Success from "./Pages/Success";
-
 import TenantDashboard from "./Dashboard/Tenant/TenantDashboard";
-import OwnerDashboard from "./Dashboard/Owner/OwnerDashboard";
+import ScheduledViewings from "./Dashboard/Tenant/ScheduledViewings";
+import Favorites from "./Dashboard/Tenant/Favorites";
+import Payments from "./Dashboard/Tenant/Payments";
+import HelpCenter from "./Dashboard/HelpCenter";
+import AccountSettings from "./Dashboard/AccountSettings";
+import Logout from "./Dashboard/Tenant/Logout";
+import MyBookings from "./Dashboard/Tenant/MyBookings";
+import Profile from "./Dashboard/Tenant/Profile";
+import MyProperties from "./Dashboard/Owner/MyProperties/MyProperties";
+import OwnerDashboard from "./Dashboard/Owner/OwnerDashboard/OwnerDashboard";
 import AdminDashboard from "./Dashboard/Admin/AdminDashboard";
-
+import PropertyListing from "./Pages/PropertyListing/PropertyListing";
 import DashboardLayout from "./Dashboard/components/DashboardLayout";
 import LoginPage from "./Pages/LoginPage/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-
+import Detail from "./Pages/Detail/Detail";
+import Landlord from "./Pages/Landlord/Lanlord";
 import "./App.css";
+import Uploadpage from "./Dashboard/Owner/UploadDetails/Uploadpage";
+import Upload from "./Dashboard/Owner/Upload";
+import Tenants from "./Dashboard/Owner/Tenants";
+import Documents from "./Dashboard/Owner/Documents";
+import Contracts from "./Dashboard/Owner/Contracts";
+import Bookings from "./Dashboard/Owner/Bookings/Bookings";
 
+import Notifications from "./Pages/Notifications/Notifications";
 const AppContent = () => {
   const location = useLocation();
+
   const isDashboard = location.pathname.startsWith("/dashboard");
+
+  /* AUTH PAGES WHERE NAVBAR SHOULD NOT SHOW */
+  const hideNavbarRoutes = [
+    "/login",
+    "/forgot-password",
+    "/confirm-reset-code",
+    "/reset-password"
+  ];
+
+  const isAuthPage = hideNavbarRoutes.includes(location.pathname);
 
   return (
     <>
-      {/* Show Navbar only on public pages */}
-      {!isDashboard && <Navbar />}
+      {/* Show Navbar only when not dashboard and not auth pages */}
+      {!isDashboard && !isAuthPage && <Navbar />}
 
       <Routes>
 
@@ -38,16 +65,17 @@ const AppContent = () => {
         <Route path="/" element={<Home />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/about" element={<About />} />
+        <Route path="/propertylisting" element={<PropertyListing />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-<Route path="/confirm-reset-code" element={<ConfirmResetCode />} />
-<Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/confirm-reset-code" element={<ConfirmResetCode />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/registration" element={<Registration />} />
         <Route path="/register-form" element={<RegisterForm />} />
         <Route path="/success" element={<Success />} />
-
-
-        {/* DASHBOARD LAYOUT */}
+        <Route path="/detail/:id" element={<Detail />} />        {/* DASHBOARD LAYOUT */}
+        <Route path="/landlord/:id" element={<Landlord />} />
+<Route path="/notifications" element={<Notifications />} />
         <Route
           path="/dashboard"
           element={
@@ -59,20 +87,29 @@ const AppContent = () => {
 
           {/* OWNER ROUTES */}
           <Route path="owner" element={<OwnerDashboard />} />
-          <Route path="owner/upload" element={<div>Upload Page</div>} />
-          <Route path="owner/my-properties" element={<div>My Properties</div>} />
-          <Route path="owner/bookings" element={<div>Bookings</div>} />
+          <Route path="owner/upload" element={<Upload />} />
+          <Route path="owner/UploadDetails/uploadpage" element={<Uploadpage />} />
+          <Route path="owner/my-properties" element={<MyProperties />} />
+          <Route path="owner/bookings" element={<Bookings/>} />
           <Route path="owner/settings" element={<div>Owner Settings</div>} />
+          <Route path="owner/tenants" element={<div>Tenants</div>} />
+          <Route path="owner/contracts" element={<div>Contracts</div>} />
+          <Route path="owner/documents" element={<div>Documents</div>} />
+          <Route path="owner/help" element={<div>Help & Support</div>} />
+
 
 
           {/* TENANT ROUTES */}
+       
           <Route path="tenant" element={<TenantDashboard />} />
-          <Route path="tenant/favorites" element={<div>Favorites</div>} />
-          <Route path="tenant/bookings" element={<div>Tenant Bookings</div>} />
-          <Route path="tenant/settings" element={<div>Tenant Settings</div>} />
-
-
-          {/* ADMIN ROUTES */}
+          <Route path="tenant/scheduled-viewings" element={<ScheduledViewings />} />
+          <Route path="tenant/favorites" element={<Favorites />} />
+          <Route path="tenant/payments" element={<Payments />} />
+          <Route path="tenant/help" element={<HelpCenter />} />
+          <Route path="tenant/settings" element={<AccountSettings />} />
+          <Route path="tenant/bookings" element={<MyBookings />} />
+          <Route path="tenant/profile" element={<Profile />} />
+          <Route path="logout" element={<Logout />} />
           <Route path="admin" element={<AdminDashboard />} />
           <Route path="admin/users" element={<div>Manage Users</div>} />
           <Route path="admin/properties" element={<div>Manage Properties</div>} />
@@ -84,7 +121,7 @@ const AppContent = () => {
       </Routes>
 
       {/* Bottom nav only on public pages */}
-      {!isDashboard && <MobileBottomNav />}
+      {!isDashboard && !isAuthPage && <MobileBottomNav />}
     </>
   );
 };

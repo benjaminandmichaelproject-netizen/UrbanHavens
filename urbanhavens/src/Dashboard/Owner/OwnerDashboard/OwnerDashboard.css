@@ -1,0 +1,148 @@
+.owner-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+/* HERO */
+.dashboard-hero {
+  height: 220px;
+  border-radius: 16px;
+  background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)),
+              url("https://images.unsplash.com/photo-1600585154340-be6161a56a0c");
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  padding: 30px;
+  color: white;
+}
+
+.hero-content h2 {
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.hero-content p {
+  font-size: 14px;
+  margin-bottom: 15px;
+}
+
+.hero-btn {
+  background: #f4d63f;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* ACTION CARDS */
+.dashboard-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.action-card {
+  background: #fff;
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid #eee;
+  transition: 0.2s ease;
+}
+
+.action-card:hover {
+  transform: translateY(-3px);
+}
+
+.action-card h4 {
+  margin-bottom: 6px;
+}
+
+.action-card p {
+  font-size: 13px;
+  color: #777;
+}
+
+/* TABLE */
+.dashboard-table {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #eee;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.table-filters button {
+  margin-left: 8px;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 8px;
+  background: #eee;
+  cursor: pointer;
+}
+
+.table-filters .active {
+  background: #000;
+  color: #fff;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead {
+  text-align: left;
+  font-size: 14px;
+  color: #777;
+}
+
+tbody tr {
+  border-top: 1px solid #eee;
+}
+
+td {
+  padding: 12px 0;
+  font-size: 14px;
+}
+
+/* STATUS */
+.status {
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+}
+
+.status.active {
+  background: #d4f5e9;
+  color: #1c9c6d;
+}
+
+.status.pending {
+  background: #fff4d6;
+  color: #c99a00;
+}
+
+.status.inactive {
+  background: #ffe0e0;
+  color: #d9534f;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .dashboard-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-hero {
+    height: auto;
+    padding: 20px;
+  }
+}

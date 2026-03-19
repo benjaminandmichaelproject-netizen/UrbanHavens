@@ -1,0 +1,172 @@
+:root{
+    --primary-color: #4CAF50;
+    --secondary-color1: #f0f0f0;
+    --text-color: #333;
+    --background-color: #fff;
+    --black-color: #000;
+    --Yellow-color: #cc9900;
+    --text-color2: #ffffff66;
+    --secondary-color2: #101014;
+    --secondary-colo: #09090b;
+;
+}
+
+
+
+.subcategory-buttons{
+    padding: 0  8%;
+    display: flex;
+    flex-wrap: wrap;
+}
+
+
+
+.property-cards{
+    padding: 30px 8%;
+    display: grid;
+
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 2rem;
+
+}
+
+.property-card{
+   background: var(--secondary-color3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 20px;
+  overflow: hidden;
+  transition: 0.3s ease;
+  border: solid 1px #ffffff66;
+  color: var(--text-color2);
+
+}
+.property-card-info{
+    padding: 20px;
+}
+
+.property-card:hover{
+     transform: translateY(-5px);
+}
+.property-card img{
+    width: 100%;
+}
+
+.property-amenities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.amenity {
+  background: #1a1a20;
+  color: #cc9900;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.price-view-d{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+.btn-view-details{
+    width: 100px;
+    min-height: 4vh;
+    background-color: var(--Yellow-color);
+    outline: none;
+    border: none;
+    color: var(--background-color);
+    cursor: pointer;
+}/* --- GRID VIEW (4 per line) --- */
+.property-cards.grid-view {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    padding: 30px 8%;
+}
+
+.grid-view .property-card {
+    display: flex;
+    flex-direction: column;
+}
+
+/* --- LIST VIEW (Full width horizontal) --- */
+.property-cards.list-view {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    padding: 30px 8%;
+}
+
+.list-view .property-card {
+    display: flex; /* Image left, Info right */
+    width: 100%;
+    height: 320px;
+    background: #101014;
+}
+
+.list-view .card-image-wrapper {
+    width: 40%;
+    height: 100%;
+}
+
+.list-view .card-image-wrapper img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+}
+
+.list-view .property-card-info {
+    width: 60%;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: left;
+}
+
+.list-description {
+    color: #aaa;
+    font-size: 0.9rem;
+    margin: 15px 0;
+    line-height: 1.6;
+}
+
+/* Subcategory Button styling */
+.subcategory-buttons {
+    padding: 0 8%;
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.sub-nav-btn {
+    background: transparent;
+    color: #eee;
+    border: none;
+    padding: 8px 15px;
+    cursor: pointer;
+    border-radius: 20px;
+}
+
+.sub-nav-btn.active {
+    background: var(--Yellow-color);
+    color: #000;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 1024px) {
+    .property-cards.grid-view { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+    .property-cards.grid-view { grid-template-columns: 1fr; }
+    .list-view .property-card { flex-direction: column; height: auto; }
+    .list-view .card-image-wrapper, .list-view .property-card-info { width: 100%; }
+    .property-cards{
+        grid-template-columns: 1fr !important;
+    }
+}

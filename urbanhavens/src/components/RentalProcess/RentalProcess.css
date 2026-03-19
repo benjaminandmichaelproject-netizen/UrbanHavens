@@ -1,17 +1,17 @@
+/* ================= ROOT COLORS ================= */
+
 :root{
     --primary-color: #4CAF50;
-    --secondary-color: #f0f0f0;
+    --secondary-color1: #f0f0f0;
     --text-color: #333;
     --background-color: #fff;
     --black-color: #000;
     --Yellow-color: #cc9900;
     --text-color2: #ffffff66;
-    --secondary-color2: #111116;
-    --secondary-color3: #101014;
+    --secondary-color2: #101014;
+    --secondary-colo: #09090b;
 ;
 }
-
-
 
 
 .rental-process-section {

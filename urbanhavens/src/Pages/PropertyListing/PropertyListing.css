@@ -1,0 +1,366 @@
+/* ============================================
+   PROPERTY LISTING RESPONSIVE CSS
+   ============================================ */
+
+/* Container */
+.property-page-wrapper {
+  background-color: #000;
+  width: 100%;
+}
+
+/* HERO SECTION */
+.hero-container3 {
+  width: 100%;
+  min-height: 85vh;
+  background: url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1920&q=80') no-repeat center center/cover;
+  position: relative;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.hero-content-overlay {
+  width: 100%;
+  min-height: 85vh;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.2) 0%,
+    rgba(0, 0, 0, 0.4) 50%,
+    rgba(0, 0, 0, 0.8) 85%,
+    #000 100%
+  );
+  padding: 100px 5% 50px 5%; 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-direction: column; /* default column for small screens */
+}
+
+.hero-container3::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 150px;
+  background: linear-gradient(to bottom, transparent, #000);
+  pointer-events: none;
+}
+
+.hero-inner-layout {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  width: 90%;
+  margin: 0 auto;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.hero-text-block {
+  flex: 1.2;
+  min-width: 280px;
+}
+
+.hero-label {
+  color: #cc9900;
+  font-weight: 700;
+  letter-spacing: 3px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.hero-text-block h1 {
+  font-size: 3.8rem;
+  color: #fff;
+  margin: 15px 0;
+  line-height: 1.1;
+}
+
+.hero-text-block h1 span {
+  color: #cc9900;
+}
+
+.hero-text-block p {
+  color: #e0e0e0;
+  font-size: 1.1rem;
+  max-width: 550px;
+  margin-bottom: 30px;
+  line-height: 1.6;
+}
+
+.hero-stats-glass {
+  flex: 0.8;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  padding: 45px 35px;
+  border-radius: 25px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  min-width: 280px;
+  margin-top: 30px; /* spacing for mobile layout */
+}
+
+.stats-header-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+  text-align: left;
+  margin-bottom: 25px;
+}
+
+.stat-unit h3 {
+  font-size: 1.8rem;
+  color: #fff;
+  margin-bottom: 5px;
+}
+
+.stat-unit p {
+  font-size: 0.75rem;
+  color: #bbb;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.stats-info-box {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 20px;
+  border-radius: 15px;
+}
+
+.info-title {
+  color: #fff;
+  font-weight: 600;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+}
+
+.info-desc {
+  color: #aaa;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+/* BUTTON STYLES */
+.hero-action-btns {
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.btn-white, .btn-glass {
+  min-width: 140px;
+}
+
+/* FLEET SECTION */
+.fleet-section-container {
+    width: 100%;
+  background-color: #000;
+  padding:3%  8%;
+  text-align: center;
+}
+
+.fleet-header h2 {
+  font-size: 3rem;
+  color: #fff;
+  margin-top: 20px;
+}
+
+.fleet-header h2 span {
+  color: #cc9900;
+}
+
+/* SEARCH BOX CONTAINER */
+.search-container-box {
+width: 100%;
+
+  background: #111116;
+  padding: 30px;
+  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.search-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.search-input-group {
+  position: relative;
+  width: 100%;
+}
+
+.search-icon {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+}
+
+.main-search-input {
+  width: 100%;
+  background: #000;
+  border: 1px solid #333;
+  border-radius: 50px;
+  padding: 15px 15px 15px 50px;
+  color: #fff;
+  font-size: 1rem;
+}
+
+/* CONTROLS (Category, Toggle, Filter) */
+.search-controls {
+  display: flex;
+ 
+  gap: 15px;
+  flex-wrap: wrap;
+
+}
+
+.dropdown-control, .filter-btn {
+  background: #1a1a20;
+  border: 1px solid #333;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 50px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  position: relative;
+}
+
+.view-toggle {
+  display: flex;
+  background: #1a1a20;
+  border: 1px solid #333;
+  border-radius: 50px;
+  padding: 4px;
+}
+
+.toggle-btn {
+  background: transparent;
+  border: none;
+  color: #666;
+  padding: 8px 15px;
+  border-radius: 50px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.toggle-btn.active {
+  background: #cc9900;
+  color: #000;
+}
+
+.filter-btn:hover, .dropdown-control:hover {
+  border-color: #cc9900;
+}
+
+/* DROPDOWN MENU */
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 10px;
+  background: #1a1a20;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 10px 0;
+  display: none;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.dropdown-control.open .dropdown-menu {
+  display: block;
+}
+
+.dropdown-menu li {
+  list-style: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  color: #fff;
+  font-size: 0.9rem;
+  transition: 0.2s;
+}
+
+.dropdown-menu li:hover {
+  background: #333;
+  color: #cc9900;
+}
+
+
+
+
+
+
+
+
+/* RESPONSIVE */
+
+@media (max-width: 1200px) {
+  .hero-text-block h1 {
+    font-size: 3rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .hero-inner-layout {
+    flex-direction: column;
+    text-align: center;
+    padding-bottom: 50px;
+  }
+  .hero-text-block h1 {
+    font-size: 2.5rem;
+  }
+  .hero-stats-glass {
+    margin-top: 25px;
+  }
+  .hero-action-btns {
+    justify-content: center;
+  }
+  .fleet-header h2 {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .search-controls {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .dropdown-control, .filter-btn, .view-toggle {
+    width: 100%;
+    justify-content: center;
+  }
+  .toggle-btn {
+    flex: 1;
+  }
+  .main-search-input {
+    padding: 12px 12px 12px 45px;
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-text-block h1 {
+    font-size: 2rem;
+  }
+  .fleet-header h2 {
+    font-size: 2rem;
+  }
+  .btn-white, .btn-glass {
+    padding: 12px 20px;
+    font-size: 0.9rem;
+  }
+  .dropdown-menu li {
+    padding: 8px 15px;
+    font-size: 0.85rem;
+  }
+}
