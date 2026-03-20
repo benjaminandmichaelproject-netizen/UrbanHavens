@@ -1,11 +1,15 @@
+from rest_framework.permissions import IsAuthenticated
+
 import random
+from django.contrib.auth import authenticate
+from django.core.mail import send_mail
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.contrib.auth import authenticate
-from django.core.mail import send_mail
+
 from .models import User, PasswordResetCode
 from .serializers import (
     RegisterSerializer,
@@ -55,10 +59,6 @@ class UserViewSet(viewsets.ViewSet):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-
-
-
     @action(detail=False, methods=["post"], parser_classes=[JSONParser, FormParser])
     def login(self, request):
         email = request.data.get("email", "").strip().lower()
@@ -95,18 +95,55 @@ class UserViewSet(viewsets.ViewSet):
 
         return Response(
             {
-        "access": str(refresh.access_token),
-        "refresh": str(refresh),
-        "id": user.id,
-        "role": user.role,
-        "username": user.username,
-        "email": user.email,
-        "phone": user.phone,
-        "is_superuser": user.is_superuser,
-        "landlord_profile": landlord_profile,
-    },
-    status=status.HTTP_200_OK,
+                "access": str(refresh.access_token),
+                "refresh": str(refresh),
+                "id": user.id,
+                "role": user.role,
+                "username": user.username,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "email": user.email,
+                "phone": user.phone,
+                "is_superuser": user.is_superuser,
+                "landlord_profile": landlord_profile,
+            },
+            status=status.HTTP_200_OK,
         )
+
+    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
+    def owners(self, request):
+        user = request.user
+
+        if not (user.is_superuser or getattr(user, "role", None) == "admin"):
+            return Response(
+                {"detail": "You do not have permission to perform this action."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        owners = User.objects.filter(role="owner").order_by("username")
+
+        data = []
+        for owner in owners:
+            profile = getattr(owner, "landlord_profile", None)
+
+            data.append({
+                "id": owner.id,
+                "username": owner.username,
+                "first_name": owner.first_name,
+                "last_name": owner.last_name,
+                "email": owner.email,
+                "phone": owner.phone,
+                "role": owner.role,
+                "landlord_profile": {
+                    "business_name": profile.business_name if profile else None,
+                    "document_type": profile.document_type if profile else None,
+                    "id_number": profile.id_number if profile else None,
+                    "document_file": profile.document_file.url if profile and profile.document_file else None,
+                    "is_verified": profile.is_verified if profile else False,
+                } if profile else None,
+            })
+
+        return Response(data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=["post"])
     def forgot_password(self, request):

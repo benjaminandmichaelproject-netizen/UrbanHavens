@@ -1,0 +1,186 @@
+.properties-page {
+  padding: 30px;
+  background: #f8fafc;
+}
+
+.properties-header {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.properties-header h2 {
+  font-size: 28px;
+  color: #0f172a;
+}
+
+.properties-stats {
+  display: flex;
+  gap: 15px;
+}
+
+.stat-card {
+  background: white;
+  padding: 15px 20px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.05);
+}
+
+.properties-toolbar {
+  display: flex;
+  justify-content: space-between;
+  margin: 20px 0;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background: white;
+  padding: 10px 15px;
+  border-radius: 10px;
+}
+
+.search-box input {
+  border: none;
+  outline: none;
+  margin-left: 10px;
+}
+
+.filter-group button {
+  margin-right: 8px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: #e2e8f0;
+}
+
+.filter-group .active {
+  background: #2563eb;
+  color: white;
+}
+
+.properties-table-wrapper {
+  background: white;
+  border-radius: 12px;
+  overflow-x: auto;
+}
+
+.properties-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.properties-table th,
+.properties-table td {
+  padding: 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.property-info {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.property-icon {
+  font-size: 20px;
+  color: #2563eb;
+}
+
+.status {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.status.pending {
+  background: #fef3c7;
+}
+
+.status.approved {
+  background: #dcfce7;
+}
+
+.status.rejected {
+  background: #fee2e2;
+}
+
+.actions button {
+  margin-right: 6px;
+  border: none;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.actions .approve {
+  background: #22c55e;
+  color: white;
+}
+
+.actions .reject {
+  background: #ef4444;
+  color: white;
+}
+
+.actions .delete {
+  background: #111;
+  color: white;
+}
+
+.actions .view {
+  background: #3b82f6;
+  color: white;
+}
+
+.empty {
+  text-align: center;
+  padding: 20px;
+}
+
+
+
+.feature {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.feature.active {
+  background: #facc15;
+  color: #111827;
+}
+
+.featured-badge {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.featured-badge.on {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.featured-badge.off {
+  background: #e5e7eb;
+  color: #4b5563;
+}
+
+.info-message {
+  margin: 16px 0;
+  color: #374151;
+  font-weight: 500;
+}
+
+.error-message {
+  margin: 16px 0;
+  color: #dc2626;
+  font-weight: 600;
+}

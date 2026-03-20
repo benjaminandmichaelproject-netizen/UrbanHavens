@@ -1,0 +1,263 @@
+.admin-add-property-container {
+  width: 100%;
+}
+
+.admin-owner-step {
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.owner-step-header {
+  margin-bottom: 22px;
+}
+
+.admin-owner-step h2 {
+  margin: 0 0 6px;
+  color: #0f172a;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.admin-owner-step p {
+  margin: 0;
+  color: #64748b;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.owner-mode-group {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.owner-mode-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid #dbe3ef;
+  border-radius: 16px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.owner-mode-card:hover {
+  border-color: #94a3b8;
+}
+
+.owner-mode-card.selected {
+  border-color: #2563eb;
+  background: #f8fbff;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.05);
+}
+
+.owner-mode-card input {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  accent-color: #2563eb;
+  flex-shrink: 0;
+}
+
+.owner-mode-text h4 {
+  margin: 0 0 4px;
+  font-size: 20px;
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.owner-mode-text p {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.owner-form-shell {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.compact-grid {
+  max-width: 100%;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-group label {
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #334155;
+  font-size: 14px;
+}
+
+.form-group input {
+  height: 48px;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  padding: 0 14px;
+  outline: none;
+  background: #ffffff;
+  font-size: 14px;
+  transition: 0.2s ease;
+}
+
+.form-group input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.form-group input[type="file"] {
+  height: auto;
+  padding: 12px;
+}
+
+.error-text {
+  margin-top: 6px;
+  color: #dc2626;
+  font-size: 13px;
+}
+
+.file-note {
+  margin-top: 6px;
+  color: #2563eb;
+  font-size: 13px;
+}
+
+.admin-step-actions {
+  margin-top: 22px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.next-btn {
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+  border-radius: 12px;
+  padding: 12px 24px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  transition: 0.2s ease;
+  position: relative;
+}
+
+.next-btn:hover {
+  background: #1d4ed8;
+}
+
+@media (max-width: 992px) {
+  .owner-mode-group,
+  .admin-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-owner-step {
+    padding: 20px;
+  }
+
+  .admin-owner-step h2 {
+    font-size: 24px;
+  }
+
+  .owner-mode-card {
+    padding: 16px;
+  }
+
+  .owner-mode-text h4 {
+    font-size: 17px;
+  }
+
+  .owner-form-shell {
+    padding: 18px;
+  }
+
+  .next-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-owner-step {
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .admin-owner-step h2 {
+    font-size: 22px;
+  }
+
+  .admin-owner-step p,
+  .owner-mode-text p {
+    font-size: 13px;
+  }
+
+  .form-group input {
+    height: 44px;
+    font-size: 13px;
+  }
+
+  .owner-form-shell {
+    padding: 14px;
+  }
+}
+
+.form-group select {
+  height: 48px;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  padding: 0 14px;
+  outline: none;
+  background: #ffffff;
+  font-size: 14px;
+  transition: 0.2s ease;
+}
+
+.form-group select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+.selected-owner-card {
+  background: #ffffff;
+  border: 1px solid #dbe3ef;
+  border-radius: 14px;
+  padding: 16px;
+  margin-top: 4px;
+}
+
+.selected-owner-card h4 {
+  margin: 0 0 10px;
+  color: #0f172a;
+  font-size: 16px;
+}
+
+.selected-owner-card p {
+  margin: 6px 0;
+  color: #475569;
+  font-size: 14px;
+}

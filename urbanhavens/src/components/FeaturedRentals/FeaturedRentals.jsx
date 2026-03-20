@@ -8,26 +8,37 @@ const FeaturedRentals = () => {
 
   const [properties, setProperties] = useState([]);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/properties/")
-      .then((res) => res.json())
-      .then((data) => {
-        console.log("Fetched Data:", data);
+    const fetchFeaturedProperties = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        const res = await fetch("/api/properties/featured/");
+        if (!res.ok) {
+          throw new Error("Failed to fetch featured properties.");
+        }
+
+        const data = await res.json();
 
         if (Array.isArray(data)) {
           setProperties(data);
-          setError("");
         } else {
           setProperties([]);
-          setError(data.detail || "Failed to fetch properties");
+          setError("Invalid response from server.");
         }
-      })
-      .catch((err) => {
-        console.error("Error fetching properties:", err);
+      } catch (err) {
+        console.error("Error fetching featured properties:", err);
         setProperties([]);
-        setError("Error fetching properties");
-      });
+        setError(err.message || "Error fetching featured properties.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFeaturedProperties();
   }, []);
 
   const handleBook = (property) => {
@@ -36,14 +47,7 @@ const FeaturedRentals = () => {
 
   const getImageUrl = (property) => {
     const firstImage = property?.images?.[0]?.image;
-
-    if (!firstImage) return "";
-
-    if (firstImage.startsWith("http")) {
-      return firstImage;
-    }
-
-    return `http://127.0.0.1:8000${firstImage}`;
+    return firstImage || "";
   };
 
   const getAmenitiesPreview = (amenities) => {
@@ -55,7 +59,10 @@ const FeaturedRentals = () => {
       try {
         parsedAmenities = JSON.parse(amenities);
       } catch {
-        parsedAmenities = amenities.split(",").map((item) => item.trim());
+        parsedAmenities = amenities
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean);
       }
     }
 
@@ -75,10 +82,11 @@ const FeaturedRentals = () => {
         <p>Explore our handpicked selection of premium rental properties</p>
       </div>
 
+      {loading && <p style={{ textAlign: "center" }}>Loading featured properties...</p>}
       {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
 
       <div className="rentals-container">
-        {properties.length > 0 ? (
+        {!loading && !error && properties.length > 0 ? (
           properties.map((property) => (
             <RentalCard
               key={property.id}
@@ -92,6 +100,7 @@ const FeaturedRentals = () => {
             />
           ))
         ) : (
+          !loading &&
           !error && <p style={{ textAlign: "center" }}>No properties available.</p>
         )}
       </div>

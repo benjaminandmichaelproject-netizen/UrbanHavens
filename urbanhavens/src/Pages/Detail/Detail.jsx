@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import BookingForm from "../../components/BookingForm/BookingForm";
-import { FaBed, FaBath, FaRulerCombined, FaHome } from "react-icons/fa";
+import { FaBath, FaRulerCombined, FaHome, FaBed } from "react-icons/fa";
 import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -28,15 +28,24 @@ const Detail = () => {
 
   useEffect(() => {
     const fetchProperty = async () => {
-      setLoading(true);
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/properties/${id}/`);
+        setLoading(true);
+
+        const token = localStorage.getItem("token");
+
+        const res = await fetch(`/api/properties/${id}/`, {
+          headers: token
+            ? {
+                Authorization: `Bearer ${token}`,
+              }
+            : {},
+        });
+
         if (!res.ok) {
           throw new Error("Failed to fetch property");
         }
 
         const data = await res.json();
-        console.log("Fetched property detail:", data);
         setProperty(data);
       } catch (err) {
         console.error("Error fetching property:", err);
@@ -71,18 +80,30 @@ const Detail = () => {
 
   const getImageUrl = (imagePath) => {
     if (!imagePath) return "/default-house.jpg";
-    if (imagePath.startsWith("http")) return imagePath;
-    return `http://127.0.0.1:8000${imagePath}`;
+    return imagePath;
   };
 
-  if (loading) {
-    return (
-      <div className="detail-main loading">
+  const formatCategory = (category) => {
+    if (!category) return "N/A";
+    if (category === "house_rent") return "House for Rent";
+    if (category === "hostel") return "Hostel";
+    return category;
+  };
+
+  const landlordRoute =
+    property?.owner_source && property?.owner_reference_id
+      ? `/landlord/${property.owner_source}/${property.owner_reference_id}`
+      : null;
+if (loading) {
+  return (
+    <div className="detail-loading">
+      <div className="loader-box">
+        <div className="spinner"></div>
         <h2>Loading property details...</h2>
       </div>
-    );
-  }
-
+    </div>
+  );
+}
   if (!property) {
     return (
       <div className="detail-main loading">
@@ -96,10 +117,9 @@ const Detail = () => {
 
   const images = Array.isArray(property.images) ? property.images : [];
   const amenities = parseAmenities(property.amenities);
+
   const heroImage =
-    images.length > 0
-      ? getImageUrl(images[0].image)
-      : "/default-house.jpg";
+    images.length > 0 ? getImageUrl(images[0].image) : "/default-house.jpg";
 
   const currentImage =
     images.length > 0
@@ -110,6 +130,12 @@ const Detail = () => {
     .filter(Boolean)
     .join(", ");
 
+  const hasCoordinates =
+    property.lat !== null &&
+    property.lat !== undefined &&
+    property.lng !== null &&
+    property.lng !== undefined;
+
   return (
     <div className="detail-main">
       <section
@@ -118,31 +144,43 @@ const Detail = () => {
       >
         <div className="detail-hero-overlay">
           <div className="detail-hero-content">
-            <p className="hero-location">
-              {locationText || "Unknown location"}
-            </p>
+            <p className="hero-location">{locationText || "Unknown location"}</p>
 
             <h1>{property.property_name || "Untitled Property"}</h1>
 
             <p className="hero-sub">
-              {property.category || "Property"} -{" "}
+              {formatCategory(property.category)} -{" "}
               {property.property_type || "N/A"}
             </p>
 
             <div className="hero-meta">
-              <span>{property.price ? `GHS ${property.price}/month` : "Contact"}</span>
+              <span>
+                {property.price ? `GHS ${property.price}/month` : "Contact"}
+              </span>
               <span>{property.bedrooms || 0} Beds</span>
               <span>{property.bathrooms || 0} Baths</span>
             </div>
+
             <div className="landlord-profile">
               <p>
                 Landlord:{" "}
-                <span
-                  onClick={() => navigate(`/landlord/${property.owner_id}`)}
-                  style={{ cursor: "pointer", textDecoration: "underline" }}
-                >
-                  {property.owner_name || "N/A"}
-                </span>
+                {landlordRoute ? (
+                  <span
+                    onClick={() =>
+                      navigate(landlordRoute, {
+                        state: {
+                          ownerSource: property.owner_source,
+                          ownerReferenceId: property.owner_reference_id,
+                        },
+                      })
+                    }
+                    style={{ cursor: "pointer", textDecoration: "underline" }}
+                  >
+                    {property.owner_name || "N/A"}
+                  </span>
+                ) : (
+                  <span>{property.owner_name || "N/A"}</span>
+                )}
               </p>
             </div>
           </div>
@@ -174,7 +212,9 @@ const Detail = () => {
 
                   <img
                     src={currentImage}
-                    alt={`${property.property_name} image ${currentImageIndex + 1}`}
+                    alt={`${property.property_name} image ${
+                      currentImageIndex + 1
+                    }`}
                   />
 
                   {images.length > 1 && (
@@ -198,72 +238,77 @@ const Detail = () => {
                 <div className="price-sp">
                   <h1>{property.property_name}</h1>
                   <p className="price">
-                    {property.price ? `GHS ${property.price}/month` : "Contact for price"}
+                    {property.price
+                      ? `GHS ${property.price}/month`
+                      : "Contact for price"}
                   </p>
                 </div>
 
-            <div className="specs">
-  {/* Category */}
-  <div className="spec-item">
-    <div className="spec-icon">
-      <FaHome />
-    </div>
-    <span>{property.category || "N/A"}</span>
-  </div>
+                <div className="specs">
+                  <div className="spec-item">
+                    <div className="spec-icon">
+                      <FaHome />
+                    </div>
+                    <span>{formatCategory(property.category)}</span>
+                  </div>
 
-  {/* Type */}
-  <div className="spec-item">
-    <div className="spec-icon">
-      <FaHome />
-    </div>
-    <span>{property.property_type || "N/A"}</span>
-  </div>
+                  <div className="spec-item">
+                    <div className="spec-icon">
+                      <FaHome />
+                    </div>
+                    <span>{property.property_type || "N/A"}</span>
+                  </div>
 
-  {/* Region */}
-  <div className="spec-item">
-    <div className="spec-icon">
-      <FaRulerCombined />
-    </div>
-    <span>{property.region || "N/A"}</span>
-  </div>
+                  <div className="spec-item">
+                    <div className="spec-icon">
+                      <FaBed />
+                    </div>
+                    <span>{property.bedrooms || 0} Bedrooms</span>
+                  </div>
 
-  {/* City */}
-  <div className="spec-item">
-    <div className="spec-icon">
-      <FaRulerCombined />
-    </div>
-    <span>{property.city || "N/A"}</span>
-  </div>
+                  <div className="spec-item">
+                    <div className="spec-icon">
+                      <FaBath />
+                    </div>
+                    <span>{property.bathrooms || 0} Bathrooms</span>
+                  </div>
 
-  {/* School */}
-  {property.school && (
-    <div className="spec-item">
-      <div className="spec-icon">
-        <FaRulerCombined />
-      </div>
-      <span>{property.school}</span>
-    </div>
-  )}
+                  <div className="spec-item">
+                    <div className="spec-icon">
+                      <FaRulerCombined />
+                    </div>
+                    <span>{property.region || "N/A"}</span>
+                  </div>
 
-  {/* 🔥 Amenities INSIDE specs */}
-  {amenities.length > 0 &&
-    amenities.map((amenity, idx) => (
-      <div key={idx} className="spec-item">
-        <div className="spec-icon">
-          <FaHome />
-        </div>
-        <span>{amenity}</span>
-      </div>
-    ))}
-</div>
+                  <div className="spec-item">
+                    <div className="spec-icon">
+                      <FaRulerCombined />
+                    </div>
+                    <span>{property.city || "N/A"}</span>
+                  </div>
+
+                  {property.school && (
+                    <div className="spec-item">
+                      <div className="spec-icon">
+                        <FaRulerCombined />
+                      </div>
+                      <span>{property.school}</span>
+                    </div>
+                  )}
+
+                  {amenities.length > 0 &&
+                    amenities.map((amenity, idx) => (
+                      <div key={idx} className="spec-item">
+                        <div className="spec-icon">
+                          <FaHome />
+                        </div>
+                        <span>{amenity}</span>
+                      </div>
+                    ))}
+                </div>
               </div>
 
-
-
-
-             
-
-              {property.lat && property.lng && (
+              {hasCoordinates && (
                 <div className="property-map">
                   <h3>Location</h3>
                   <MapContainer

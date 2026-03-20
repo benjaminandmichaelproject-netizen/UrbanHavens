@@ -2,6 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from .models import User, LandlordProfile
 
+
 class RegisterSerializer(serializers.Serializer):
     # ─── User fields ───
     first_name = serializers.CharField()
@@ -10,7 +11,7 @@ class RegisterSerializer(serializers.Serializer):
     phone = serializers.CharField(required=False, allow_blank=True)
     password = serializers.CharField(write_only=True)
     confirm_password = serializers.CharField(write_only=True)
-    role = serializers.ChoiceField(choices=["tenant", "owner"])
+    role = serializers.ChoiceField(choices=["tenant", "owner", "admin"])
 
     # ─── Landlord fields ───
     business_name = serializers.CharField(required=False, allow_blank=True)
@@ -29,24 +30,25 @@ class RegisterSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
-        # Password match
         if attrs["password"] != attrs.pop("confirm_password"):
             raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
 
         role = attrs.get("role")
 
-        # Landlord validation
+        # Only owner needs landlord profile details
         if role == "owner":
             if not attrs.get("business_name", "").strip():
                 raise serializers.ValidationError({"business_name": "Business name is required."})
             if not attrs.get("document_type", "").strip():
                 raise serializers.ValidationError({"document_type": "ID type is required."})
+
             id_number = attrs.get("id_number", "").strip()
             if not id_number:
                 raise serializers.ValidationError({"id_number": "ID number is required."})
-            # ✅ Check uniqueness of id_number
+
             if LandlordProfile.objects.filter(id_number=id_number).exists():
                 raise serializers.ValidationError({"id_number": "This ID number is already registered."})
+
             if not attrs.get("document_file"):
                 raise serializers.ValidationError({"document_file": "ID document is required."})
 
@@ -54,11 +56,10 @@ class RegisterSerializer(serializers.Serializer):
 
     # ─── CREATE USER ───
     def create(self, validated_data):
-        # Extract landlord fields
         business_name = validated_data.pop("business_name", None)
         document_type = validated_data.pop("document_type", None)
         document_file = validated_data.pop("document_file", None)
-        id_number     = validated_data.pop("id_number", None)
+        id_number = validated_data.pop("id_number", None)
 
         # Generate unique username
         base_username = validated_data["email"].split("@")[0]
@@ -68,6 +69,8 @@ class RegisterSerializer(serializers.Serializer):
             username = f"{base_username}{counter}"
             counter += 1
 
+        role = validated_data["role"]
+
         # Create user
         user = User.objects.create_user(
             username=username,
@@ -76,10 +79,11 @@ class RegisterSerializer(serializers.Serializer):
             first_name=validated_data["first_name"],
             last_name=validated_data["last_name"],
             phone=validated_data.get("phone"),
-            role=validated_data["role"],
+            role=role,
+            is_staff=True if role == "admin" else False,
         )
 
-        # Create landlord profile if owner
+        # Create landlord profile only for owner
         if user.role == "owner":
             LandlordProfile.objects.create(
                 user=user,
@@ -91,17 +95,20 @@ class RegisterSerializer(serializers.Serializer):
 
         return user
 
+
 # ─── Password reset serializers ─────────────────────────────────────────────
 class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
+
 class ConfirmResetCodeSerializer(serializers.Serializer):
     email = serializers.EmailField()
-    code  = serializers.CharField(max_length=6)
+    code = serializers.CharField(max_length=6)
+
 
 class ResetPasswordSerializer(serializers.Serializer):
-    email        = serializers.EmailField()
-    code         = serializers.CharField(max_length=6)
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6)
     new_password = serializers.CharField(write_only=True)
 
     def validate_new_password(self, value):

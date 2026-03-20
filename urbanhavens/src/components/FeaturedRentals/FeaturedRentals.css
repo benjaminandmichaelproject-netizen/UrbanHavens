@@ -15,7 +15,7 @@
 
 
 .rentals-main-container {
-  padding: 60px 8%;
+  padding: 60px 15%;
   background-color: var(--secondary-color2);
 }
 
@@ -47,8 +47,8 @@
 }
 .rentals-container {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
   padding: 40px 0;
 }
 
@@ -75,16 +75,16 @@
 }
 .rentals-detail h3{
   color: var(--secondary-color);
-  font-size: 2rem;
+  font-size: 1rem;
 }
 .rental-card img {
   width: 100%;
-  height: 250px;
+  height: 150px;
   object-fit: cover;
 }
 
 .rentals-detail {
-  padding: 20px;
+  padding: 10px;
 }
 
 .rental-d {
@@ -130,7 +130,46 @@ height: 6vh;
 
 
 
+/* GRID (default) */
+.rental-card.grid {
+  display: block;
+}
 
+/* LIST VIEW */
+.rental-card.list {
+  display: flex;
+  flex-direction: row;
+  height: 180px;
+}
+
+/* Image behavior */
+.rental-card.list img {
+  width: 250px;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Content side */
+.rental-card.list .rentals-detail {
+  flex: 1;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Improve spacing */
+.rental-card.list .rental-d {
+  justify-content: flex-start;
+  gap: 20px;
+}
+
+/* Button alignment */
+.rental-card.list .book-price {
+  justify-content: space-between;
+}.rental-card {
+  transition: all 0.3s ease;
+}
 
 
 /* Responsive */

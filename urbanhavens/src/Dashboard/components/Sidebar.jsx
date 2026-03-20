@@ -11,6 +11,10 @@ import {
   FaLifeRing,
   FaCog,
   FaSignOutAlt,
+  FaClipboardCheck,
+  FaChartBar,
+  FaBell,
+  FaUserShield,
 } from "react-icons/fa";
 import "../Dashboard.css";
 
@@ -35,7 +39,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
         {role === "admin" && (
           <>
             <li>
-              <NavLink to="/dashboard/admin" onClick={handleClick} className={getLinkClass}>
+              <NavLink to="/dashboard/admin" end onClick={handleClick} className={getLinkClass}>
                 <FaTachometerAlt className="sidebar-icon" />
                 <span>Dashboard</span>
               </NavLink>
@@ -44,21 +48,55 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             <li>
               <NavLink to="/dashboard/admin/users" onClick={handleClick} className={getLinkClass}>
                 <FaUsers className="sidebar-icon" />
-                <span>Users</span>
+                <span>Manage Users</span>
               </NavLink>
             </li>
 
             <li>
               <NavLink to="/dashboard/admin/properties" onClick={handleClick} className={getLinkClass}>
                 <FaHome className="sidebar-icon" />
-                <span>Properties</span>
+                <span>All Properties</span>
+              </NavLink>
+            </li>
+            <li>
+              <NavLink to="/dashboard/admin/AddProperty/AdminAddProperty" onClick={handleClick} className={getLinkClass}>
+                <FaHome className="sidebar-icon" />
+                <span>AdminAddProperty</span>
+              </NavLink>
+            </li>
+
+            <li>
+              <NavLink to="/dashboard/admin/pending" onClick={handleClick} className={getLinkClass}>
+                <FaClipboardCheck className="sidebar-icon" />
+                <span>Pending Approvals</span>
+              </NavLink>
+            </li>
+
+            <li>
+              <NavLink to="/dashboard/admin/bookings" onClick={handleClick} className={getLinkClass}>
+                <FaCalendarCheck className="sidebar-icon" />
+                <span>Bookings</span>
               </NavLink>
             </li>
 
             <li>
               <NavLink to="/dashboard/admin/reports" onClick={handleClick} className={getLinkClass}>
-                <FaFileAlt className="sidebar-icon" />
+                <FaChartBar className="sidebar-icon" />
                 <span>Reports</span>
+              </NavLink>
+            </li>
+
+            <li>
+              <NavLink to="/dashboard/admin/documents" onClick={handleClick} className={getLinkClass}>
+                <FaFileAlt className="sidebar-icon" />
+                <span>Documents</span>
+              </NavLink>
+            </li>
+
+            <li>
+              <NavLink to="/dashboard/admin/notifications" onClick={handleClick} className={getLinkClass}>
+                <FaBell className="sidebar-icon" />
+                <span>Notifications</span>
               </NavLink>
             </li>
 
@@ -66,6 +104,20 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               <NavLink to="/dashboard/admin/settings" onClick={handleClick} className={getLinkClass}>
                 <FaCog className="sidebar-icon" />
                 <span>Settings</span>
+              </NavLink>
+            </li>
+
+            <li>
+              <NavLink to="/dashboard/admin/profile" onClick={handleClick} className={getLinkClass}>
+                <FaUserShield className="sidebar-icon" />
+                <span>Profile</span>
+              </NavLink>
+            </li>
+
+            <li className="sidebar-logout-item">
+              <NavLink to="/logout" onClick={handleClick} className={getLinkClass}>
+                <FaSignOutAlt className="sidebar-icon" />
+                <span>Log Out</span>
               </NavLink>
             </li>
           </>

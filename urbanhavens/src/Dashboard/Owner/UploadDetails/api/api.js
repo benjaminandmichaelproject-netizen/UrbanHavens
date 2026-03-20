@@ -213,4 +213,14 @@ export const createTenantLease = async (leaseData) => {
     throw err.response?.data || err;
   }
 };
+
+export const getOwners = async () => {
+  try {
+    const res = await api.get("/users/owners/");
+    return res.data;
+  } catch (err) {
+    console.error("Fetch owners error:", err.response?.data || err.message);
+    throw err.response?.data || err;
+  }
+};
 export { api };

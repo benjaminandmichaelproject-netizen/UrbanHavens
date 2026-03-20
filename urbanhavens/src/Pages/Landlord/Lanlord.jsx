@@ -1,11 +1,19 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import "./LandLord.css";
-import { FaEdit, FaChartBar, FaPhoneAlt, FaCheckCircle } from "react-icons/fa";
+import {
+  FaEdit,
+  FaChartBar,
+  FaPhoneAlt,
+  FaCheckCircle,
+} from "react-icons/fa";
+import RentalCard from "../../components/FeaturedRentals/RentalCard";
 
 const Landlord = () => {
-  const { id } = useParams();
+  const { id, type } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState("posts");
   const [landlord, setLandlord] = useState(null);
   const [listings, setListings] = useState([]);
@@ -15,7 +23,11 @@ const Landlord = () => {
   const loggedInUserId = localStorage.getItem("userId");
   const token = localStorage.getItem("token");
 
+  const ownerSourceFromState = location.state?.ownerSource || null;
+  const landlordType = type || ownerSourceFromState || null;
+
   const isOwnLandlordProfile =
+    landlordType === "registered" &&
     (loggedInRole === "owner" || loggedInRole === "landlord") &&
     String(loggedInUserId) === String(id);
 
@@ -60,19 +72,63 @@ const Landlord = () => {
       try {
         setLoading(true);
 
-        const resLandlord = await fetch(`http://127.0.0.1:8000/api/landlords/${id}/`);
-        const landlordData = resLandlord.ok ? await resLandlord.json() : null;
+        const endpointOptions = landlordType
+          ? [landlordType]
+          : ["registered", "external"];
+
+        let landlordData = null;
+        let listingData = [];
+        let resolvedType = null;
+
+        for (const currentType of endpointOptions) {
+          const detailBase =
+            currentType === "registered"
+              ? `/api/registered-landlords/${id}/`
+              : `/api/external-landlords/${id}/`;
+
+          const listingsBase =
+            currentType === "registered"
+              ? `/api/registered-landlords/${id}/properties/`
+              : `/api/external-landlords/${id}/properties/`;
+
+          const resLandlord = await fetch(detailBase);
+          if (!resLandlord.ok) {
+            continue;
+          }
+
+          const landlordJson = await resLandlord.json();
+          landlordData = {
+            ...landlordJson,
+            owner_source: currentType,
+          };
+          resolvedType = currentType;
+
+          const resListings = await fetch(listingsBase);
+          if (resListings.ok) {
+            const listingsJson = await resListings.json();
+            listingData = Array.isArray(listingsJson)
+              ? listingsJson
+              : listingsJson.results || [];
+          }
+
+          break;
+        }
 
         if (!landlordData) {
           setLandlord(null);
+          setListings([]);
           return;
         }
 
-        setLandlord(landlordData);
+        setLandlord({
+          ...landlordData,
+          title:
+            landlordData.owner_source === "external"
+              ? "External Property Owner"
+              : landlordData.title || "Property Owner",
+        });
 
-        const resListings = await fetch(`http://127.0.0.1:8000/api/landlords/${id}/properties/`);
-        const listingData = resListings.ok ? await resListings.json() : [];
-        setListings(Array.isArray(listingData) ? listingData : []);
+        setListings(listingData);
       } catch (err) {
         console.error("Error fetching landlord data:", err);
         setLandlord(null);
@@ -83,7 +139,7 @@ const Landlord = () => {
     };
 
     fetchLandlordData();
-  }, [id]);
+  }, [id, landlordType]);
 
   const handleViewDetails = (property) => navigate(`/detail/${property.id}`);
 
@@ -106,8 +162,13 @@ const Landlord = () => {
   const defaultCover =
     "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?q=80&w=1974&auto=format&fit=crop";
 
-  if (loading) return <div className="loading-msg">Loading landlord profile...</div>;
-  if (!landlord) return <div className="error-msg">Landlord not found.</div>;
+  if (loading) {
+    return <div className="loading-msg">Loading landlord profile...</div>;
+  }
+
+  if (!landlord) {
+    return <div className="error-msg">Landlord not found.</div>;
+  }
 
   return (
     <div className="landlord-page-wrapper">
@@ -125,12 +186,12 @@ const Landlord = () => {
             {landlord.photo ? (
               <img
                 src={landlord.photo}
-                alt={landlord.name || "Landlord"}
+                alt={landlord.name || landlord.full_name || "Landlord"}
                 className="profile-circle-img"
               />
             ) : (
               <div className="profile-circle-img initials-avatar">
-                {getInitials(landlord.name)}
+                {getInitials(landlord.name || landlord.full_name)}
               </div>
             )}
           </div>
@@ -138,7 +199,7 @@ const Landlord = () => {
           <div className="profile-details-flex">
             <div className="landlord-text">
               <h1>
-                {landlord.name || "Unnamed Landlord"}
+                {landlord.name || landlord.full_name || "Unnamed Landlord"}
                 {landlord.is_verified && (
                   <span className="verified-badge">
                     <FaCheckCircle /> Verified
@@ -212,56 +273,23 @@ const Landlord = () => {
           <div className="property-cards-wrapper">
             <div className="property-cards">
               {listings.length > 0 ? (
-                listings.map((prop) => {
-                  const amenities = parseAmenities(prop.amenities);
-
-                  return (
-                    <div key={prop.id} className="property-card">
-                      <img
-                        src={getImageUrl(prop)}
-                        alt={prop.property_name || "Property"}
-                      />
-
-                      <div className="property-card-info">
-                        <h4>{prop.property_name || "Untitled"}</h4>
-
-                        <p className="property-location">
-                          {[prop.city, prop.region].filter(Boolean).join(", ") || "Unknown"}
-                        </p>
-
-                        <div className="property-amenities">
-                          {amenities.length > 0 ? (
-                            amenities.slice(0, 3).map((amenity, idx) => (
-                              <span key={idx} className="amenity">
-                                {amenity}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="amenity">No amenities</span>
-                          )}
-
-                          {amenities.length > 3 && <span>...</span>}
-                        </div>
-
-                        <div className="price-view-d">
-                          <p className="property-price">
-                            {prop.price ? `GHS ${prop.price}` : "Contact"}
-                          </p>
-
-                          <button
-                            type="button"
-                            className="btn-view-details"
-                            onClick={() => handleViewDetails(prop)}
-                          >
-                            View Details
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
+                listings.map((prop) => (
+                  <RentalCard
+                    key={prop.id}
+                    image={getImageUrl(prop)}
+                    title={prop.property_name || "Untitled"}
+                    city={[prop.city, prop.region].filter(Boolean).join(", ")}
+                    amenities={parseAmenities(prop.amenities).slice(0, 3)}
+                    price={prop.price}
+                    onBook={() => handleViewDetails(prop)}
+                    viewMode="grid"
+                  />
+                ))
               ) : (
-                <p>No listings found for {landlord.name}.</p>
+                <p>
+                  No listings found for{" "}
+                  {landlord.name || landlord.full_name || "this landlord"}.
+                </p>
               )}
             </div>
           </div>
@@ -269,7 +297,10 @@ const Landlord = () => {
 
         {activeTab === "reviews" && (
           <div className="reviews-tab">
-            <p>No reviews yet for {landlord.name}.</p>
+            <p>
+              No reviews yet for{" "}
+              {landlord.name || landlord.full_name || "this landlord"}.
+            </p>
           </div>
         )}
       </div>

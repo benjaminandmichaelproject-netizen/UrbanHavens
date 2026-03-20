@@ -23,7 +23,7 @@ import MyBookings from "./Dashboard/Tenant/MyBookings";
 import Profile from "./Dashboard/Tenant/Profile";
 import MyProperties from "./Dashboard/Owner/MyProperties/MyProperties";
 import OwnerDashboard from "./Dashboard/Owner/OwnerDashboard/OwnerDashboard";
-import AdminDashboard from "./Dashboard/Admin/AdminDashboard";
+import AdminDashboard from "./Dashboard/Admin/AdminMain/AdminDashboard";
 import PropertyListing from "./Pages/PropertyListing/PropertyListing";
 import DashboardLayout from "./Dashboard/components/DashboardLayout";
 import LoginPage from "./Pages/LoginPage/LoginPage";
@@ -38,6 +38,10 @@ import Documents from "./Dashboard/Owner/Documents";
 import Contracts from "./Dashboard/Owner/Contracts";
 import Bookings from "./Dashboard/Owner/Bookings/Bookings";
 import Notifications from "./Pages/Notifications/Notifications";
+import Users from "./Dashboard/Admin/Users/Users";
+import Allproperties from "./Dashboard/Admin/Allproperties/Allproperties";
+import AdminAddProperty from "./Dashboard/Admin/AddProperty/AdminAddProperty";
+import Pending from "./Dashboard/Admin/Pending/Pending";
 
 const AppContent = () => {
   const location = useLocation();
@@ -79,9 +83,8 @@ const AppContent = () => {
         <Route path="/register-form" element={<RegisterForm />} />
         <Route path="/success" element={<Success />} />
         <Route path="/detail/:id" element={<Detail />} />
-        <Route path="/landlord/:id" element={<Landlord />} />
+<Route path="/landlord/:type/:id" element={<Landlord />} />
         <Route path="/notifications" element={<Notifications />} />
-
         <Route
           path="/dashboard"
           element={
@@ -110,12 +113,18 @@ const AppContent = () => {
           <Route path="tenant/bookings" element={<MyBookings />} />
           <Route path="tenant/profile" element={<Profile />} />
           <Route path="logout" element={<Logout />} />
+<Route path="admin" element={<AdminDashboard />} />
+<Route path="admin/users" element={<Users/>} />
+<Route path="/dashboard/admin/add-property" element={<AdminAddProperty />} />
 
-          <Route path="admin" element={<AdminDashboard />} />
-          <Route path="admin/users" element={<div>Manage Users</div>} />
-          <Route path="admin/properties" element={<div>Manage Properties</div>} />
-          <Route path="admin/reports" element={<div>Reports</div>} />
-          <Route path="admin/settings" element={<div>Admin Settings</div>} />
+<Route path="admin/properties" element={<Allproperties/>} />
+<Route path="admin/pending" element={<Pending/>} />
+<Route path="admin/bookings" element={<div>Bookings</div>} />
+<Route path="admin/reports" element={<div>Reports</div>} />
+<Route path="admin/documents" element={<div>Documents</div>} />
+<Route path="admin/notifications" element={<div>Notifications</div>} />
+<Route path="admin/settings" element={<div>Admin Settings</div>} />
+<Route path="admin/profile" element={<div>Admin Profile</div>} />
         </Route>
       </Routes>
 
