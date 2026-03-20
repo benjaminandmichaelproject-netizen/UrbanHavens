@@ -37,31 +37,36 @@ import Tenants from "./Dashboard/Owner/Tenants";
 import Documents from "./Dashboard/Owner/Documents";
 import Contracts from "./Dashboard/Owner/Contracts";
 import Bookings from "./Dashboard/Owner/Bookings/Bookings";
-
 import Notifications from "./Pages/Notifications/Notifications";
+
 const AppContent = () => {
   const location = useLocation();
 
   const isDashboard = location.pathname.startsWith("/dashboard");
 
-  /* AUTH PAGES WHERE NAVBAR SHOULD NOT SHOW */
   const hideNavbarRoutes = [
     "/login",
     "/forgot-password",
     "/confirm-reset-code",
-    "/reset-password"
+    "/reset-password",
+    "/notifications",
   ];
 
-  const isAuthPage = hideNavbarRoutes.includes(location.pathname);
+  const hideBottomNavRoutes = [
+    "/login",
+    "/forgot-password",
+    "/confirm-reset-code",
+    "/reset-password",
+  ];
+
+  const shouldHideNavbar = hideNavbarRoutes.includes(location.pathname);
+  const shouldHideBottomNav = hideBottomNavRoutes.includes(location.pathname);
 
   return (
     <>
-      {/* Show Navbar only when not dashboard and not auth pages */}
-      {!isDashboard && !isAuthPage && <Navbar />}
+      {!isDashboard && !shouldHideNavbar && <Navbar />}
 
       <Routes>
-
-        {/* PUBLIC ROUTES */}
         <Route path="/" element={<Home />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/about" element={<About />} />
@@ -73,9 +78,10 @@ const AppContent = () => {
         <Route path="/registration" element={<Registration />} />
         <Route path="/register-form" element={<RegisterForm />} />
         <Route path="/success" element={<Success />} />
-        <Route path="/detail/:id" element={<Detail />} />        {/* DASHBOARD LAYOUT */}
+        <Route path="/detail/:id" element={<Detail />} />
         <Route path="/landlord/:id" element={<Landlord />} />
-<Route path="/notifications" element={<Notifications />} />
+        <Route path="/notifications" element={<Notifications />} />
+
         <Route
           path="/dashboard"
           element={
@@ -84,23 +90,17 @@ const AppContent = () => {
             </ProtectedRoute>
           }
         >
-
-          {/* OWNER ROUTES */}
           <Route path="owner" element={<OwnerDashboard />} />
           <Route path="owner/upload" element={<Upload />} />
           <Route path="owner/UploadDetails/uploadpage" element={<Uploadpage />} />
           <Route path="owner/my-properties" element={<MyProperties />} />
-          <Route path="owner/bookings" element={<Bookings/>} />
+          <Route path="owner/bookings" element={<Bookings />} />
           <Route path="owner/settings" element={<div>Owner Settings</div>} />
           <Route path="owner/tenants" element={<div>Tenants</div>} />
           <Route path="owner/contracts" element={<div>Contracts</div>} />
           <Route path="owner/documents" element={<div>Documents</div>} />
           <Route path="owner/help" element={<div>Help & Support</div>} />
 
-
-
-          {/* TENANT ROUTES */}
-       
           <Route path="tenant" element={<TenantDashboard />} />
           <Route path="tenant/scheduled-viewings" element={<ScheduledViewings />} />
           <Route path="tenant/favorites" element={<Favorites />} />
@@ -110,18 +110,16 @@ const AppContent = () => {
           <Route path="tenant/bookings" element={<MyBookings />} />
           <Route path="tenant/profile" element={<Profile />} />
           <Route path="logout" element={<Logout />} />
+
           <Route path="admin" element={<AdminDashboard />} />
           <Route path="admin/users" element={<div>Manage Users</div>} />
           <Route path="admin/properties" element={<div>Manage Properties</div>} />
           <Route path="admin/reports" element={<div>Reports</div>} />
           <Route path="admin/settings" element={<div>Admin Settings</div>} />
-
         </Route>
-
       </Routes>
 
-      {/* Bottom nav only on public pages */}
-      {!isDashboard && !isAuthPage && <MobileBottomNav />}
+      {!isDashboard && !shouldHideBottomNav && <MobileBottomNav />}
     </>
   );
 };

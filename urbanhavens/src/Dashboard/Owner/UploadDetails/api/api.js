@@ -204,4 +204,13 @@ export const markAllNotificationsAsRead = async () => {
     throw err.response?.data || err;
   }
 };
+export const createTenantLease = async (leaseData) => {
+  try {
+    const res = await api.post("/leases/", leaseData);
+    return res.data;
+  } catch (err) {
+    console.error("Create tenant lease error:", err.response?.data || err.message);
+    throw err.response?.data || err;
+  }
+};
 export { api };

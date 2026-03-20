@@ -8,10 +8,11 @@ from properties.models import Property
 
 class Booking(models.Model):
     STATUS_CHOICES = [
-        ("pending", "Pending"),
-        ("confirmed", "Confirmed"),
-        ("rejected", "Rejected"),
-    ]
+    ("pending", "Pending"),
+    ("confirmed", "Confirmed"),
+    ("converted", "Converted"),
+    ("rejected", "Rejected"),
+]
 
     property = models.ForeignKey(
         Property,

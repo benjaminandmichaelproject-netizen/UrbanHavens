@@ -1,13 +1,23 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./Bookings.css";
 import ScheduleMeeting from "../ScheduleMeeting/ScheduleMeeting";
-import { getOwnerBookings } from "../UploadDetails/api/api";
+import ConvertToTenantModal from "../ConvertToTenantModal/ConvertToTenantModal";
+import {
+  getOwnerBookings,
+  createTenantLease,
+} from "../UploadDetails/api/api";
 
 const Bookings = () => {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [scheduleOpen, setScheduleOpen] = useState(false);
+  const [convertOpen, setConvertOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [submittingLease, setSubmittingLease] = useState(false);
+
+  const [popupOpen, setPopupOpen] = useState(false);
+  const [popupType, setPopupType] = useState("success");
+  const [popupMessage, setPopupMessage] = useState("");
 
   const totalBookings = useMemo(() => bookings.length, [bookings]);
 
@@ -52,6 +62,43 @@ const Bookings = () => {
   const closeScheduleModal = () => {
     setScheduleOpen(false);
     setSelectedBooking(null);
+  };
+
+  const openConvertModal = (booking) => {
+    setSelectedBooking(booking);
+    setConvertOpen(true);
+  };
+
+  const closeConvertModal = () => {
+    if (submittingLease) return;
+    setConvertOpen(false);
+    setSelectedBooking(null);
+  };
+
+  const openPopup = (type, message) => {
+    setPopupType(type);
+    setPopupMessage(message);
+    setPopupOpen(true);
+  };
+
+  const closePopup = () => {
+    setPopupOpen(false);
+    setPopupMessage("");
+  };
+
+  const handleConvertSubmit = async (leaseData) => {
+    try {
+      setSubmittingLease(true);
+      await createTenantLease(leaseData);
+      closeConvertModal();
+      await fetchBookings();
+      openPopup("success", "Tenant lease created successfully.");
+    } catch (error) {
+      console.error("Failed to create tenant lease:", error);
+      openPopup("error", error?.detail || "Failed to create tenant lease.");
+    } finally {
+      setSubmittingLease(false);
+    }
   };
 
   if (loading) {
@@ -121,12 +168,24 @@ const Bookings = () => {
                       </span>
                     </td>
                     <td>
-                      <button
-                        className="schedule-btn"
-                        onClick={() => openScheduleModal(booking)}
-                      >
-                        Schedule Meeting
-                      </button>
+                      <div className="booking-action-buttons">
+                        <button
+                          className="schedule-btn"
+                          onClick={() => openScheduleModal(booking)}
+                        >
+                          Schedule Meeting
+                        </button>
+
+                        <button
+                          className="convert-btn"
+                          onClick={() => openConvertModal(booking)}
+                          disabled={booking.status.toLowerCase() === "converted"}
+                        >
+                          {booking.status.toLowerCase() === "converted"
+                            ? "Converted"
+                            : "Convert to Tenant"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -156,12 +215,22 @@ const Bookings = () => {
                 <p><strong>Date:</strong> {booking.date}</p>
                 <p><strong>Message:</strong> {booking.message}</p>
 
-                <div className="booking-card-actions">
+                <div className="booking-card-actions booking-action-buttons">
                   <button
                     className="schedule-btn"
                     onClick={() => openScheduleModal(booking)}
                   >
                     Schedule Meeting
+                  </button>
+
+                  <button
+                    className="convert-btn"
+                    onClick={() => openConvertModal(booking)}
+                    disabled={booking.status.toLowerCase() === "converted"}
+                  >
+                    {booking.status.toLowerCase() === "converted"
+                      ? "Converted"
+                      : "Convert to Tenant"}
                   </button>
                 </div>
               </div>
@@ -175,6 +244,38 @@ const Bookings = () => {
           booking={selectedBooking}
           onClose={closeScheduleModal}
         />
+      )}
+
+      {convertOpen && (
+        <ConvertToTenantModal
+          booking={selectedBooking}
+          onClose={closeConvertModal}
+          onSubmit={handleConvertSubmit}
+          submitting={submittingLease}
+        />
+      )}
+
+      {popupOpen && (
+        <div className="booking-popup-overlay" onClick={closePopup}>
+          <div
+            className={`booking-popup-card ${popupType}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={`booking-popup-icon ${popupType}`}>
+              {popupType === "success" ? "✓" : "!"}
+            </div>
+
+            <h3>
+              {popupType === "success" ? "Success" : "Something went wrong"}
+            </h3>
+
+            <p>{popupMessage}</p>
+
+            <button className="booking-popup-btn" onClick={closePopup}>
+              OK
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

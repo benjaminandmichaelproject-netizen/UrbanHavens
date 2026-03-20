@@ -1,45 +1,17 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { FaHome, FaBell, FaUser, FaHeart } from "react-icons/fa";
+import { getUnreadNotificationCount } from "../../Dashboard/Owner/UploadDetails/api/api";
 import "./MobileBottomNav.css";
 
 const MobileBottomNav = () => {
   const [showNav, setShowNav] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [notificationCount, setNotificationCount] = useState(0);
 
   const role = localStorage.getItem("role");
   const userId = localStorage.getItem("userId");
   const token = localStorage.getItem("token");
-
-  const [notifications] = useState([
-    {
-      id: 1,
-      type: "booking",
-      is_read: false,
-    },
-    {
-      id: 2,
-      type: "booking",
-      is_read: false,
-    },
-    {
-      id: 3,
-      type: "meeting",
-      is_read: true,
-    },
-  ]);
-
-  const notificationCount = useMemo(() => {
-    if (role === "owner") {
-      return notifications.filter(
-        (item) => item.type === "booking" && !item.is_read
-      ).length;
-    }
-
-    return notifications.filter(
-      (item) => item.type === "meeting" && !item.is_read
-    ).length;
-  }, [notifications, role]);
 
   let profileLink = "/login";
   let label = "Profile";
@@ -73,6 +45,29 @@ const MobileBottomNav = () => {
       window.removeEventListener("scroll", handleScroll);
     };
   }, [lastScrollY]);
+
+  useEffect(() => {
+    if (!token) {
+      setNotificationCount(0);
+      return;
+    }
+
+    const fetchUnreadCount = async () => {
+      try {
+        const data = await getUnreadNotificationCount();
+        setNotificationCount(data?.unread_count || 0);
+      } catch (error) {
+        console.error("Failed to fetch unread notification count:", error);
+        setNotificationCount(0);
+      }
+    };
+
+    fetchUnreadCount();
+
+    const interval = setInterval(fetchUnreadCount, 10000);
+
+    return () => clearInterval(interval);
+  }, [token]);
 
   return (
     <div className={`mobile-bottom-nav ${showNav ? "show" : "hide"}`}>

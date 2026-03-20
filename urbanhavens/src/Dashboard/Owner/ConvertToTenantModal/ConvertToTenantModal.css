@@ -1,0 +1,191 @@
+.convert-tenant-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+  padding: 20px;
+}
+
+.convert-tenant-modal {
+  width: 100%;
+  max-width: 760px;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.convert-tenant-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.convert-tenant-header h2 {
+  margin: 0;
+  font-size: 24px;
+  color: #111827;
+}
+
+.convert-tenant-close-btn {
+  border: none;
+  background: #f3f4f6;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.convert-tenant-summary {
+  background: #f9fafb;
+  border: 1px solid #ececec;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.convert-tenant-summary p {
+  margin: 6px 0;
+  color: #374151;
+}
+
+.convert-tenant-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.convert-tenant-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.convert-field label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.convert-field input,
+.convert-field select,
+.convert-field textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 14px;
+  outline: none;
+}
+
+.convert-field textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.convert-field input:focus,
+.convert-field select:focus,
+.convert-field textarea:focus {
+  border-color: #f4d63f;
+  box-shadow: 0 0 0 3px rgba(244, 214, 63, 0.18);
+}
+
+.convert-field small {
+  display: block;
+  margin-top: 6px;
+  color: #dc2626;
+  font-size: 12px;
+}
+
+.convert-tenant-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.convert-cancel-btn,
+.convert-submit-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.convert-cancel-btn {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.convert-submit-btn {
+  background: #f4d63f;
+  color: #111827;
+}
+
+.convert-submit-btn:hover {
+  background: #e6c532;
+}
+
+.convert-cancel-btn:disabled,
+.convert-submit-btn:disabled,
+.convert-tenant-close-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.booking-action-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.convert-btn {
+  background: #111827;
+  color: #ffffff;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.convert-btn:hover {
+  background: #000000;
+}
+
+.convert-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  .convert-tenant-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .convert-tenant-modal {
+    padding: 18px;
+  }
+
+  .convert-tenant-actions {
+    flex-direction: column;
+  }
+
+  .convert-cancel-btn,
+  .convert-submit-btn {
+    width: 100%;
+  }
+}
