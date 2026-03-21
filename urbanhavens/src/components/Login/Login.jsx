@@ -20,7 +20,7 @@ const Login = () => {
     e.preventDefault();
 
     try {
-      const res = await axios.post("http://127.0.0.1:8000/api/users/login/", formData);
+      const res = await axios.post("/api/users/login/", formData);
 
       const { access, refresh, id, username, role, is_superuser } = res.data;
       const userRole = is_superuser ? "admin" : role.toLowerCase();
@@ -31,9 +31,13 @@ const Login = () => {
       localStorage.setItem("username", username);
       localStorage.setItem("role", userRole);
 
-      if (userRole === "owner") navigate("/dashboard/owner");
-      else if (userRole === "admin") navigate("/dashboard/admin");
-      else navigate("/");
+      if (userRole === "owner") {
+        window.location.href = "/dashboard/owner";
+      } else if (userRole === "admin") {
+        window.location.href = "/dashboard/admin";
+      } else {
+        window.location.href = "/";
+      }
     } catch (err) {
       setError(
         err.response?.data?.detail ||
@@ -84,19 +88,21 @@ const Login = () => {
             />
           </div>
 
-          <button type="submit" className="login-btn">Login</button>
+          <button type="submit" className="login-btn">
+            Login
+          </button>
         </form>
 
-       <div className="reset-have-account">
-         <p>
-          Forgot your password?{" "}
-          <span onClick={() => navigate("/forgot-password")}>Reset here</span>
-        </p>
-        <p>
-          Don't have an account?{" "}
-          <span onClick={() => navigate("/register")}>Register here</span>
-        </p>
-       </div>
+        <div className="reset-have-account">
+          <p>
+            Forgot your password?{" "}
+            <span onClick={() => navigate("/forgot-password")}>Reset here</span>
+          </p>
+          <p>
+            Don't have an account?{" "}
+            <span onClick={() => navigate("/register")}>Register here</span>
+          </p>
+        </div>
       </div>
     </div>
   );

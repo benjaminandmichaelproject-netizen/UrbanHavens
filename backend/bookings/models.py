@@ -1,6 +1,3 @@
-from django.db import models
-
-# Create your models here.
 from django.conf import settings
 from django.db import models
 from properties.models import Property
@@ -8,11 +5,11 @@ from properties.models import Property
 
 class Booking(models.Model):
     STATUS_CHOICES = [
-    ("pending", "Pending"),
-    ("confirmed", "Confirmed"),
-    ("converted", "Converted"),
-    ("rejected", "Rejected"),
-]
+        ("pending", "Pending"),
+        ("confirmed", "Confirmed"),
+        ("converted", "Converted"),
+        ("rejected", "Rejected"),
+    ]
 
     property = models.ForeignKey(
         Property,

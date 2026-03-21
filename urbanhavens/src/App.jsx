@@ -42,7 +42,7 @@ import Users from "./Dashboard/Admin/Users/Users";
 import Allproperties from "./Dashboard/Admin/Allproperties/Allproperties";
 import AdminAddProperty from "./Dashboard/Admin/AddProperty/AdminAddProperty";
 import Pending from "./Dashboard/Admin/Pending/Pending";
-
+import NotificationToastContainer from "./context/NotificationToastContainer";
 const AppContent = () => {
   const location = useLocation();
 
@@ -127,7 +127,7 @@ const AppContent = () => {
 <Route path="admin/profile" element={<div>Admin Profile</div>} />
         </Route>
       </Routes>
-
+ <NotificationToastContainer />
       {!isDashboard && !shouldHideBottomNav && <MobileBottomNav />}
     </>
   );
@@ -135,6 +135,7 @@ const AppContent = () => {
 
 const App = () => {
   return <AppContent />;
+  
 };
 
 export default App;

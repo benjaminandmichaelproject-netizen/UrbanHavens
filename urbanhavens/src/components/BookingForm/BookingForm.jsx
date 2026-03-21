@@ -2,13 +2,18 @@ import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./Booking.css";
 import { createBooking } from "../../Dashboard/Owner/UploadDetails/api/api";
-import { FaPhoneAlt } from "react-icons/fa";
+import { FaPhoneAlt, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
+
 const BookingForm = ({ property }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [closingPopup, setClosingPopup] = useState(false);
+
+  const [showStatusPopup, setShowStatusPopup] = useState(false);
+  const [statusPopupType, setStatusPopupType] = useState("success");
+  const [statusPopupMessage, setStatusPopupMessage] = useState("");
 
   const [formData, setFormData] = useState({
     name: "",
@@ -33,11 +38,11 @@ const BookingForm = ({ property }) => {
     }));
   };
 
-  // 🔥 VALIDATION
   const validate = () => {
     const newErrors = {};
 
     if (!formData.name.trim()) newErrors.name = "Name is required";
+
     if (!formData.email.trim()) {
       newErrors.email = "Email is required";
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
@@ -70,44 +75,65 @@ const BookingForm = ({ property }) => {
     }, 300);
   };
 
+  const openStatusPopup = (type, message) => {
+    setStatusPopupType(type);
+    setStatusPopupMessage(message);
+    setShowStatusPopup(true);
+
+    setTimeout(() => {
+      setShowStatusPopup(false);
+    }, 3000);
+  };
+
+  const closeStatusPopup = () => {
+    setShowStatusPopup(false);
+  };
+
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  const validationErrors = validate();
-  if (Object.keys(validationErrors).length > 0) {
-    setErrors(validationErrors);
-    return;
-  }
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
 
-  if (!token) {
-    openLoginPopup();
-    return;
-  }
+    if (!token) {
+      openLoginPopup();
+      return;
+    }
 
-  try {
-    const payload = {
-      property: property.id,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      message: formData.message,
-    };
+    try {
+      const payload = {
+        property: property.id,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        message: formData.message,
+      };
 
-    await createBooking(payload);
+      await createBooking(payload);
 
-    alert("Your booking request has been sent successfully.");
+      openStatusPopup(
+        "success",
+        "Your booking request has been sent successfully."
+      );
 
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      message: "",
-    });
-  } catch (error) {
-    console.error("Booking submission failed:", error);
-    alert("Failed to send booking request.");
-  }
-};
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        message: "",
+      });
+    } catch (error) {
+      console.error("Booking submission failed:", error);
+      openStatusPopup(
+        "error",
+        "Failed to send booking request. Please try again."
+      );
+    }
+  };
+
   const handleLoginRedirect = () => {
     navigate("/login", {
       state: {
@@ -127,7 +153,6 @@ const BookingForm = ({ property }) => {
 
         <div className="form-container">
           <form onSubmit={handleSubmit}>
-            {/* NAME */}
             <div className="input-group">
               <label>Name</label>
               <input
@@ -140,7 +165,6 @@ const BookingForm = ({ property }) => {
               {errors.name && <small className="error">{errors.name}</small>}
             </div>
 
-            {/* EMAIL */}
             <div className="input-group">
               <label>Email</label>
               <input
@@ -153,7 +177,6 @@ const BookingForm = ({ property }) => {
               {errors.email && <small className="error">{errors.email}</small>}
             </div>
 
-            {/* PHONE */}
             <div className="input-group">
               <label>Phone Number</label>
               <input
@@ -166,7 +189,6 @@ const BookingForm = ({ property }) => {
               {errors.phone && <small className="error">{errors.phone}</small>}
             </div>
 
-            {/* MESSAGE */}
             <div className="input-group">
               <label>Message</label>
               <textarea
@@ -190,20 +212,18 @@ const BookingForm = ({ property }) => {
           </form>
         </div>
 
-      {/* 📞 LANDLORD CONTACT */}
-{landlordPhone && (
-  <div className="landlord-contact">
-    <p>Or call landlord directly:</p>
+        {landlordPhone && (
+          <div className="landlord-contact">
+            <p>Or call landlord directly:</p>
 
-    <a href={`tel:${landlordPhone}`} className="call-btn">
-      <FaPhoneAlt className="call-icon" />
-      {landlordPhone}
-    </a>
-  </div>
-)}
+            <a href={`tel:${landlordPhone}`} className="call-btn">
+              <FaPhoneAlt className="call-icon" />
+              {landlordPhone}
+            </a>
+          </div>
+        )}
       </div>
 
-      {/* LOGIN POPUP */}
       {showLoginPopup && (
         <div
           className={`login-popup-overlay ${
@@ -233,6 +253,34 @@ const BookingForm = ({ property }) => {
                 Go to Login
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showStatusPopup && (
+        <div className="status-popup-overlay" onClick={closeStatusPopup}>
+          <div
+            className={`status-popup ${statusPopupType}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="status-popup-icon">
+              {statusPopupType === "success" ? (
+                <FaCheckCircle />
+              ) : (
+                <FaTimesCircle />
+              )}
+            </div>
+
+            <div className="status-popup-content">
+              <h3>
+                {statusPopupType === "success" ? "Success" : "Something went wrong"}
+              </h3>
+              <p>{statusPopupMessage}</p>
+            </div>
+
+            <button className="status-popup-close" onClick={closeStatusPopup}>
+              ×
+            </button>
           </div>
         </div>
       )}
