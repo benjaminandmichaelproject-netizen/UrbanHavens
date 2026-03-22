@@ -1,97 +1,309 @@
-.notification-page {
-  padding: 20px;
-  max-width: 900px;
-  margin: 0 auto;
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+  --dark:      #071a10;
+  --green:     #1a7a40;
+  --green-lt:  #22a055;
+  --accent:    #2dde72;
+  --light:     #f4f7f5;
+  --white:     #ffffff;
+  --border-l:  rgba(26,122,64,0.15);
+  --text:      #0f2d1c;
+  --muted:     #4a7060;
+  --surface:   #f0f5f2;
+  --surface2:  #e4ede8;
+  --error:     #dc2626;
 }
 
+/* ── Page ── */
+.notification-page {
+  padding: 36px 28px;
+  max-width: 780px;
+  margin: 0 auto;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: var(--text);
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
 .notification-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 28px;
 }
 
 .notification-header h2 {
+  font-size: 1.65rem;
+  font-weight: 800;
+  color: var(--dark);
+  margin: 0 0 4px;
+  letter-spacing: -0.03em;
+}
+
+.notification-header p {
   margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted);
 }
 
 .notification-header-actions {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
+/* ── Socket status pill ── */
 .socket-status {
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  background: #ccc;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 5px 13px;
+  border-radius: 99px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .socket-status.live {
-  background: #22c55e;
-  color: white;
+  background: rgba(45,222,114,0.15);
+  color: var(--green);
+  border: 1px solid var(--border-l);
+}
+
+.socket-status.live::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  margin-right: 6px;
+  animation: pulse 1.8s ease-in-out infinite;
+  vertical-align: middle;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.8); }
 }
 
 .socket-status.offline {
-  background: #ef4444;
-  color: white;
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fca5a5;
 }
 
+/* ── Mark all btn ── */
+.mark-all-btn {
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border-l);
+  background: var(--white);
+  color: var(--green);
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.mark-all-btn:hover:not(:disabled) {
+  background: var(--green);
+  color: var(--white);
+  border-color: var(--green);
+  box-shadow: 0 2px 8px rgba(26,122,64,0.28);
+}
+
+.mark-all-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   FILTERS
+   ============================================================ */
 .notification-filters {
   display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
+  gap: 6px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1.5px solid var(--surface2);
 }
 
 .notification-filters button {
-  padding: 6px 12px;
-  border: none;
-  background: #eee;
+  padding: 8px 20px;
+  border-radius: 99px;
+  border: 1.5px solid var(--surface2);
+  background: var(--white);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: var(--muted);
   cursor: pointer;
-  border-radius: 6px;
+  transition: all 0.18s;
+}
+
+.notification-filters button:hover {
+  border-color: var(--green-lt);
+  color: var(--green);
+  background: rgba(26,122,64,0.04);
 }
 
 .notification-filters button.active {
-  background: #2563eb;
-  color: white;
+  background: var(--green);
+  color: var(--white);
+  border-color: var(--green);
+  box-shadow: 0 2px 8px rgba(26,122,64,0.28);
 }
 
+/* ============================================================
+   NOTIFICATION LIST
+   ============================================================ */
 .notification-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 24px;
 }
 
+/* ── Date group ── */
 .notification-group {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .notification-date {
-  font-size: 14px;
-  color: #666;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin: 0 0 4px;
+  padding-left: 2px;
 }
 
+/* ── Notification card ── */
 .notification-card {
-  padding: 12px;
-  border-radius: 8px;
-  background: #f9f9f9;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--white);
   cursor: pointer;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 14px;
+  border: 1.5px solid var(--surface2);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  position: relative;
+  overflow: hidden;
 }
 
+.notification-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--surface2);
+  transition: background 0.2s;
+}
+
+.notification-card:hover {
+  border-color: var(--border-l);
+  box-shadow: 0 4px 16px rgba(7,26,16,0.08);
+  transform: translateY(-1px);
+}
+
+/* ── Unread state ── */
 .notification-card.unread {
-  background: #eef2ff;
+  background: rgba(45,222,114,0.04);
+  border-color: var(--border-l);
+}
+
+.notification-card.unread::before {
+  background: linear-gradient(180deg, var(--green), var(--accent));
+}
+
+/* ── Read state ── */
+.notification-card.read {
+  opacity: 0.75;
+}
+
+.notification-card.read::before {
+  background: var(--surface2);
+}
+
+/* ── Content ── */
+.notification-content {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-message {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text);
+  line-height: 1.5;
   font-weight: 500;
 }
 
+.notification-card.read .notification-message {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.notification-type {
+  font-size: 0.69rem;
+  font-weight: 700;
+  color: var(--green);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: rgba(45,222,114,0.1);
+  border: 1px solid var(--border-l);
+  border-radius: 99px;
+  padding: 2px 9px;
+  width: fit-content;
+}
+
+.notification-card.read .notification-type {
+  color: var(--muted);
+  background: var(--surface);
+  border-color: var(--surface2);
+}
+
+/* ── Unread dot ── */
 .notification-dot {
-  width: 10px;
-  height: 10px;
-  background: #2563eb;
+  width: 9px;
+  height: 9px;
+  background: var(--accent);
   border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 4px;
+  box-shadow: 0 0 0 3px rgba(45,222,114,0.2);
+}
+
+/* ── Empty state ── */
+.empty-notifications {
+  text-align: center;
+  padding: 64px 20px;
+  color: var(--muted);
+}
+
+.empty-notifications p {
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .notification-page { padding: 20px 16px; }
+  .notification-header h2 { font-size: 1.35rem; }
+  .notification-filters { flex-wrap: wrap; }
 }

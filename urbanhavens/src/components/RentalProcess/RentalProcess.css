@@ -1,93 +1,155 @@
-/* ================= ROOT COLORS ================= */
-
-:root{
-    --primary-color: #4CAF50;
-    --secondary-color1: #f0f0f0;
-    --text-color: #333;
-    --background-color: #fff;
-    --black-color: #000;
-    --Yellow-color: #cc9900;
-    --text-color2: #ffffff66;
-    --secondary-color2: #101014;
-    --secondary-colo: #09090b;
-;
+.rp-section {
+  --rp-bg:      #071a10;
+  --rp-bg2:     #0c2418;
+  --rp-green:   #1a7a40;
+  --rp-accent:  #2dde72;
+  --rp-border:  rgba(255,255,255,0.08);
+  --rp-white:   #ffffff;
+  --rp-muted:   rgba(255,255,255,0.5);
 }
 
-
-.rental-process-section {
-background-color: var(--secondary-color3);
-padding: 20PX 15%;
-  color: white;
-}
-
-/* Container */
-.rental-process-container {
- padding: 5% 0;
-}
-
-/* Title */
-.rental-process-title {
-  text-align: center;
-  font-size: 40px;
-  font-weight: bold;
-  margin-bottom: 60px;
-}
-
-.highlight-text {
-  color: #f4b400;
-}
-
-/* Cards layout */
-.process-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 30px;
-}
-
-/* Individual card */
-.process-card {
-
-  border: 2px solid #2a2f3a;
-  border-radius: 20px;
-  padding: 40px 30px;
+.rp-section {
+  background: var(--rp-bg);
   position: relative;
+  width: 100%;
+  padding: 100px 15% 100px;
+  box-sizing: border-box;
+  font-family: "DM Sans", "Segoe UI", sans-serif;
   overflow: hidden;
 }
 
-/* Card title */
-.process-card-title {
-  font-size: 22px;
-  font-weight: 600;
-  margin-bottom: 15px;
-}
-
-/* Card description */
-.process-card-description {
-  color: #cbd5e1;
-  line-height: 1.6;
-  padding: 20px 0;
-}
-
-/* Step number circle */
-.process-step-number {
+.rp-texture {
   position: absolute;
-  bottom: -30px;
-  left: 30px;
-  background-color: #d4b483;
-  color: black;
-  font-weight: bold;
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+  z-index: 0;
 }
 
-/* Responsive for mobile */
-@media (max-width: 900px) {
-  .process-cards {
-    grid-template-columns: 1fr;
-  }
+.rp-header,
+.rp-cards { position: relative; z-index: 1; }
+
+/* Header */
+.rp-header {
+  text-align: center;
+  max-width: 600px;
+  margin: 0 auto 64px;
+}
+
+.rp-eyebrow {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--rp-accent);
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border: 1px solid rgba(45,222,114,0.25);
+  border-radius: 20px;
+  background: rgba(45,222,114,0.07);
+  margin-bottom: 14px;
+}
+
+.rp-title {
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  font-weight: 900;
+  color: var(--rp-white);
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+.rp-accent { color: var(--rp-accent); }
+
+.rp-sub {
+  font-size: 0.92rem;
+  color: var(--rp-muted);
+  margin: 0;
+  line-height: 1.7;
+}
+
+/* Cards */
+.rp-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  position: relative;
+}
+
+.rp-card {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--rp-border);
+  border-radius: 20px;
+  padding: 36px 28px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+  transition: border-color 0.25s;
+}
+
+.rp-card:hover { border-color: rgba(45,222,114,0.3); }
+
+/* Green bottom accent on hover */
+.rp-card::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--rp-green);
+  transition: background 0.25s;
+}
+
+.rp-card:hover::after { background: var(--rp-accent); }
+
+/* Step number */
+.rp-card-num {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  font-size: 2.8rem;
+  font-weight: 900;
+  color: rgba(45,222,114,0.1);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  user-select: none;
+}
+
+/* Icon */
+.rp-card-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.rp-card-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--rp-white);
+  margin: 0;
+}
+
+.rp-card-desc {
+  font-size: 0.875rem;
+  color: var(--rp-muted);
+  line-height: 1.75;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .rp-section { padding: 80px 8% 80px; }
+}
+
+@media (max-width: 768px) {
+  .rp-section { padding: 70px 6% 70px; }
+  .rp-cards   { grid-template-columns: 1fr; gap: 16px; }
+}
+
+@media (max-width: 480px) {
+  .rp-section { padding: 60px 5% 60px; }
+  .rp-title   { font-size: 1.75rem; }
 }

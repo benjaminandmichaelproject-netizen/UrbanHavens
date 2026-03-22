@@ -1,211 +1,238 @@
-import React, { useEffect, useRef, useState } from 'react';
-import "./About.css";
+import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { 
-  faHeart, 
-  faShieldAlt, 
-  faBolt, 
-  faBullseye 
-} from "@fortawesome/free-solid-svg-icons";
-const Counter = ({ target, prefix = "", suffix = "" }) => {
+import { faHeart, faShieldAlt, faBolt, faBullseye } from "@fortawesome/free-solid-svg-icons";
+import "./About.css";
+
+// ── Animated counter ──────────────────────────────────────────────────────────
+const Counter = ({ target, suffix = "", prefix = "" }) => {
   const [count, setCount] = useState(0);
   const ref = useRef(null);
-  const hasAnimated = useRef(false);
+  const animated = useRef(false);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasAnimated.current) {
-          hasAnimated.current = true;
-          let start = 0;
-          const duration = 1500;
-          const increment = target / (duration / 16);
-          const update = () => {
-            start += increment;
-            if (start < target) {
-              setCount(Math.ceil(start));
-              requestAnimationFrame(update);
-            } else {
-              setCount(target);
-            }
-          };
-          update();
-        }
-      },
-      { threshold: 0.5 }
-    );
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !animated.current) {
+        animated.current = true;
+        let start = 0;
+        const inc = target / (1500 / 16);
+        const tick = () => {
+          start += inc;
+          if (start < target) { setCount(Math.ceil(start)); requestAnimationFrame(tick); }
+          else setCount(target);
+        };
+        tick();
+      }
+    }, { threshold: 0.5 });
     if (ref.current) observer.observe(ref.current);
     return () => observer.disconnect();
   }, [target]);
 
-  return (
-    <h3 ref={ref}>
-      {prefix}{count.toLocaleString()}{suffix}
-    </h3>
-  );
+  return <span ref={ref} className="ab2-counter">{prefix}{count.toLocaleString()}{suffix}</span>;
 };
 
-const About = () => {
-  return (
-    <div className="about-wrapper">
-      <section className="hero-banner1">
-        <div className="hero-overlay1">
-          <div className="about-hero-container">
-            <div className="hero-left">
-              <span className="small-title">WHO WE ARE</span>
-              <h1>About <span>Us</span></h1>
-              <p>
-                UrbanHavens is a modern digital housing platform designed to make
-                finding and listing rental properties simple, transparent, and secure.
-              </p>
-            </div>
+// ── Variants ──────────────────────────────────────────────────────────────────
+const fadeUp    = { hidden: { opacity: 0, y: 40 },  show: { opacity: 1, y: 0,  transition: { duration: 0.6, ease: "easeOut" } } };
+const fadeLeft  = { hidden: { opacity: 0, x: -50 }, show: { opacity: 1, x: 0,  transition: { duration: 0.65, ease: "easeOut" } } };
+const fadeRight = { hidden: { opacity: 0, x: 50 },  show: { opacity: 1, x: 0,  transition: { duration: 0.65, ease: "easeOut" } } };
+const stagger   = { hidden: {}, show: { transition: { staggerChildren: 0.14 } } };
+const cardAnim  = { hidden: { opacity: 0, y: 32, scale: 0.96 }, show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.5, ease: "easeOut" } } };
 
-            <div className="hero-right">
-              <div className="stats-card">
-                <div className="stats-grid">
-                  <div className="stat-item">
-                    <Counter target={1200} suffix="+" />
-                    <p>Verified Landlords</p>
-                  </div>
-                  <div className="stat-item">
-                    <Counter target={5000} suffix="+" />
-                    <p>Active Listings</p>
-                  </div>
-                  <div className="stat-item">
-                    <Counter target={8000} suffix="+" />
-                    <p>Tenants Connected</p>
-                  </div>
-                  <div className="stat-item">
-                    <Counter target={95} suffix="%" />
-                    <p>Satisfaction Rate</p>
-                  </div>
-                </div>
-                <div className="stats-footer">
-                  <p><strong>Customer-first since 2009</strong></p>
-                  <p>Dedicated travel desk delivering rentals, flights, and stays nationwide.</p>
-                </div>
+const values = [
+  { icon: faHeart,     color: "#e63560", bg: "rgba(230,53,96,0.12)",   title: "Customer First",  desc: "Every decision we make is centered around providing exceptional customer experience." },
+  { icon: faShieldAlt, color: "#2d8ef5", bg: "rgba(45,142,245,0.12)",  title: "Trust & Safety",  desc: "Your safety and security are our top priorities with comprehensive verification." },
+  { icon: faBolt,      color: "#f59e0b", bg: "rgba(245,158,11,0.12)",  title: "Innovation",      desc: "Constantly evolving with cutting-edge technology to enhance your rental experience." },
+  { icon: faBullseye,  color: "#2dde72", bg: "rgba(45,222,114,0.12)",  title: "Excellence",      desc: "Striving for excellence in every aspect of our service and platform maintenance." },
+];
+
+const miniStats = [
+  { label: "Verified", sub: "Landlord Listings" },
+  { label: "24/7",     sub: "Platform Access"   },
+  { label: "Secure",   sub: "User Verification" },
+  { label: "Fraud",    sub: "Prevention System" },
+];
+
+// ── Component ─────────────────────────────────────────────────────────────────
+const About = () => (
+  <div className="ab2-wrapper">
+
+    {/* ══ 1. HERO ═══════════════════════════════════════════════════════ */}
+    <section className="ab2-hero">
+      <div className="ab2-hero-overlay" />
+      <div className="ab2-texture" />
+
+      <div className="ab2-hero-inner">
+
+        {/* Left */}
+        <motion.div
+          className="ab2-hero-left"
+          variants={stagger}
+          initial="hidden"
+          animate="show"
+        >
+          <motion.span className="ab2-eyebrow" variants={fadeUp}>WHO WE ARE</motion.span>
+          <motion.h1 className="ab2-hero-title" variants={fadeUp}>
+            About <span className="ab2-accent">UrbanHavens</span>
+          </motion.h1>
+          <motion.p className="ab2-hero-desc" variants={fadeUp}>
+            A modern digital housing platform designed to make finding and listing
+            rental properties simple, transparent, and secure across Ghana.
+          </motion.p>
+        </motion.div>
+
+        {/* Right — stats card */}
+        <motion.div
+          className="ab2-stats-card"
+          initial={{ opacity: 0, x: 60, scale: 0.96 }}
+          animate={{ opacity: 1, x: 0, scale: 1 }}
+          transition={{ duration: 0.7, ease: "easeOut", delay: 0.3 }}
+        >
+          <div className="ab2-stats-grid">
+            {[
+              { target: 1200, suffix: "+", label: "Verified Landlords"  },
+              { target: 5000, suffix: "+", label: "Active Listings"     },
+              { target: 8000, suffix: "+", label: "Tenants Connected"   },
+              { target: 95,   suffix: "%", label: "Satisfaction Rate"   },
+            ].map((s, i) => (
+              <div className="ab2-stat-item" key={i}>
+                <Counter target={s.target} suffix={s.suffix} />
+                <p>{s.label}</p>
               </div>
-            </div>
+            ))}
           </div>
-        </div>
-      </section>
+          <div className="ab2-stats-footer">
+            <p><strong>Customer-first platform</strong></p>
+            <p>Verified rentals and secure connections across Accra & Kumasi.</p>
+          </div>
+        </motion.div>
 
-      <section className="story-section">
-        <div className="story-header">
-          <span className="small-title centered">COMPANY JOURNEY</span>
-          <h2>Our <span>Story</span></h2>
-          <p className="story-subtitle">
-            From a simple idea to a revolutionary housing platform that's changing how people find homes.
+      </div>
+    </section>
+
+    {/* ══ 2. STORY ══════════════════════════════════════════════════════ */}
+    <section className="ab2-story">
+      <div className="ab2-story-texture" />
+
+      {/* Header */}
+      <motion.div
+        className="ab2-section-header"
+        variants={stagger}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-60px" }}
+      >
+        <motion.span className="ab2-eyebrow" variants={fadeUp}>COMPANY JOURNEY</motion.span>
+        <motion.h2 className="ab2-section-title" variants={fadeUp}>
+          Our <span className="ab2-accent">Story</span>
+        </motion.h2>
+        <motion.p className="ab2-section-sub" variants={fadeUp}>
+          From a simple idea to a revolutionary housing platform changing how people find homes.
+        </motion.p>
+      </motion.div>
+
+      <div className="ab2-story-body">
+
+        {/* Text side */}
+        <motion.div
+          className="ab2-story-text"
+          variants={fadeLeft}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-60px" }}
+        >
+          <h3 className="ab2-story-h3">Built in Ghana for Seamless Housing</h3>
+          <p>
+            UrbanHavens was born with a commitment to make housing accessible,
+            transparent, and hassle-free for everyone. Today we coordinate
+            verified listings and secure connections between landlords and tenants.
           </p>
-        </div>
+          <p>
+            Every listing on our platform is vetted to ensure safety and
+            reliability — keeping users informed while we keep the housing
+            journey secure across Ghana.
+          </p>
 
-        <div className="story-content-container">
-          <div className="story-text-side">
-            <h3>Built in Ghana for Seamless Housing</h3>
-            <p>
-              UrbanHavens was born with a commitment to make housing accessible,
-              transparent, and hassle-free for everyone. Today we coordinate 
-              verified listings and secure connections between landlords and tenants.
-            </p>
-            <p>
-              Every listing on our platform is vetted to ensure safety and 
-              reliability, keeping our users informed while we keep the housing 
-              journey secure across Ghana.
-            </p>
-<div className="story-mini-stats">
-  <div className="mini-stat">
-    <h4>Verified</h4>
-    <p>Landlord Listings</p>
-  </div>
+          <motion.div
+            className="ab2-mini-stats"
+            variants={stagger}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true }}
+          >
+            {miniStats.map((m, i) => (
+              <motion.div className="ab2-mini-stat" key={i} variants={cardAnim}>
+                <h4>{m.label}</h4>
+                <p>{m.sub}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </motion.div>
 
-  <div className="mini-stat">
-    <h4>24/7</h4>
-    <p>Platform Access</p>
-  </div>
-
-  <div className="mini-stat">
-    <h4>Secure</h4>
-    <p>User Verification</p>
-  </div>
-
-  <div className="mini-stat">
-    <h4>Fraud</h4>
-    <p>Prevention System</p>
-  </div>
-</div>
-          </div>
-
-          <div className="story-visual-side">
-            <div className="video-placeholder">
-              <div className="play-button">▶</div>
-              <div className="floating-years-card">
-                <Counter target={15} suffix="+" />
-                <p>Years of Excellence</p>
-              </div>
+        {/* Visual side */}
+        <motion.div
+          className="ab2-story-visual"
+          variants={fadeRight}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-60px" }}
+        >
+          <div className="ab2-video-box">
+            <div className="ab2-play-btn">▶</div>
+            <div className="ab2-floating-badge">
+              <Counter target={15} suffix="+" />
+              <p>Years of Excellence</p>
             </div>
-            
           </div>
-        </div>
-      </section>
-{/* 3. GUIDING PRINCIPLES SECTION */}
-<section className="values-section">
-  <div className="values-header">
-    <span className="small-title centered">GUIDING PRINCIPLES</span>
-    <h2>Our <span>Values</span></h2>
-    <p className="values-subtitle">
-      The principles that guide everything we do and every decision we make.
-    </p>
+        </motion.div>
+
+      </div>
+    </section>
+
+    {/* ══ 3. VALUES ═════════════════════════════════════════════════════ */}
+    <section className="ab2-values">
+      <div className="ab2-values-texture" />
+
+      <motion.div
+        className="ab2-section-header"
+        variants={stagger}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-60px" }}
+      >
+        <motion.span className="ab2-eyebrow ab2-eyebrow-dark" variants={fadeUp}>GUIDING PRINCIPLES</motion.span>
+        <motion.h2 className="ab2-section-title" variants={fadeUp}>
+          Our <span className="ab2-accent">Values</span>
+        </motion.h2>
+        <motion.p className="ab2-section-sub ab2-sub-dark" variants={fadeUp}>
+          The principles that guide everything we do and every decision we make.
+        </motion.p>
+      </motion.div>
+
+      <motion.div
+        className="ab2-values-grid"
+        variants={stagger}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-50px" }}
+      >
+        {values.map((v, i) => (
+          <motion.div
+            key={i}
+            className="ab2-value-card"
+            variants={cardAnim}
+            whileHover={{ y: -6, transition: { duration: 0.22 } }}
+          >
+            <div className="ab2-value-icon" style={{ background: v.bg, color: v.color }}>
+              <FontAwesomeIcon icon={v.icon} />
+            </div>
+            <h4 className="ab2-value-title">{v.title}</h4>
+            <p className="ab2-value-desc">{v.desc}</p>
+          </motion.div>
+        ))}
+      </motion.div>
+    </section>
+
   </div>
-
-  <div className="values-grid">
-    {/* Value 1: Customer First */}
-    <div className="value-card">
-      <div className="value-icon heart">
-        <FontAwesomeIcon icon={faHeart} />
-      </div>
-      <h4>Customer First</h4>
-      <p>
-        Every decision we make is centered around providing exceptional customer experience.
-      </p>
-    </div>
-
-    {/* Value 2: Trust & Safety */}
-    <div className="value-card">
-      <div className="value-icon shield">
-        <FontAwesomeIcon icon={faShieldAlt} />
-      </div>
-      <h4>Trust & Safety</h4>
-      <p>
-        Your safety and security are our top priorities with comprehensive insurance coverage.
-      </p>
-    </div>
-
-    {/* Value 3: Innovation */}
-    <div className="value-card">
-      <div className="value-icon lightning">
-        <FontAwesomeIcon icon={faBolt} />
-      </div>
-      <h4>Innovation</h4>
-      <p>
-        Constantly evolving with cutting-edge technology to enhance your rental experience.
-      </p>
-    </div>
-
-    {/* Value 4: Excellence */}
-    <div className="value-card">
-      <div className="value-icon target">
-        <FontAwesomeIcon icon={faBullseye} />
-      </div>
-      <h4>Excellence</h4>
-      <p>
-        Striving for excellence in every aspect of our service and vehicle maintenance.
-      </p>
-    </div>
-  </div>
-</section>
-
-    </div>
-  );
-};
+);
 
 export default About;

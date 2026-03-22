@@ -1,166 +1,302 @@
-/* ================= PAGE BACKGROUND & HERO ================= */
-
-/* Replaces the green gradient with the dark registration theme */
-.login-container,
-.forgot-password-container,
-.confirm-reset-container,
-.reset-password-container {
-  display: flex;
-  flex-direction: column; /* Stack Hero and Card */
-  align-items: center;
-  min-height: 100vh;
-  background-color: #000; /* Match registration wrapper */
+/* ── Tokens ───────────────────────────────────────────────────────── */
+.lg-page {
+  --lg-dark: #071a10;
+  --lg-dark2: #0c2418;
+  --lg-green: #1a7a40;
+  --lg-green-lt: #22a055;
+  --lg-accent: #2dde72;
+  --lg-light: #f4f7f5;
+  --lg-white: #ffffff;
+  --lg-border: rgba(26, 122, 64, 0.14);
+  --lg-text: #0f2d1c;
+  --lg-muted: #4a7060;
+  --lg-muted-d: rgba(255, 255, 255, 0.55);
 }
 
-/* HERO SECTION (Reusing your hero-banner styles) */
-.hero-banner {
+.lg-page {
   width: 100%;
-  min-height: 40vh;
-  background: url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&w=2070&q=80') no-repeat center center/cover;
+  min-height: 100vh;
+  font-family: "DM Sans", "Segoe UI", sans-serif;
+  background: var(--lg-light);
+}
+
+.lg-hero {
   position: relative;
+  min-height: 44vh;
+  background: linear-gradient(160deg, #071a10 0%, #0c2e18 45%, #0f3d20 75%, #071a10 100%);
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
 }
 
-.hero-overlay {
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(to bottom,
-      rgba(0, 0, 0, 0.6) 0%,
-      rgba(0, 0, 0, 0.6) 45%,
-      #000 100%);
-  padding: 8% 0;
+.lg-hero-texture {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(45, 222, 114, 0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.lg-hero-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 360px;
+  background: radial-gradient(ellipse, rgba(26, 122, 64, 0.2) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.lg-hero-inner {
+  position: relative;
+  z-index: 1;
+  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  color: white;
-  text-align: center;
+  gap: 14px;
+  padding: 110px 15% 80px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
-/* ================= LOGIN CARD (Maintained Class Names) ================= */
+.lg-eyebrow {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--lg-accent);
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border: 1px solid rgba(45, 222, 114, 0.25);
+  border-radius: 20px;
+  background: rgba(45, 222, 114, 0.07);
+}
 
-.login-card,
-.forgot-password-card,
-.confirm-reset-card,
-.reset-password-card {
-  width: 100%;
-  max-width: 500px; /* Matched to account-card */
- 
-  padding: 40px;
-  border-radius: 12px;
-  margin: -20px 0px 60px 20px; /* Pull card up slightly into hero */
+.lg-hero-title {
+  font-size: clamp(2.2rem, 5vw, 3.6rem);
+  font-weight: 900;
+  color: var(--lg-white);
+  margin: 0;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+}
+
+.lg-accent {
+  color: var(--lg-accent);
+}
+
+.lg-hero-sub {
+  font-size: 0.97rem;
+  color: var(--lg-muted-d);
+  margin: 0;
+  max-width: 480px;
+  line-height: 1.7;
+}
+
+/* ── Body ─────────────────────────────────────────────────────────── */
+.lg-body {
+  display: flex;
+  justify-content: center;
+  padding: 0 5% 80px;
+  margin-top: -56px;
   position: relative;
   z-index: 2;
-  display: flex;
-  justify-content: center;
-  flex-direction: column;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
 }
 
-.login-card h2 {
-  text-align: center;
-  margin-bottom: 25px;
-  font-size: 24px;
-  font-weight: 700;
-  color: white;
+/* ── Card ─────────────────────────────────────────────────────────── */
+.lg-card {
+  width: 100%;
+  max-width: 460px;
+  background: var(--lg-white);
+  border: 1px solid var(--lg-border);
+  border-radius: 20px;
+  padding: 40px 36px;
+  box-shadow: 0 8px 40px rgba(26, 122, 64, 0.1);
 }
 
-/* ================= INPUTS & LABELS ================= */
-
-.login-input {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 20px;
-}
-.reset-have-account{
-  padding: 10px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.login-input label {
-  font-size: 13px;
+/* Messages */
+.lg-success {
+  background: rgba(26, 122, 64, 0.08);
+  border: 1px solid rgba(26, 122, 64, 0.2);
+  color: var(--lg-green);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.82rem;
   font-weight: 600;
-  color: var(--yellow-color); /* Updated to Gold */
-  margin-bottom: 8px;
-  text-transform: uppercase;
+  margin-bottom: 20px;
+  text-align: center;
 }
 
-.login-input input {
-  padding: 12px 15px;
-  border: 1px solid #333;
-  border-radius: 8px;
-  font-size: 14px;
+.lg-error {
+  background: rgba(220, 38, 38, 0.06);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  color: #dc2626;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+/* ── Form ─────────────────────────────────────────────────────────── */
+.lg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.lg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lg-field label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--lg-text);
+}
+
+.lg-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lg-forgot {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--lg-green);
+  cursor: pointer;
+}
+
+.lg-forgot:hover {
+  opacity: 0.75;
+}
+
+.lg-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.lg-input-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--lg-muted);
+  font-size: 0.82rem;
+  pointer-events: none;
+}
+
+.lg-input-wrap input {
+  width: 100%;
+  padding: 12px 14px 12px 40px;
+  border: 1px solid rgba(26, 122, 64, 0.2);
+  border-radius: 10px;
+  font-size: 0.875rem;
+  color: var(--lg-text);
+  background: var(--lg-white);
   outline: none;
-  transition: border-color 0.3s;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
 }
 
-.login-input input:focus {
-  border-color: var(--yellow-color);
-  box-shadow: none;
+.lg-input-wrap input:focus {
+  border-color: var(--lg-green);
+  box-shadow: 0 0 0 3px rgba(26, 122, 64, 0.1);
 }
 
-/* ================= BUTTONS ================= */
+.lg-input-wrap input::placeholder {
+  color: rgba(15, 45, 28, 0.3);
+}
 
-.login-btn,
-.forgot-password-card button {
+/* Submit */
+.lg-submit-btn {
   width: 100%;
   padding: 14px;
-  background: var(--yellow-color); /* Updated to Gold */
-  color: white;
+  background: var(--lg-green);
+  color: #fff;
   border: none;
-  border-radius: 8px;
-  font-weight: 600;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
-  font-size: 16px;
-  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background 0.2s, transform 0.15s;
+  margin-top: 4px;
 }
 
-.login-btn:hover {
-  filter: brightness(1.1);
-  transform: none; /* Removed the translateY from green version */
+.lg-submit-btn:hover:not(:disabled) {
+  background: var(--lg-green-lt);
+  transform: translateY(-1px);
 }
 
-/* ================= LINKS & SUBTEXT ================= */
+.lg-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
-.login-subtext {
+/* Register link */
+.lg-register-link {
   text-align: center;
+  font-size: 0.82rem;
+  color: var(--lg-muted);
   margin-top: 20px;
-  font-size: 14px;
-  color: var(--light-gray);
 }
 
-.forgot-password-link, 
-.login-subtext a {
-  color: var(--yellow-color);
-  text-decoration: none;
-  font-weight: 600;
+.lg-register-link span {
+  color: var(--lg-green);
+  font-weight: 700;
+  cursor: pointer;
 }
 
-.login-error, .login-success{
-  padding-bottom: 20px;
+.lg-register-link span:hover {
+  opacity: 0.75;
 }
 
-/* ================= RESPONSIVE (Fixing the 30px Gap) ================= */
-
+/* ── Responsive ───────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .hero-banner{
-    min-height: 30vh;
-  }
-  .hero-overlay {
-    /* Navbar height (approx 60px) + 30px gap = 90px */
-    padding-top: 90px; 
+  .lg-hero-inner {
+    padding: 100px 6% 70px;
   }
 
-  .login-card {
-    margin-top: -80px; /* Tighter overlap on mobile */
-    padding: 30px 20px;
-    max-width: 90%;
+  .lg-body {
+    padding: 0 6% 60px;
+    margin-top: -48px;
   }
 
-  .login-card h2 {
-    font-size: 22px;
+  .lg-card {
+    padding: 32px 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .lg-hero-inner {
+    padding: 90px 5% 60px;
+  }
+
+  .lg-body {
+    padding: 0 5% 48px;
+    margin-top: -40px;
+  }
+
+  .lg-card {
+    padding: 28px 18px;
+    border-radius: 16px;
+  }
+
+  .lg-hero-title {
+    font-size: 2rem;
   }
 }

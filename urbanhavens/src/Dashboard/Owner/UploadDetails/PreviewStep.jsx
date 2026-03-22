@@ -54,7 +54,7 @@ const PreviewStep = ({ formData, files, prev, finish, isSubmitting }) => {
     <div className="form-section">
       <h2>Preview & Confirm</h2>
 
-      <div className="preview-section">
+      {/* <div className="preview-section">
         <h3>Personal Info</h3>
         <p><strong>First Name:</strong> {personal_info.first_name}</p>
         <p><strong>Last Name:</strong> {personal_info.last_name}</p>
@@ -69,7 +69,7 @@ const PreviewStep = ({ formData, files, prev, finish, isSubmitting }) => {
         <p><strong>ID Type:</strong> {identification.id_type}</p>
         <p><strong>ID Number:</strong> {identification.id_number}</p>
         {idImageUrl && <img src={idImageUrl} alt="ID Preview" className="preview-img" />}
-      </div>
+      </div> */}
 
       <div className="preview-section">
         <h3>Property</h3>

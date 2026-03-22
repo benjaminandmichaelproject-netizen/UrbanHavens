@@ -1,34 +1,37 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "./Sidebar";
-import Navbar from "./Navbar";
+import Navbar  from "./Navbar";
 import { Outlet } from "react-router-dom";
 import "../Dashboard.css";
 
 const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [isMobile, setIsMobile]       = useState(window.innerWidth <= 768);
 
-  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
+  const toggleSidebar = () => setSidebarOpen(p => !p);
 
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+    const onResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
   }, []);
 
   useEffect(() => {
-    if (!isMobile) setSidebarOpen(true);
-    else setSidebarOpen(false);
+    setSidebarOpen(!isMobile);
   }, [isMobile]);
 
   return (
-    <div className="dashboard-layout">
+    <div className="db-layout">
       <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} />
 
-      <div className="dashboard-main">
-        <Navbar toggleSidebar={toggleSidebar} />
+      {/* Mobile overlay */}
+      {isMobile && sidebarOpen && (
+        <div className="db-overlay" onClick={toggleSidebar} />
+      )}
 
-        <div className="dashboard-content">
+      <div className={`db-main ${sidebarOpen && !isMobile ? "sidebar-open" : ""}`}>
+        <Navbar toggleSidebar={toggleSidebar} />
+        <div className="db-content">
           <Outlet />
         </div>
       </div>

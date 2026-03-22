@@ -1,119 +1,143 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
 import "./FeaturedRentals.css";
 import RentalCard from "./RentalCard";
 
+const stagger = {
+  hidden: {},
+  show:   { transition: { staggerChildren: 0.1 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 40 },
+  show:   { opacity: 1, y: 0, transition: { duration: 0.55, ease: "easeOut" } },
+};
+
 const FeaturedRentals = () => {
   const navigate = useNavigate();
-
   const [properties, setProperties] = useState([]);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [error, setError]           = useState("");
+  const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
     const fetchFeaturedProperties = async () => {
       try {
         setLoading(true);
         setError("");
-
         const res = await fetch("/api/properties/featured/");
-        if (!res.ok) {
-          throw new Error("Failed to fetch featured properties.");
-        }
-
+        if (!res.ok) throw new Error("Failed to fetch featured properties.");
         const data = await res.json();
-
-        if (Array.isArray(data)) {
-          setProperties(data);
-        } else {
-          setProperties([]);
-          setError("Invalid response from server.");
-        }
+        setProperties(Array.isArray(data) ? data : []);
+        if (!Array.isArray(data)) setError("Invalid response from server.");
       } catch (err) {
-        console.error("Error fetching featured properties:", err);
         setProperties([]);
         setError(err.message || "Error fetching featured properties.");
       } finally {
         setLoading(false);
       }
     };
-
     fetchFeaturedProperties();
   }, []);
 
-  const handleBook = (property) => {
+  const handleBook = (property) =>
     navigate(`/detail/${property.id}`, { state: { property } });
-  };
 
-  const getImageUrl = (property) => {
-    const firstImage = property?.images?.[0]?.image;
-    return firstImage || "";
-  };
+  const getImageUrl = (property) =>
+    property?.images?.[0]?.image || "";
 
   const getAmenitiesPreview = (amenities) => {
     if (!amenities) return [];
-
-    let parsedAmenities = amenities;
-
+    let parsed = amenities;
     if (typeof amenities === "string") {
-      try {
-        parsedAmenities = JSON.parse(amenities);
-      } catch {
-        parsedAmenities = amenities
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean);
-      }
+      try { parsed = JSON.parse(amenities); }
+      catch { parsed = amenities.split(",").map(s => s.trim()).filter(Boolean); }
     }
-
-    if (Array.isArray(parsedAmenities)) {
-      return parsedAmenities.slice(0, 3);
-    }
-
-    return [];
+    return Array.isArray(parsed) ? parsed.slice(0, 3) : [];
   };
 
   return (
-    <div className="rentals-main-container">
-      <div className="subtitle">
-        <h1>
-          Featured <span>Properties</span>
-        </h1>
-        <p>Explore our handpicked selection of premium rental properties</p>
-      </div>
+    <section className="fr-section">
 
-      {loading && <p style={{ textAlign: "center" }}>Loading featured properties...</p>}
-      {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
+      {/* ── Header ────────────────────────────────────────── */}
+      <motion.div
+        className="fr-header"
+        variants={stagger}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-60px" }}
+      >
+        <motion.span className="fr-eyebrow" variants={fadeUp}>
+          HANDPICKED FOR YOU
+        </motion.span>
+        <motion.h2 className="fr-title" variants={fadeUp}>
+          Featured <span className="fr-accent">Properties</span>
+        </motion.h2>
+        <motion.p className="fr-sub" variants={fadeUp}>
+          Explore our selection of premium verified rental listings across Ghana
+        </motion.p>
+      </motion.div>
 
-      <div className="rentals-container">
-        {!loading && !error && properties.length > 0 ? (
-          properties.map((property) => (
+      {/* ── States ────────────────────────────────────────── */}
+      {loading && (
+        <div className="fr-state">
+          <div className="fr-spinner" />
+          <p>Loading properties...</p>
+        </div>
+      )}
+
+      {error && !loading && (
+        <p className="fr-error">{error}</p>
+      )}
+
+      {!loading && !error && properties.length === 0 && (
+        <p className="fr-empty">No featured properties available at the moment.</p>
+      )}
+
+      {/* ── Grid ──────────────────────────────────────────── */}
+      {!loading && !error && properties.length > 0 && (
+        <motion.div
+          className="fr-grid"
+          variants={stagger}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-40px" }}
+        >
+          {properties.map((property) => (
             <RentalCard
               key={property.id}
               id={property.id}
               image={getImageUrl(property)}
               title={property.property_name}
               city={property.city}
+              region={property.region}
+              category={property.category}
               price={property.price}
               amenities={getAmenitiesPreview(property.amenities)}
               onBook={() => handleBook(property)}
+              theme="dark"
             />
-          ))
-        ) : (
-          !loading &&
-          !error && <p style={{ textAlign: "center" }}>No properties available.</p>
-        )}
-      </div>
+          ))}
+        </motion.div>
+      )}
 
-      <div className="view-all-house">
+      {/* ── CTA ───────────────────────────────────────────── */}
+      <motion.div
+        className="fr-cta"
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5, delay: 0.2 }}
+      >
         <button
+          className="fr-cta-btn"
           onClick={() => navigate("/propertylisting")}
-          className="view-all-btn"
         >
-          View All Properties
+          View All Properties →
         </button>
-      </div>
-    </div>
+      </motion.div>
+
+    </section>
   );
 };
 

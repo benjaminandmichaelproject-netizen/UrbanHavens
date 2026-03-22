@@ -1,187 +1,311 @@
-:root{
-    --primary-color: #4CAF50;
-    --secondary-color1: #f0f0f0;
-    --text-color: #333;
-    --background-color: #fff;
-    --black-color: #000;
-    --Yellow-color: #cc9900;
-    --text-color2: #ffffff66;
-    --secondary-color2: #101014;
-    --secondary-colo: #09090b;
-;
+/* ── Tokens ───────────────────────────────────────────────────────── */
+.fr-section {
+  --fr-bg:       #0a1f12;
+  --fr-bg2:      #0f2918;
+  --fr-green:    #1a7a40;
+  --fr-green-lt: #22a055;
+  --fr-accent:   #2dde72;
+  --fr-border:   rgba(255,255,255,0.08);
+  --fr-white:    #ffffff;
+  --fr-muted:    rgba(255,255,255,0.5);
+  --fr-muted2:   rgba(255,255,255,0.3);
 }
 
-
-
-
-.rentals-main-container {
-  padding: 60px 15%;
-  background-color: var(--secondary-color2);
+/* ── Section ──────────────────────────────────────────────────────── */
+.fr-section {
+  background: var(--fr-bg);
+  position: relative;
+  width: 100%;
+  padding: 100px 15% 80px;
+  box-sizing: border-box;
+  font-family: "DM Sans", "Segoe UI", sans-serif;
 }
 
-.subtitle {
+.fr-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.fr-header,
+.fr-grid,
+.fr-cta,
+.fr-state,
+.fr-error,
+.fr-empty { position: relative; z-index: 1; }
+
+/* ── Header ───────────────────────────────────────────────────────── */
+.fr-header { text-align: center; margin-bottom: 56px; }
+
+.fr-eyebrow {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--fr-accent);
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border: 1px solid rgba(45,222,114,0.25);
+  border-radius: 20px;
+  background: rgba(45,222,114,0.07);
+  margin-bottom: 14px;
+}
+
+.fr-title {
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  font-weight: 900;
+  color: var(--fr-white);
+  margin: 0 0 12px;
+  letter-spacing: -0.02em;
+}
+
+.fr-accent { color: var(--fr-accent); }
+
+.fr-sub {
+  font-size: 0.92rem;
+  color: var(--fr-muted);
+  margin: 0 auto;
+  max-width: 500px;
+}
+
+/* ── States ───────────────────────────────────────────────────────── */
+.fr-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
-   letter-spacing:4px;
-  font-size:12px;
-
+  gap: 14px;
+  padding: 60px 0;
+  color: var(--fr-muted);
+  font-size: 0.9rem;
 }
 
-
-.subtitle h1{
-  font-size:40px;
-  margin:10px 0;
-  color: var(--background-color);
+.fr-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(45,222,114,0.2);
+  border-top-color: var(--fr-accent);
+  border-radius: 50%;
+  animation: fr-spin 0.7s linear infinite;
 }
 
-.subtitle span{
-  color:var(--Yellow-color);
-}
+@keyframes fr-spin { to { transform: rotate(360deg); } }
 
-.heading p{
-  color: var(--text-color2);
-  font-size: 1.2rem;
-  max-width: 600px;
-}
-.rentals-container {
+.fr-error  { text-align: center; color: #f87171; font-size: 0.88rem; padding: 20px 0; }
+.fr-empty  { text-align: center; color: var(--fr-muted); font-size: 0.9rem; padding: 40px 0; }
+
+/* ── Grid ─────────────────────────────────────────────────────────── */
+.fr-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1rem;
-  padding: 40px 0;
+  gap: 20px;
+  margin-bottom: 48px;
 }
 
-.rental-card {
-  background: var(--secondary-color3);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  border-radius: 20px;
+/* ── CTA ──────────────────────────────────────────────────────────── */
+.fr-cta { display: flex; justify-content: center; }
+
+.fr-cta-btn {
+  background: transparent;
+  color: var(--fr-accent);
+  border: 1.5px solid var(--fr-accent);
+  padding: 13px 36px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  letter-spacing: 0.02em;
+}
+
+.fr-cta-btn:hover { background: var(--fr-accent); color: #071a10; }
+
+/* ══════════════════════════════════════════════════════════════════
+   CARD BASE — shared structure
+══════════════════════════════════════════════════════════════════ */
+.fr-card {
+  border-radius: 16px;
   overflow: hidden;
-  transition: 0.3s ease;
-  border: solid 1px #ffffff66;
-  color: var(--text-color2);
-}
-
-.rental-card:hover {
-  transform: translateY(-5px);
-}
-.rental-card button{
-  background: var(--Yellow-color);
-  color: var(--black-color);
-  border: none;
-  padding: 10px 20px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-.rentals-detail h3{
-  color: var(--secondary-color);
-  font-size: 1rem;
-}
-.rental-card img {
-  width: 100%;
-  height: 150px;
-  object-fit: cover;
-}
-
-.rentals-detail {
-  padding: 10px;
-}
-
-.rental-d {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 0;
-}
-
-.book-price {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.book-price button {
-  padding: 8px 16px;
-  border-radius: 10px;
-  cursor: pointer;
-}
-
-
-.view-all-house{
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.view-all-house button{
-  
-    padding: 10px 20px;
-    background-color: var(--Yellow-color);
-    color: var(--text-color);
-border: none;
-height: 6vh;
-    border-radius: 5px;
-    transition: background-color 0.3s ease;
-    cursor: pointer;
+/* ── DARK theme (FeaturedRentals on dark section bg) ─────────────── */
+.fr-card--dark {
+  background: #0f2918;
+  border: 1px solid rgba(255,255,255,0.08);
 }
 
-
-
-
-
-
-/* GRID (default) */
-.rental-card.grid {
-  display: block;
+.fr-card--dark:hover {
+  border-color: rgba(45,222,114,0.3);
 }
 
-/* LIST VIEW */
-.rental-card.list {
-  display: flex;
-  flex-direction: row;
+.fr-card--dark .fr-card-title      { color: #ffffff; }
+.fr-card--dark .fr-card-location   { color: rgba(255,255,255,0.5); }
+.fr-card--dark .fr-card-price-amount { color: #ffffff; }
+.fr-card--dark .fr-card-price-period { color: rgba(255,255,255,0.4); }
+.fr-card--dark .fr-card-amenity {
+  color: #2dde72;
+  background: rgba(45,222,114,0.08);
+  border-color: rgba(45,222,114,0.18);
+}
+.fr-card--dark .fr-card-footer     { border-top-color: rgba(255,255,255,0.08); }
+.fr-card--dark .fr-card-btn        { background: #1a7a40; color: #fff; }
+.fr-card--dark .fr-card-btn:hover  { background: #22a055; }
+.fr-card--dark .fr-card-img-placeholder {
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.2);
+}
+
+/* ── LIGHT theme (PropertyListing on light section bg) ───────────── */
+.fr-card--light {
+  background: #ffffff;
+  border: 1px solid rgba(26,122,64,0.14);
+  box-shadow: 0 2px 16px rgba(26,122,64,0.06);
+}
+
+.fr-card--light:hover {
+  border-color: rgba(26,122,64,0.3);
+  box-shadow: 0 6px 28px rgba(26,122,64,0.1);
+}
+
+.fr-card--light .fr-card-title      { color: #0f2d1c; }
+.fr-card--light .fr-card-location   { color: #4a7060; }
+.fr-card--light .fr-card-price-amount { color: #0f2d1c; }
+.fr-card--light .fr-card-price-period { color: #9ca3af; }
+.fr-card--light .fr-card-amenity {
+  color: #1a7a40;
+  background: rgba(26,122,64,0.07);
+  border-color: rgba(26,122,64,0.2);
+}
+.fr-card--light .fr-card-footer     { border-top-color: rgba(26,122,64,0.1); }
+.fr-card--light .fr-card-btn        { background: #1a7a40; color: #fff; }
+.fr-card--light .fr-card-btn:hover  { background: #22a055; }
+.fr-card--light .fr-card-img-placeholder {
+  background: #f4f7f5;
+  color: #9ca3af;
+}
+
+/* ── Image ────────────────────────────────────────────────────────── */
+.fr-card-img-wrap {
+  position: relative;
   height: 180px;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
-/* Image behavior */
-.rental-card.list img {
-  width: 250px;
+.fr-card-img {
+  width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.4s ease;
 }
 
-/* Content side */
-.rental-card.list .rentals-detail {
-  flex: 1;
-  padding: 15px;
+.fr-card:hover .fr-card-img { transform: scale(1.05); }
+
+.fr-card-img-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+}
+
+/* Category badge */
+.fr-card-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: #1a7a40;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Body ─────────────────────────────────────────────────────────── */
+.fr-card-body {
+  padding: 18px 16px;
   display: flex;
   flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.fr-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.fr-card-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  margin: 0;
+}
+
+.fr-card-pin { font-size: 0.72rem; flex-shrink: 0; }
+
+/* Amenities */
+.fr-card-amenities { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.fr-card-amenity {
+  font-size: 0.65rem;
+  border-radius: 20px;
+  padding: 3px 9px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+/* Footer */
+.fr-card-footer {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid transparent;
 }
 
-/* Improve spacing */
-.rental-card.list .rental-d {
-  justify-content: flex-start;
-  gap: 20px;
+.fr-card-price { display: flex; align-items: baseline; gap: 3px; }
+
+.fr-card-price-amount { font-size: 1rem; font-weight: 800; }
+.fr-card-price-period { font-size: 0.7rem; }
+
+.fr-card-btn {
+  border: none;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 
-/* Button alignment */
-.rental-card.list .book-price {
-  justify-content: space-between;
-}.rental-card {
-  transition: all 0.3s ease;
-}
-
-
-/* Responsive */
-
-@media (max-width: 1024px) {
-  .rentals-container {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 768px) {
-  .rentals-container {
-    grid-template-columns: 1fr;
-  }
-}
+/* ── Responsive ───────────────────────────────────────────────────── */
+@media (max-width: 1280px) { .fr-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1024px) { .fr-section { padding: 80px 8% 60px; } .fr-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px)  { .fr-section { padding: 70px 6% 50px; } .fr-grid { grid-template-columns: 1fr; gap: 16px; } }
+@media (max-width: 480px)  { .fr-section { padding: 60px 5% 40px; } .fr-title { font-size: 1.7rem; } }

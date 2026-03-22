@@ -1,270 +1,266 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import "./PropertyListing.css";
+import { motion, AnimatePresence } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faSearch,
-  faChevronDown,
-  faThLarge,
-  faList,
-  faSlidersH,
+  faSearch, faChevronDown,
+  faThLarge, faList, faSlidersH, faTimes,
 } from "@fortawesome/free-solid-svg-icons";
 import RentalCard from "../../components/FeaturedRentals/RentalCard";
+import "./PropertyListing.css";
 
 const categories = [
-  { key: "all", label: "All Properties" },
-  { key: "house_rent", label: "House for Rent" },
-  { key: "hostel", label: "Hostel for Rent" },
+  { key: "all",        label: "All Properties"   },
+  { key: "house_rent", label: "House for Rent"    },
+  { key: "hostel",     label: "Hostel for Rent"   },
 ];
+
+const fadeUp  = { hidden: { opacity: 0, y: 36 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } } };
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
 
 const PropertyListing = () => {
   const navigate = useNavigate();
 
-  const [properties, setProperties] = useState([]);
-  const [displayedProperties, setDisplayedProperties] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isDropdownOpen, setDropdownOpen] = useState(false);
-  const [viewMode, setViewMode] = useState("grid");
-  const [loading, setLoading] = useState(true);
-  const [filterLoading, setFilterLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [properties, setProperties]           = useState([]);
+  const [displayed, setDisplayed]             = useState([]);
+  const [selectedCategory, setSelectedCat]    = useState("all");
+  const [searchTerm, setSearch]               = useState("");
+  const [dropdownOpen, setDropdown]           = useState(false);
+  const [viewMode, setView]                   = useState("grid");
+  const [loading, setLoading]                 = useState(true);
+  const [filterLoading, setFilterLoading]     = useState(false);
+  const [error, setError]                     = useState("");
 
   useEffect(() => {
-    const fetchProperties = async () => {
+    (async () => {
       try {
         setLoading(true);
         setError("");
-
         const res = await fetch("/api/properties/");
-        if (!res.ok) {
-          throw new Error("Failed to fetch properties.");
-        }
-
+        if (!res.ok) throw new Error("Failed to fetch properties.");
         const data = await res.json();
         const results = Array.isArray(data) ? data : data.results || [];
-
         setProperties(results);
-        setDisplayedProperties(results);
+        setDisplayed(results);
       } catch (err) {
-        console.error("Error fetching properties:", err);
         setError(err.message || "Something went wrong.");
-        setProperties([]);
-        setDisplayedProperties([]);
+        setProperties([]); setDisplayed([]);
       } finally {
         setLoading(false);
       }
-    };
-
-    fetchProperties();
+    })();
   }, []);
 
-  const getImageUrl = (property) => {
-    const firstImage = property?.images?.[0]?.image;
-    if (!firstImage) return "/default-house.jpg";
-    return firstImage;
-  };
+  const getImageUrl = (p) => p?.images?.[0]?.image || "/default-house.jpg";
 
-  const getAmenitiesPreview = (amenities) => {
+  const getAmenities = (amenities) => {
     if (!amenities) return [];
-
-    let parsedAmenities = amenities;
-
+    let parsed = amenities;
     if (typeof amenities === "string") {
-      try {
-        parsedAmenities = JSON.parse(amenities);
-      } catch {
-        parsedAmenities = amenities
-          .split(",")
-          .map((item) => item.trim())
-          .filter(Boolean);
-      }
+      try { parsed = JSON.parse(amenities); }
+      catch { parsed = amenities.split(",").map(s => s.trim()).filter(Boolean); }
     }
-
-    if (Array.isArray(parsedAmenities)) {
-      return parsedAmenities.slice(0, 3);
-    }
-
-    return [];
+    return Array.isArray(parsed) ? parsed.slice(0, 3) : [];
   };
 
-  const filteredProperties = useMemo(() => {
-    let filtered = [...properties];
-
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(
-        (property) => property.category === selectedCategory
+  const filtered = useMemo(() => {
+    let list = [...properties];
+    if (selectedCategory !== "all") list = list.filter(p => p.category === selectedCategory);
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      list = list.filter(p =>
+        p.property_name?.toLowerCase().includes(q) ||
+        p.city?.toLowerCase().includes(q)          ||
+        p.region?.toLowerCase().includes(q)        ||
+        p.school?.toLowerCase().includes(q)
       );
     }
-
-    if (searchTerm.trim()) {
-      const query = searchTerm.toLowerCase();
-
-      filtered = filtered.filter((property) => {
-        return (
-          property.property_name?.toLowerCase().includes(query) ||
-          property.city?.toLowerCase().includes(query) ||
-          property.region?.toLowerCase().includes(query) ||
-          property.school?.toLowerCase().includes(query)
-        );
-      });
-    }
-
-    return filtered;
+    return list;
   }, [properties, selectedCategory, searchTerm]);
 
   useEffect(() => {
     setFilterLoading(true);
+    const t = setTimeout(() => { setDisplayed(filtered); setFilterLoading(false); }, 400);
+    return () => clearTimeout(t);
+  }, [filtered]);
 
-    const timer = setTimeout(() => {
-      setDisplayedProperties(filteredProperties);
-      setFilterLoading(false);
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [filteredProperties]);
-
-  const selectedLabel =
-    categories.find((cat) => cat.key === selectedCategory)?.label ||
-    "Select Category";
+  const catLabel = categories.find(c => c.key === selectedCategory)?.label || "Category";
 
   return (
-    <div className="property-page-wrapper">
-      <section className="hero-container3">
-        <div className="hero-content-overlay">
-          <div className="hero-inner-layout">
-            <div className="hero-text-block">
-              <span className="hero-label">CURATED STAYS</span>
-              <h1>
-                Find Your <span>Perfect Stay</span> with Us
-              </h1>
-              <p>
-                Discover unique homes, apartments, and experiences worldwide.
-              </p>
-              <div className="hero-action-btns">
-                <button className="btn-white">Browse stays</button>
-                <button className="btn-glass">Talk to concierge</button>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div className="pl-page">
+
+      {/* ══ HERO ══════════════════════════════════════════════════════ */}
+      <section className="pl-hero">
+        <div className="pl-hero-overlay" />
+        <div className="pl-hero-texture" />
+
+        <motion.div
+          className="pl-hero-inner"
+          variants={stagger}
+          initial="hidden"
+          animate="show"
+        >
+          <motion.span className="pl-eyebrow" variants={fadeUp}>CURATED RENTALS</motion.span>
+          <motion.h1 className="pl-hero-title" variants={fadeUp}>
+            Find Your <span className="pl-accent">Perfect Home</span>
+          </motion.h1>
+          <motion.p className="pl-hero-sub" variants={fadeUp}>
+            Discover verified houses, hostels, and apartments across Accra & Kumasi
+          </motion.p>
+          <motion.div className="pl-hero-btns" variants={fadeUp}>
+            <button className="pl-btn-primary" onClick={() => document.getElementById("pl-search").scrollIntoView({ behavior: "smooth" })}>
+              Browse Properties →
+            </button>
+            <button className="pl-btn-ghost">Talk to Us</button>
+          </motion.div>
+        </motion.div>
       </section>
 
-      <section className="fleet-section-container">
-        <div className="fleet-section">
-          <div className="fleet-header">
-            <span className="small-title centered">FLEET</span>
-            <h2>
-              Choose the <span>perfect Home</span>
+      {/* ══ SEARCH BAR ════════════════════════════════════════════════ */}
+      <section className="pl-search-section" id="pl-search">
+        <motion.div
+          className="pl-search-box"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.55 }}
+        >
+          {/* Heading */}
+          <div className="pl-search-header">
+            <span className="pl-eyebrow-light">FIND A PROPERTY</span>
+            <h2 className="pl-search-title">
+              Choose Your <span className="pl-accent-dark">Perfect Home</span>
             </h2>
           </div>
 
-          <div className="search-container-box">
-            <div className="search-bar-wrapper">
-              <div className="search-input-group">
-                <FontAwesomeIcon icon={faSearch} className="search-icon" />
-                <input
-                  type="text"
-                  placeholder="Search by location..."
-                  className="main-search-input"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
+          {/* Controls row */}
+          <div className="pl-controls">
+
+            {/* Search input */}
+            <div className="pl-input-wrap">
+              <FontAwesomeIcon icon={faSearch} className="pl-search-icon" />
+              <input
+                type="text"
+                placeholder="Search by city, region or school..."
+                value={searchTerm}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-input"
+              />
+              {searchTerm && (
+                <button className="pl-input-clear" onClick={() => setSearch("")}>
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
+              )}
+            </div>
+
+            <div className="pl-controls-right">
+              {/* Category dropdown */}
+              <div
+                className={`pl-dropdown ${dropdownOpen ? "open" : ""}`}
+                onClick={() => setDropdown(!dropdownOpen)}
+              >
+                <span>{catLabel}</span>
+                <FontAwesomeIcon icon={faChevronDown} className="pl-chevron" />
+                <ul className="pl-dropdown-menu">
+                  {categories.map(c => (
+                    <li
+                      key={c.key}
+                      className={c.key === selectedCategory ? "active" : ""}
+                      onClick={e => { e.stopPropagation(); setSelectedCat(c.key); setDropdown(false); }}
+                    >
+                      {c.label}
+                    </li>
+                  ))}
+                </ul>
               </div>
 
-              <div className="search-controls">
-                <div
-                  className={`dropdown-control ${isDropdownOpen ? "open" : ""}`}
-                  onClick={() => setDropdownOpen(!isDropdownOpen)}
+              {/* View toggle */}
+              <div className="pl-view-toggle">
+                <button
+                  className={`pl-toggle-btn ${viewMode === "grid" ? "active" : ""}`}
+                  onClick={() => setView("grid")}
+                  title="Grid view"
                 >
-                  <span>{selectedLabel}</span>
-                  <FontAwesomeIcon
-                    icon={faChevronDown}
-                    className="chevron-icon"
-                  />
-
-                  <ul className="dropdown-menu">
-                    {categories.map((cat) => (
-                      <li
-                        key={cat.key}
-                        onClick={() => {
-                          setSelectedCategory(cat.key);
-                          setDropdownOpen(false);
-                        }}
-                      >
-                        {cat.label}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="view-toggle">
-                  <button
-                    className={`toggle-btn ${
-                      viewMode === "grid" ? "active" : ""
-                    }`}
-                    onClick={() => setViewMode("grid")}
-                  >
-                    <FontAwesomeIcon icon={faThLarge} />
-                  </button>
-
-                  <button
-                    className={`toggle-btn ${
-                      viewMode === "list" ? "active" : ""
-                    }`}
-                    onClick={() => setViewMode("list")}
-                  >
-                    <FontAwesomeIcon icon={faList} />
-                  </button>
-                </div>
-
-                <button className="filter-btn">
-                  <FontAwesomeIcon icon={faSlidersH} /> Filters
+                  <FontAwesomeIcon icon={faThLarge} />
+                </button>
+                <button
+                  className={`pl-toggle-btn ${viewMode === "list" ? "active" : ""}`}
+                  onClick={() => setView("list")}
+                  title="List view"
+                >
+                  <FontAwesomeIcon icon={faList} />
                 </button>
               </div>
+
+              {/* Filter button */}
+              <button className="pl-filter-btn">
+                <FontAwesomeIcon icon={faSlidersH} /> Filters
+              </button>
             </div>
           </div>
-        </div>
+
+          {/* Result count */}
+          {!loading && !error && (
+            <p className="pl-result-count">
+              {filterLoading ? "Searching..." : `${displayed.length} propert${displayed.length === 1 ? "y" : "ies"} found`}
+            </p>
+          )}
+        </motion.div>
       </section>
 
-      <section className="properties">
-        {loading ? (
-          <div className="property-loader-container">
-            <div className="spinner"></div>
-            <p>Loading properties...</p>
-          </div>
-        ) : error ? (
-          <p className="property-message error">{error}</p>
-        ) : filterLoading ? (
-          <div className="property-loader-container fade-in">
-            <div className="spinner"></div>
-            <p>Filtering properties...</p>
-          </div>
-        ) : displayedProperties.length > 0 ? (
-          <div className="prop-container">
-            <div
-              className={`property-cards ${
-                viewMode === "list" ? "list-view" : "grid-view"
-              } fade-in`}
+      {/* ══ GRID ══════════════════════════════════════════════════════ */}
+      <section className="pl-grid-section">
+        <AnimatePresence mode="wait">
+          {loading ? (
+            <motion.div key="loading" className="pl-state" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <div className="pl-spinner" />
+              <p>Loading properties...</p>
+            </motion.div>
+          ) : error ? (
+            <motion.p key="error" className="pl-error" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              {error}
+            </motion.p>
+          ) : filterLoading ? (
+            <motion.div key="filter" className="pl-state" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <div className="pl-spinner" />
+              <p>Filtering...</p>
+            </motion.div>
+          ) : displayed.length > 0 ? (
+            <motion.div
+              key="results"
+              className={`pl-cards ${viewMode === "list" ? "list-view" : "grid-view"}`}
+              variants={stagger}
+              initial="hidden"
+              animate="show"
             >
-              {displayedProperties.map((property) => (
+              {displayed.map(p => (
                 <RentalCard
-                  key={property.id}
-                  image={getImageUrl(property)}
-                  title={property.property_name}
-                  city={`${property.city || ""}, ${property.region || ""}`}
-                  price={property.price}
-                  amenities={getAmenitiesPreview(property.amenities)}
-                  onBook={() => navigate(`/detail/${property.id}`)}
+                  key={p.id}
+                  image={getImageUrl(p)}
+                  title={p.property_name}
+                  city={p.city}
+                  region={p.region}
+                  category={p.category}
+                  price={p.price}
+                  amenities={getAmenities(p.amenities)}
+                  onBook={() => navigate(`/detail/${p.id}`)}
                   viewMode={viewMode}
+                  theme="light"
                 />
               ))}
-            </div>
-          </div>
-        ) : (
-          <p className="property-message">No properties found.</p>
-        )}
+            </motion.div>
+          ) : (
+            <motion.div key="empty" className="pl-empty-state" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div className="pl-empty-icon-wrap">
+                <FontAwesomeIcon icon={faHome} className="pl-empty-icon" />
+              </div>
+              <h3 className="pl-empty-title">No Properties Found</h3>
+              <p className="pl-empty-desc">Try adjusting your search term or selecting a different category.</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
+
     </div>
   );
 };

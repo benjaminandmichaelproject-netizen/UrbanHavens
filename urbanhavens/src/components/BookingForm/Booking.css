@@ -1,23 +1,30 @@
-:root{
-    --primary-color: #4CAF50;
-    --secondary-color: #f0f0f0;
-    --text-color: #333;
-    --background-color: #fff;
-    --black-color: #000;
-    --Yellow-color: #cc9900;
-    --text-color2: #ffffff66;
-    --secondary-color2: #111116;
-    --secondary-color3: #111116;
-;
+.ab2-wrapper {
+  --ab2-dark:      #071a10;
+  --ab2-dark2:     #0c2418;
+  --ab2-green:     #1a7a40;
+  --ab2-green-lt:  #22a055;
+  --ab2-accent:    #2dde72;
+  --ab2-light:     #f4f7f5;
+  --ab2-white:     #ffffff;
+  --ab2-border-d:  rgba(255,255,255,0.08);
+  --ab2-border-l:  rgba(26,122,64,0.14);
+  --ab2-text-d:    rgba(255,255,255,0.55);
+  --ab2-text:      #0f2d1c;
+  --ab2-muted:     #4a7060;
 }
 
 
 
 .bookingForm{
     width: 100%;
-    background-color: var(--secondary-color2);
+   background: linear-gradient(160deg,
+      #071a10 0%,
+      #0c2e18 40%,
+      #0f3d20 70%,
+      #071a10 100%);
     padding: 20px;
     border-radius: 12px;
+    color: #fff  !important;
 }
 
 form{
@@ -31,17 +38,18 @@ input{
     width: 100%;
     padding: 10px;
     margin: 15px 0;
-    border: solid 1px #333; 
+    border: solid 1px #15803d !important; 
     border-radius: 6px;
     background-color: transparent;
     outline: none;
     min-height: 6vh;
+    color: var(--ab2-light);
 }
 textarea{
     width: 100%;
     padding: 10px;
     margin: 15px 0;
-    border: solid 1px #333; 
+    border: solid 1px #15803d; 
     border-radius: 6px;
     background-color: transparent;
     outline: none;
@@ -52,14 +60,14 @@ textarea{
     width: 100%;
     padding: 10px;
     margin: 15px 0;
-    border: solid 1px #333; 
+border: 1px  solid #15803d;
     border-radius: 6px;
-    background-color: var(--Yellow-color);
+    background-color: var(--ab2-accent);
     outline: none;
     resize: none;
     min-height: 7vh;
     cursor: pointer;
-    color: var(--secondary-color3);
+    color: #fff !important;
 }
 .form-container{
     margin: 20px 0;
@@ -67,13 +75,14 @@ textarea{
 
 .headings{
     margin-bottom: 30px;
+    color: var(--ab2-accent);
 }
 
 .headings h2 {
   font-size: 1.5rem;
   font-weight: bold;
   margin-bottom: 10px;
-  color: var(--Yellow-color);
+  color: var(--ab2-accent);
 }
 
 .login-popup-overlay {
@@ -137,7 +146,9 @@ textarea{
   background: #2563eb;
   color: #fff;
 }
-
+.log{
+  color: var(--ab2-accent);
+}
 /* Open animations */
 .popup-overlay-open {
   animation: fadeInOverlay 0.3s ease forwards;
@@ -164,6 +175,8 @@ textarea{
   font-weight: 700;
   text-decoration: none;
   transition: 0.2s;
+display: flex;
+justify-content: center;
 }
 
 .call-btn:hover {

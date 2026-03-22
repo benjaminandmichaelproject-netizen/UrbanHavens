@@ -212,7 +212,7 @@ const BookingForm = ({ property }) => {
           </form>
         </div>
 
-        {landlordPhone && (
+        {/* {landlordPhone && (
           <div className="landlord-contact">
             <p>Or call landlord directly:</p>
 
@@ -221,7 +221,7 @@ const BookingForm = ({ property }) => {
               {landlordPhone}
             </a>
           </div>
-        )}
+        )} */}
       </div>
 
       {showLoginPopup && (
@@ -235,7 +235,7 @@ const BookingForm = ({ property }) => {
               closingPopup ? "popup-close" : "popup-open"
             }`}
           >
-            <h3>Login Required</h3>
+            <h3 className="log">Login Required</h3>
             <p>
               You need to log in or create an account before booking this
               property.

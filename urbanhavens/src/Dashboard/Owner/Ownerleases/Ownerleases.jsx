@@ -113,10 +113,10 @@ const OwnerLeases = () => {
       {/* ── Toolbar ─────────────────────────────────────────────── */}
       <div className="ol-toolbar">
         <div className="ol-search">
-          <FaSearch />
+          <FaSearch size={13} />
           <input
             type="text"
-            placeholder="Search by property, tenant or room..."
+            placeholder="Search by property, tenant or room…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -134,7 +134,7 @@ const OwnerLeases = () => {
         </div>
       </div>
 
-      {loading && <p className="ol-info">Loading leases...</p>}
+      {loading && <p className="ol-info">Loading leases…</p>}
       {error   && <p className="ol-error">{error}</p>}
 
       {/* ── Table ───────────────────────────────────────────────── */}
@@ -230,10 +230,6 @@ const OwnerLeases = () => {
                           <FaRedo /> Renew
                         </button>
                       )}
-
-                      {l.status === "active" && (
-                        <span className="ol-na">—</span>
-                      ) && null /* placeholder for spacing */}
                     </div>
                   </td>
                 </tr>
@@ -271,10 +267,12 @@ const OwnerLeases = () => {
       {popup && (
         <div className="ol-popup-overlay" onClick={() => setPopup(null)}>
           <div className={`ol-popup ${popup.type}`} onClick={(e) => e.stopPropagation()}>
-            <div className="ol-popup-icon">{popup.type === "success" ? "✓" : "!"}</div>
+            <div className="ol-popup-icon">
+              {popup.type === "success" ? "✓" : "!"}
+            </div>
             <h3>{popup.type === "success" ? "Success" : "Error"}</h3>
             <p>{popup.message}</p>
-            <button onClick={() => setPopup(null)}>OK</button>
+            <button onClick={() => setPopup(null)}>Got it</button>
           </div>
         </div>
       )}

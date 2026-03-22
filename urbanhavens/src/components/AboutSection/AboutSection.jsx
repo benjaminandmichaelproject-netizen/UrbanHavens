@@ -1,126 +1,131 @@
 import { useEffect, useRef, useState } from "react";
+import { motion, useInView } from "framer-motion";
 import "./AboutSection.css";
 
-const Counter = ({ target, prefix = "", suffix = "" }) => {
+// ── Animated counter ──────────────────────────────────────────────────────────
+const Counter = ({ target, suffix = "" }) => {
   const [count, setCount] = useState(0);
   const ref = useRef(null);
-  const hasAnimated = useRef(false);
+  const inView = useInView(ref, { once: true, margin: "-80px" });
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasAnimated.current) {
-          hasAnimated.current = true;
+    if (!inView) return;
+    let start = 0;
+    const increment = target / (1600 / 16);
+    const tick = () => {
+      start += increment;
+      if (start < target) { setCount(Math.ceil(start)); requestAnimationFrame(tick); }
+      else { setCount(target); }
+    };
+    tick();
+  }, [inView, target]);
 
-          let start = 0;
-          const duration = 1500;
-          const increment = target / (duration / 16);
-
-          const update = () => {
-            start += increment;
-
-            if (start < target) {
-              setCount(Math.ceil(start));
-              requestAnimationFrame(update);
-            } else {
-              setCount(target);
-            }
-          };
-
-          update();
-        }
-      },
-      { threshold: 0.5 }
-    );
-
-    if (ref.current) observer.observe(ref.current);
-    return () => observer.disconnect();
-  }, [target]);
-
-  return (
-    <h2 ref={ref} className="counter">
-      {prefix}{count}{suffix}
-    </h2>
-  );
+  return <span ref={ref} className="ab-counter">{count.toLocaleString()}{suffix}</span>;
 };
-const AboutSection = () => {
-  return (
-    <section className="about-section">
 
-      {/* ABOUT HEADER */}
-      <div className="about-header">
-        <span className="subtitle">WHO WE ARE</span>
-        <h1>About <span>UrbanHavens</span></h1>
+// ── Variants ──────────────────────────────────────────────────────────────────
+const fadeUp = { hidden: { opacity: 0, y: 40 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } } };
+const fadeLeft = { hidden: { opacity: 0, x: -40 }, show: { opacity: 1, x: 0, transition: { duration: 0.6, ease: "easeOut" } } };
+const fadeRight = { hidden: { opacity: 0, x: 40 }, show: { opacity: 1, x: 0, transition: { duration: 0.6, ease: "easeOut" } } };
+const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.15 } } };
+const statVar = { hidden: { opacity: 0, y: 24, scale: 0.9 }, show: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.5, ease: "easeOut" } } };
 
+// ── Component ─────────────────────────────────────────────────────────────────
+const AboutSection = () => (
+  <section className="ab">
+
+    {/* dot texture */}
+    <div className="ab-texture" />
+
+    {/* ── Header ──────────────────────────────────────────── */}
+    <motion.div
+      className="ab-header"
+      variants={stagger}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, margin: "-60px" }}
+    >
+      <motion.p className="ab-eyebrow" variants={fadeUp}>WHO WE ARE</motion.p>
+      <motion.h1 className="ab-title" variants={fadeUp}>
+        About <span className="ab-accent">UrbanHavens</span>
+      </motion.h1>
+      <motion.p className="ab-desc" variants={fadeUp}>
+        UrbanHavens is a modern digital housing platform built to make finding
+        and listing rental properties simple, transparent, and secure. We
+        connect tenants directly with verified landlords across Accra and
+        Kumasi — cutting out the middleman and reducing the risk of fraud for
+        students, families, and professionals.
+      </motion.p>
+    </motion.div>
+
+    {/* ── Vision & Mission ────────────────────────────────── */}
+    <div className="ab-cards">
+
+      <motion.div
+        className="ab-card"
+        variants={fadeLeft}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-60px" }}
+        whileHover={{ y: -6, transition: { duration: 0.22 } }}
+      >
+        <div className="ab-card-top">
+          <span className="ab-card-icon">◎</span>
+          <span className="ab-card-tag">Vision</span>
+        </div>
+        <h4 className="ab-card-title">Vision Statement</h4>
         <p>
-          UrbanHavens is a modern digital housing platform designed to make
-          finding and listing rental properties simple, transparent, and
-          secure. We connect tenants directly with verified landlords,
-          eliminating unnecessary middlemen and reducing the risk of fraud.
-          
-          Our platform helps students, families, and professionals easily
-          discover available houses, apartments, and hostels while giving
-          landlords a trusted space to showcase their properties and reach
-          genuine tenants.
+          To become Ghana's most trusted and innovative digital housing
+          marketplace — where tenants find safe, affordable homes and landlords
+          connect with reliable renters through a transparent, secure platform.
         </p>
-      </div>
+      </motion.div>
 
-      {/* VISION & MISSION */}
-      <div className="about-cards">
-
-        <div className="about-card">
-          <h4>VISION STATEMENT</h4>
-          <p>
-            To become Ghana’s most trusted and innovative digital housing
-            marketplace, where tenants can easily find safe and affordable
-            homes while landlords connect directly with reliable renters
-            through a transparent and secure platform.
-          </p>
+      <motion.div
+        className="ab-card"
+        variants={fadeRight}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-60px" }}
+        whileHover={{ y: -6, transition: { duration: 0.22 } }}
+      >
+        <div className="ab-card-top">
+          <span className="ab-card-icon">◈</span>
+          <span className="ab-card-tag">Mission</span>
         </div>
+        <h4 className="ab-card-title">Mission Statement</h4>
+        <p>
+          To simplify the rental process by providing a secure, user-friendly
+          platform that connects tenants and landlords, promotes verified
+          listings, reduces rental fraud, and improves access to housing
+          through technology.
+        </p>
+      </motion.div>
 
-        <div className="about-card">
-          <h4>MISSION STATEMENT</h4>
-          <p>
-            Our mission is to simplify the rental process by providing a
-            secure, user-friendly platform that connects tenants and landlords,
-            promotes verified listings, reduces rental fraud, and improves
-            access to housing through technology.
-          </p>
-        </div>
+    </div>
 
-      </div>
+    {/* ── Stats strip ─────────────────────────────────────── */}
+    <motion.div
+      className="ab-stats"
+      variants={stagger}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, margin: "-60px" }}
+    >
+      {[
+        { target: 1200, suffix: "+", label: "Verified Landlords" },
+        { target: 5000, suffix: "+", label: "Active Listings" },
+        { target: 8000, suffix: "+", label: "Tenants Connected" },
+        { target: 95, suffix: "%", label: "User Satisfaction Rate" },
+      ].map((s, i) => (
+        <motion.div className="ab-stat" key={i} variants={statVar}>
+          <Counter target={s.target} suffix={s.suffix} />
+          <p>{s.label}</p>
+        </motion.div>
+      ))}
+    </motion.div>
 
-      {/* STATS */}
-      <div className="stats-section">
-
-        <div className="stats-container">
-
-          <div className="stat">
-            <Counter target={1200} suffix="+" />
-            <p>Verified Landlords</p>
-          </div>
-
-          <div className="stat">
-            <Counter target={5000} suffix="+" />
-            <p>Active Property Listings</p>
-          </div>
-
-          <div className="stat">
-            <Counter target={8000} suffix="+" />
-            <p>Tenants Connected</p>
-          </div>
-
-          <div className="stat">
-            <Counter target={95} suffix="%" />
-            <p>User Satisfaction Rate</p>
-          </div>
-
-        </div>
-
-      </div>
-
-    </section>
-  );
-};
+  </section>
+);
 
 export default AboutSection;

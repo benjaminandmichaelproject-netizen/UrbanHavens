@@ -1,85 +1,249 @@
-*{
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    list-style: none;
+/* ── Tokens ───────────────────────────────────────────────────────── */
+.po-section {
+  --po-bg:       #f4f7f5;        /* same light bg as about section     */
+  --po-bg2:      #ffffff;        /* white cards                        */
+  --po-green:    #1a7a40;
+  --po-green-lt: #22a055;
+  --po-accent:   #2dde72;
+  --po-dark:     #071a10;
+  --po-border:   rgba(26,122,64,0.14);
+  --po-text:     #0f2d1c;
+  --po-muted:    #4a7060;
 }
 
-:root{
-    --primary-color: #4CAF50;
-    --secondary-color: #f0f0f0;
-    --text-color: #333;
-    --background-color: #fff;
-    --black-color: #000;
-    --Yellow-color: #cc9900;
-    --text-color2: #ffffff66;
-    --secondary-color2: #111116;
-    --secondary-color3: #101014;
-;
+/* ── Section ──────────────────────────────────────────────────────── */
+.po-section {
+  background: var(--po-bg);
+  position: relative;
+  width: 100%;
+  padding: 100px 15% 100px;
+  box-sizing: border-box;
+  font-family: "DM Sans", "Segoe UI", sans-serif;
+  overflow: hidden;
 }
 
-
-
-.PropertyOwnersSection{
-padding: 40px 15%;
+/* Subtle grid texture — same as about */
+.po-texture {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(26,122,64,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26,122,64,0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
 }
-.subtitle {
+
+.po-header,
+.po-grid { position: relative; z-index: 1; }
+
+/* ── Header ───────────────────────────────────────────────────────── */
+.po-header {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 64px;
+}
+
+.po-eyebrow {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--po-green);
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border: 1.5px solid rgba(26,122,64,0.28);
+  border-radius: 20px;
+  background: rgba(26,122,64,0.07);
+  margin-bottom: 14px;
+}
+
+.po-title {
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  font-weight: 900;
+  color: var(--po-text);
+  margin: 0 0 14px;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.po-accent { color: var(--po-green); }
+
+.po-sub {
+  font-size: 0.92rem;
+  color: var(--po-muted);
+  margin: 0;
+  line-height: 1.7;
+}
+
+/* ── Cards grid ───────────────────────────────────────────────────── */
+.po-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+/* ── Card base ────────────────────────────────────────────────────── */
+.po-card {
+  background: var(--po-bg2);
+  border: 1px solid var(--po-border);
+  border-radius: 20px;
+  padding: 36px 32px;
   display: flex;
   flex-direction: column;
+  gap: 18px;
+  cursor: default;
+  box-shadow: 0 4px 24px rgba(26,122,64,0.06);
+  transition: box-shadow 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+
+/* green accent strip at top */
+.po-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--po-green);
+  transition: background 0.25s;
+}
+
+.po-card:hover {
+  box-shadow: 0 10px 40px rgba(26,122,64,0.12);
+}
+
+.po-card:hover::before {
+  background: var(--po-accent);
+}
+
+/* Highlighted card — slightly darker bg */
+.po-card-highlight {
+  border-color: rgba(26,122,64,0.25);
+  background: #edf5f0;
+}
+
+/* Tag */
+.po-card-tag {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--po-green);
+  background: rgba(26,122,64,0.08);
+  border: 1px solid rgba(26,122,64,0.2);
+  border-radius: 20px;
+  padding: 3px 12px;
+  width: fit-content;
+}
+
+/* Icon + title */
+.po-card-head {
+  display: flex;
   align-items: center;
-  text-align: center;
-   letter-spacing:4px;
-  font-size:12px;
-
+  gap: 14px;
 }
 
-
-.subtitle h2{
-  font-size:40px;
-  margin:10px 0;
-  color: var(--background-color);
+.po-card-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--po-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.subtitle span{
-  color:var(--Yellow-color);
+.po-card-icon {
+  color: #fff;
+  font-size: 1rem;
 }
 
-.listproperties{
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    justify-content: center;
-    align-items: center;
-    gap: 20px;
-    margin-top: 50px;
-}
-.prop{
-    width: 100%;
-   min-height: 40vh;
-   border: solid 5px #101014;
-   padding: 20px;
-   border-radius: 20px;
+.po-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--po-text);
+  margin: 0;
+  line-height: 1.3;
 }
 
-.prop li{
-margin: 30px 0;
+.po-card-desc {
+  font-size: 0.875rem;
+  color: var(--po-muted);
+  line-height: 1.75;
+  margin: 0;
 }
 
-.list-btn{
-  
-    padding: 10px 20px;
-    background-color: var(--Yellow-color);
-    color: var(--text-color);
-border: none;
-height: 6vh;
-    border-radius: 5px;
-    transition: background-color 0.3s ease;
-    cursor: pointer;
+/* Feature list */
+.po-card-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
+.po-card-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: var(--po-text);
+  font-weight: 500;
+}
 
+.po-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(26,122,64,0.1);
+  border: 1.5px solid rgba(26,122,64,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--po-green);
+  font-size: 0.6rem;
+}
+
+/* CTA button */
+.po-card-btn {
+  margin-top: auto;
+  background: var(--po-dark);
+  color: #fff;
+  border: none;
+  padding: 13px 24px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  align-self: flex-start;
+  letter-spacing: 0.01em;
+}
+
+.po-card-btn:hover {
+  background: var(--po-green);
+  transform: translateY(-1px);
+}
+
+/* ── Responsive ───────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .po-section { padding: 80px 8% 80px; }
+}
 
 @media (max-width: 768px) {
- .listproperties{
-    grid-template-columns: 1fr;
-  }
+  .po-section { padding: 70px 6% 70px; }
+  .po-grid    { grid-template-columns: 1fr; gap: 18px; }
+  .po-card    { padding: 28px 24px; }
+}
+
+@media (max-width: 480px) {
+  .po-section { padding: 60px 5% 60px; }
+  .po-title   { font-size: 1.75rem; }
+  .po-card    { padding: 24px 20px; }
 }
