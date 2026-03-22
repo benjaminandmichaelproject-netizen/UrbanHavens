@@ -5,25 +5,20 @@ from django.db.models import Q
 
 
 class ExternalLandlord(models.Model):
-    full_name = models.CharField(max_length=255)
-    phone = models.CharField(max_length=20, blank=True, null=True)
-    email = models.EmailField(blank=True, null=True)
-
+    full_name     = models.CharField(max_length=255)
+    phone         = models.CharField(max_length=20, blank=True, null=True)
+    email         = models.EmailField(blank=True, null=True)
     business_name = models.CharField(max_length=255, blank=True, null=True)
     document_type = models.CharField(max_length=50)
-    id_number = models.CharField(max_length=100, unique=True)
+    id_number     = models.CharField(max_length=100, unique=True)
     document_file = models.FileField(upload_to="landlord_documents/")
-
-    is_verified = models.BooleanField(default=False)
-
-    created_by = models.ForeignKey(
+    is_verified   = models.BooleanField(default=False)
+    created_by    = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        null=True, blank=True,
         related_name="created_external_landlords",
     )
-
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -33,7 +28,7 @@ class ExternalLandlord(models.Model):
 
 class Property(models.Model):
     APPROVAL_STATUS_CHOICES = [
-        ("pending", "Pending"),
+        ("pending",  "Pending"),
         ("approved", "Approved"),
         ("rejected", "Rejected"),
     ]
@@ -42,16 +37,13 @@ class Property(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="properties",
-        null=True,
-        blank=True,
+        null=True, blank=True,
     )
-
     external_landlord = models.ForeignKey(
         ExternalLandlord,
         on_delete=models.CASCADE,
         related_name="properties",
-        null=True,
-        blank=True,
+        null=True, blank=True,
     )
 
     property_name = models.CharField(max_length=255)
@@ -60,20 +52,22 @@ class Property(models.Model):
         choices=[("hostel", "Hostel"), ("house_rent", "House for Rent")],
     )
     property_type = models.CharField(max_length=50, blank=True, null=True)
-    bedrooms = models.PositiveIntegerField()
-    bathrooms = models.PositiveIntegerField()
-    price = models.DecimalField(max_digits=12, decimal_places=2)
+    bedrooms      = models.PositiveIntegerField()
+
+    # ── bathrooms is optional for hostels ────────────────────────────
+    bathrooms = models.PositiveIntegerField(default=0)
+
+    price       = models.DecimalField(max_digits=12, decimal_places=2)
     description = models.TextField()
-    amenities = models.JSONField(default=list, blank=True)
+    amenities   = models.JSONField(default=list, blank=True)
 
     region = models.CharField(max_length=100)
-    city = models.CharField(max_length=100)
+    city   = models.CharField(max_length=100)
     school = models.CharField(max_length=100, blank=True, null=True)
-    lat = models.FloatField(blank=True, null=True)
-    lng = models.FloatField(blank=True, null=True)
+    lat    = models.FloatField(blank=True, null=True)
+    lng    = models.FloatField(blank=True, null=True)
 
-    is_available = models.BooleanField(default=True)
-
+    is_available    = models.BooleanField(default=True)
     approval_status = models.CharField(
         max_length=20,
         choices=APPROVAL_STATUS_CHOICES,
@@ -84,14 +78,12 @@ class Property(models.Model):
     approved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        null=True, blank=True,
         related_name="approved_properties",
     )
     approved_at = models.DateTimeField(null=True, blank=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at  = models.DateTimeField(auto_now_add=True)
+    updated_at  = models.DateTimeField(auto_now=True)
 
     class Meta:
         constraints = [
@@ -107,30 +99,25 @@ class Property(models.Model):
     def clean(self):
         super().clean()
 
-        has_registered_owner = self.owner_id is not None
+        has_registered_owner  = self.owner_id is not None
         has_external_landlord = self.external_landlord_id is not None
 
         if has_registered_owner == has_external_landlord:
-            raise ValidationError(
-                {
-                    "owner": "Exactly one owner source must be set.",
-                    "external_landlord": "Exactly one owner source must be set.",
-                }
-            )
+            raise ValidationError({
+                "owner":             "Exactly one owner source must be set.",
+                "external_landlord": "Exactly one owner source must be set.",
+            })
 
         if self.is_featured and self.approval_status != "approved":
-            raise ValidationError(
-                {
-                    "is_featured": "Only approved properties can be featured."
-                }
-            )
+            raise ValidationError({
+                "is_featured": "Only approved properties can be featured."
+            })
 
     def save(self, *args, **kwargs):
         if self.approval_status != "approved":
-            self.is_featured = False
-            self.approved_by = None
-            self.approved_at = None
-
+            self.is_featured  = False
+            self.approved_by  = None
+            self.approved_at  = None
         self.full_clean()
         super().save(*args, **kwargs)
 
@@ -164,12 +151,8 @@ class Property(models.Model):
 
 
 class PropertyImage(models.Model):
-    property = models.ForeignKey(
-        Property,
-        on_delete=models.CASCADE,
-        related_name="images",
-    )
-    image = models.ImageField(upload_to="property_images/")
+    property    = models.ForeignKey(Property, on_delete=models.CASCADE, related_name="images")
+    image       = models.ImageField(upload_to="property_images/")
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -3,6 +3,21 @@ from django.contrib.auth.password_validation import validate_password
 from .models import User, LandlordProfile
 
 
+def _notify_admins(message, notification_type, property_id=None):
+    """Send a notification to all admin users."""
+    # Import here to avoid circular imports
+    from notifications.utils import send_notification
+
+    admins = User.objects.filter(role="admin", is_active=True)
+    for admin in admins:
+        send_notification(
+            user=admin,
+            message=message,
+            notification_type=notification_type,
+            property_id=property_id,
+        )
+
+
 class RegisterSerializer(serializers.Serializer):
     # ─── User fields ───
     first_name = serializers.CharField()
@@ -92,6 +107,14 @@ class RegisterSerializer(serializers.Serializer):
                 document_file=document_file,
                 id_number=id_number,
             )
+
+        # ── Notify all admins of new registration ──────────────────────
+        full_name = f"{user.first_name} {user.last_name}".strip() or user.username
+        role_label = role.capitalize()
+        _notify_admins(
+            message=f"New {role_label} account registered: {full_name} ({user.email}).",
+            notification_type="new_user",
+        )
 
         return user
 

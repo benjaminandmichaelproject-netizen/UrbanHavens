@@ -59,9 +59,14 @@ class PropertyViewSet(viewsets.ModelViewSet):
 
         user = self.request.user if hasattr(self.request, "user") else None
 
-        # Public-facing list/featured must only show approved properties
+        # Public-facing lists only show approved properties
         if self.action in ["list", "featured"]:
             return queryset.filter(approval_status="approved")
+
+        # Let retrieve load the object first.
+        # Actual access control is handled inside retrieve()
+        if self.action == "retrieve":
+            return queryset
 
         # Owner dashboard view
         if self.action == "my_properties":
@@ -76,17 +81,17 @@ class PropertyViewSet(viewsets.ModelViewSet):
 
             return queryset.none()
 
-        # Admin-only listing of all properties
+        # Admin-only list of all properties
         if self.action == "admin_list":
             if self._is_admin(user):
                 return queryset
             return queryset.none()
 
-        # Admin moderation actions / generic admin operations
+        # Admins can access everything for moderation actions
         if self._is_admin(user):
             return queryset
 
-        # Owners can only update/delete/retrieve their own properties
+        # Owners can update/delete only their own properties
         if user and user.is_authenticated and getattr(user, "role", None) == "owner":
             return queryset.filter(owner=user)
 

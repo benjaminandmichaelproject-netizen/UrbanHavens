@@ -6,6 +6,20 @@ from .models import ExternalLandlord, Property, PropertyImage
 from users.models import User
 
 
+def _notify_admins(message, notification_type, property_id=None):
+    """Send a notification to all admin users."""
+    from notifications.utils import send_notification
+
+    admins = User.objects.filter(role="admin", is_active=True)
+    for admin in admins:
+        send_notification(
+            user=admin,
+            message=message,
+            notification_type=notification_type,
+            property_id=property_id,
+        )
+
+
 class PropertyImageSerializer(serializers.ModelSerializer):
     image = serializers.SerializerMethodField()
 
@@ -406,6 +420,14 @@ class PropertySerializer(serializers.ModelSerializer):
         if request:
             for image in request.FILES.getlist("property_images"):
                 PropertyImage.objects.create(property=property_obj, image=image)
+
+        # ── Notify all admins of new property submission ───────────────
+        owner_name = property_obj.owner_name or "Unknown"
+        _notify_admins(
+            message=f"New property submitted for approval: '{property_obj.property_name}' by {owner_name}.",
+            notification_type="property_submitted",
+            property_id=property_obj.id,
+        )
 
         return property_obj
 

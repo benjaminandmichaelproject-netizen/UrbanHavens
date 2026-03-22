@@ -8,6 +8,7 @@ import {
   FaHome,
   FaMapMarkerAlt,
 } from "react-icons/fa";
+import { api } from "../../Owner/UploadDetails/api/api";
 import PropertyModal from "../../../components/Modals/PropertyModal";
 import ConfirmModal from "../../../components/Modals/ConfirmModal";
 import "../Allproperties/Allproperties.css";
@@ -20,8 +21,6 @@ const Pending = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const token = localStorage.getItem("token");
 
   const formatCategory = (category) => {
     if (category === "house_rent") return "House for Rent";
@@ -36,9 +35,7 @@ const Pending = () => {
 
   const parseAmenities = (amenities) => {
     if (!amenities) return [];
-
     if (Array.isArray(amenities)) return amenities;
-
     if (typeof amenities === "string") {
       try {
         const parsed = JSON.parse(amenities);
@@ -50,7 +47,6 @@ const Pending = () => {
           .filter(Boolean);
       }
     }
-
     return [];
   };
 
@@ -73,20 +69,8 @@ const Pending = () => {
       setLoading(true);
       setError("");
 
-      const res = await fetch("/api/properties/admin-list/", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        if (res.status === 401 || res.status === 403) {
-          throw new Error("You are not authorized to view pending properties.");
-        }
-        throw new Error("Failed to fetch pending properties.");
-      }
-
-      const data = await res.json();
+      const res = await api.get("/properties/admin-list/");
+      const data = res.data;
       const results = Array.isArray(data) ? data : data.results || [];
       const onlyPending = results.filter(
         (property) => property.approval_status === "pending"
@@ -96,7 +80,13 @@ const Pending = () => {
     } catch (err) {
       console.error("Error fetching pending properties:", err);
       setProperties([]);
-      setError(err.message || "Something went wrong.");
+
+      const status = err.response?.status;
+      if (status === 401 || status === 403) {
+        setError("You are not authorized to view pending properties.");
+      } else {
+        setError(err.response?.data?.detail || err.message || "Something went wrong.");
+      }
     } finally {
       setLoading(false);
     }
@@ -122,25 +112,14 @@ const Pending = () => {
   }, [properties, search]);
 
   const sendPropertyAction = async (propertyId, endpoint) => {
-    const res = await fetch(`/api/properties/${propertyId}/${endpoint}/`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!res.ok) {
-      let message = "Action failed.";
-      try {
-        const data = await res.json();
-        message = data.detail || message;
-      } catch {
-        // ignore bad json
-      }
+    try {
+      const res = await api.post(`/properties/${propertyId}/${endpoint}/`);
+      return res.data;
+    } catch (err) {
+      const message =
+        err.response?.data?.detail || err.message || "Action failed.";
       throw new Error(message);
     }
-
-    return res.json();
   };
 
   const handleApprove = async (property) => {
@@ -152,41 +131,25 @@ const Pending = () => {
   };
 
   const handleDelete = async (property) => {
-    const res = await fetch(`/api/properties/${property.id}/`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!res.ok) {
-      let message = "Delete failed.";
-      try {
-        const data = await res.json();
-        message = data.detail || message;
-      } catch {
-        // ignore
-      }
+    try {
+      await api.delete(`/properties/${property.id}/`);
+    } catch (err) {
+      const message =
+        err.response?.data?.detail || err.message || "Delete failed.";
       throw new Error(message);
     }
   };
 
   const getConfirmMessage = () => {
     if (!confirmAction) return "";
-
     const title = confirmAction.property.property_name || "this property";
 
-    if (confirmAction.type === "approve") {
+    if (confirmAction.type === "approve")
       return `Are you sure you want to approve "${title}"?`;
-    }
-
-    if (confirmAction.type === "reject") {
+    if (confirmAction.type === "reject")
       return `Are you sure you want to reject "${title}"?`;
-    }
-
-    if (confirmAction.type === "delete") {
+    if (confirmAction.type === "delete")
       return `Are you sure you want to delete "${title}"? This action cannot be undone.`;
-    }
 
     return "";
   };
@@ -292,7 +255,9 @@ const Pending = () => {
                       <div className="actions">
                         <button
                           className="view"
-                          onClick={() => setSelectedProperty(mapPropertyForModal(p))}
+                          onClick={() =>
+                            setSelectedProperty(mapPropertyForModal(p))
+                          }
                           title="View"
                         >
                           <FaEye />

@@ -239,12 +239,13 @@ const Bookings = () => {
         </>
       )}
 
-      {scheduleOpen && (
-        <ScheduleMeeting
-          booking={selectedBooking}
-          onClose={closeScheduleModal}
-        />
-      )}
+     {scheduleOpen && (
+  <ScheduleMeeting
+    booking={selectedBooking}
+    onClose={closeScheduleModal}
+    onSuccess={fetchBookings}
+  />
+)}
 
       {convertOpen && (
         <ConvertToTenantModal

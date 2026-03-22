@@ -43,18 +43,22 @@ const MyProperties = () => {
     }));
   };
 
-  const fetchMyProperties = async () => {
-    try {
-      setLoading(true);
-      const data = await getMyProperties();
-      setProperties(transformProperties(data));
-    } catch (error) {
-      console.error("Failed to fetch properties:", error);
-      setProperties([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+ const fetchMyProperties = async () => {
+  try {
+    setLoading(true);
+    const data = await getMyProperties();
+
+    // Handle both paginated { results: [...] } and plain array responses
+    const list = Array.isArray(data) ? data : data.results ?? [];
+
+    setProperties(transformProperties(list));
+  } catch (error) {
+    console.error("Failed to fetch properties:", error);
+    setProperties([]);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const openViewer = (images, startIndex = 0) => {
     setViewerImages(images || []);

@@ -22,8 +22,8 @@ const Login = () => {
     try {
       const res = await axios.post("/api/users/login/", formData);
 
-      const { access, refresh, id, username, role, is_superuser } = res.data;
-      const userRole = is_superuser ? "admin" : role.toLowerCase();
+      const { access, refresh, id, username, role } = res.data;
+      const userRole = role.toLowerCase();
 
       localStorage.setItem("token", access);
       localStorage.setItem("refresh", refresh);

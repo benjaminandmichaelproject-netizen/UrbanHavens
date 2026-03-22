@@ -1,9 +1,12 @@
 import React, { useState } from "react";
 
 const NUMBER_OPTIONS = Array.from({ length: 10 }, (_, i) => i + 1);
+const ROOM_OPTIONS   = Array.from({ length: 50 }, (_, i) => i + 1);
 
 const PropertyDescription = ({ data = {}, update, next, prev }) => {
   const [errors, setErrors] = useState({});
+
+  const isHostel = data.category === "hostel";
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -14,45 +17,39 @@ const PropertyDescription = ({ data = {}, update, next, prev }) => {
     setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  // ── amenities ──
-  // Manage amenities directly via update() — no local useState needed.
-  // The parent (Uploadpage) already holds this in formData.property.amenities.
   const amenities = Array.isArray(data.amenities) ? data.amenities : [];
-
-  const addAmenity = () => update({ amenities: [...amenities, ""] });
-
+  const addAmenity    = () => update({ amenities: [...amenities, ""] });
   const updateAmenity = (i, val) => {
     const copy = [...amenities];
     copy[i] = val;
     update({ amenities: copy });
   };
-
   const removeAmenity = (i) =>
     update({ amenities: amenities.filter((_, idx) => idx !== i) });
 
-  // ── validation ──
   const validate = () => {
     const newErrors = {};
     if (!data.property_name?.trim()) newErrors.property_name = "Property name is required";
     if (!data.category)              newErrors.category      = "Category is required";
     if (data.category === "house_rent" && !data.property_type)
                                      newErrors.property_type = "Property type is required";
-    if (!data.bedrooms || data.bedrooms < 1)   newErrors.bedrooms  = "Valid bedrooms required";
-    if (!data.bathrooms || data.bathrooms < 1) newErrors.bathrooms = "Valid bathrooms required";
-    if (!data.price || data.price <= 0)        newErrors.price     = "Valid price required";
-    if (!data.description?.trim())             newErrors.description = "Description is required";
-
+    if (!data.bedrooms || data.bedrooms < 1)
+      newErrors.bedrooms = isHostel ? "Total rooms required" : "Valid bedrooms required";
+    if (!isHostel && (!data.bathrooms || data.bathrooms < 1))
+      newErrors.bathrooms = "Valid bathrooms required";
+    if (!data.price || data.price <= 0)
+      newErrors.price = isHostel ? "Price per room required" : "Valid price required";
+    if (!data.description?.trim()) newErrors.description = "Description is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNext = () => {
-    if (validate()) next();
-  };
+  const handleNext = () => { if (validate()) next(); };
 
   return (
     <div className="form-section">
       <div className="form-grid">
+
         <div className="form-group">
           <label>Property Name</label>
           <input
@@ -69,7 +66,12 @@ const PropertyDescription = ({ data = {}, update, next, prev }) => {
           <select
             name="category"
             value={data.category ?? ""}
-            onChange={handleChange}
+            onChange={(e) => {
+              handleChange(e);
+              if (e.target.value === "hostel") {
+                update({ bathrooms: 1, property_type: "" });
+              }
+            }}
             className={errors.category ? "error-input" : ""}
           >
             <option value="">Select</option>
@@ -99,8 +101,24 @@ const PropertyDescription = ({ data = {}, update, next, prev }) => {
           </div>
         )}
 
+        {isHostel && (
+          <div className="form-group">
+            <label>Hostel Type</label>
+            <select
+              name="property_type"
+              value={data.property_type ?? ""}
+              onChange={handleChange}
+            >
+              <option value="">Select</option>
+              <option value="mixed">Mixed</option>
+              <option value="male_only">Male Only</option>
+              <option value="female_only">Female Only</option>
+            </select>
+          </div>
+        )}
+
         <div className="form-group">
-          <label>Bedrooms</label>
+          <label>{isHostel ? "Total Rooms" : "Bedrooms"}</label>
           <select
             name="bedrooms"
             value={data.bedrooms ?? ""}
@@ -108,27 +126,31 @@ const PropertyDescription = ({ data = {}, update, next, prev }) => {
             className={errors.bedrooms ? "error-input" : ""}
           >
             <option value="">Select</option>
-            {NUMBER_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+            {(isHostel ? ROOM_OPTIONS : NUMBER_OPTIONS).map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
           </select>
           {errors.bedrooms && <span className="error-text">{errors.bedrooms}</span>}
         </div>
 
-        <div className="form-group">
-          <label>Bathrooms</label>
-          <select
-            name="bathrooms"
-            value={data.bathrooms ?? ""}
-            onChange={handleChange}
-            className={errors.bathrooms ? "error-input" : ""}
-          >
-            <option value="">Select</option>
-            {NUMBER_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
-          </select>
-          {errors.bathrooms && <span className="error-text">{errors.bathrooms}</span>}
-        </div>
+        {!isHostel && (
+          <div className="form-group">
+            <label>Bathrooms</label>
+            <select
+              name="bathrooms"
+              value={data.bathrooms ?? ""}
+              onChange={handleChange}
+              className={errors.bathrooms ? "error-input" : ""}
+            >
+              <option value="">Select</option>
+              {NUMBER_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+            </select>
+            {errors.bathrooms && <span className="error-text">{errors.bathrooms}</span>}
+          </div>
+        )}
 
         <div className="form-group">
-          <label>Price (GHS)</label>
+          <label>{isHostel ? "Price per Room (GHS)" : "Price (GHS)"}</label>
           <input
             type="number"
             name="price"
@@ -138,9 +160,19 @@ const PropertyDescription = ({ data = {}, update, next, prev }) => {
           />
           {errors.price && <span className="error-text">{errors.price}</span>}
         </div>
+
       </div>
 
-      {/* Amenities */}
+      {isHostel && (
+        <div className="hostel-info-banner">
+          <span>🏠</span>
+          <p>
+            For hostels, <strong>Total Rooms</strong> tracks occupancy and availability.
+            Each tenant lease will be linked to one room.
+          </p>
+        </div>
+      )}
+
       <div className="form-group amenity-group">
         <label>Amenities</label>
         {amenities.map((item, i) => (
@@ -150,13 +182,7 @@ const PropertyDescription = ({ data = {}, update, next, prev }) => {
               onChange={(e) => updateAmenity(i, e.target.value)}
               placeholder={`Amenity ${i + 1}`}
             />
-            <button
-              className="clear-amenity-btn"
-              onClick={() => removeAmenity(i)}
-              aria-label="Remove amenity"
-            >
-              ✕
-            </button>
+            <button className="clear-amenity-btn" onClick={() => removeAmenity(i)} aria-label="Remove amenity">✕</button>
           </div>
         ))}
         <button className="add-amenity-btn" onClick={addAmenity}>+ Add amenity</button>

@@ -12,8 +12,8 @@ import Login from "./Pages/Login";
 import Registration from "./Pages/Registration/Registration";
 import RegisterForm from "./Pages/Registration/RegisterForm";
 import Success from "./Pages/Success";
-import TenantDashboard from "./Dashboard/Tenant/TenantDashboard";
-import ScheduledViewings from "./Dashboard/Tenant/ScheduledViewings";
+import TenantDashboard from "./Dashboard/Tenant/TenantDashboard/TenantDashboard";
+import ScheduledViewings from "./Dashboard/Tenant/ScheduledViewings/ScheduledViewings";
 import Favorites from "./Dashboard/Tenant/Favorites";
 import Payments from "./Dashboard/Tenant/Payments";
 import HelpCenter from "./Dashboard/HelpCenter";
@@ -33,7 +33,7 @@ import Landlord from "./Pages/Landlord/Lanlord";
 import "./App.css";
 import Uploadpage from "./Dashboard/Owner/UploadDetails/Uploadpage";
 import Upload from "./Dashboard/Owner/Upload";
-import Tenants from "./Dashboard/Owner/Tenants";
+import Tenants from "./Dashboard/Owner/Ownerleases/Ownerleases";
 import Documents from "./Dashboard/Owner/Documents";
 import Contracts from "./Dashboard/Owner/Contracts";
 import Bookings from "./Dashboard/Owner/Bookings/Bookings";
@@ -43,6 +43,10 @@ import Allproperties from "./Dashboard/Admin/Allproperties/Allproperties";
 import AdminAddProperty from "./Dashboard/Admin/AddProperty/AdminAddProperty";
 import Pending from "./Dashboard/Admin/Pending/Pending";
 import NotificationToastContainer from "./context/NotificationToastContainer";
+import AdminBookings from "./Dashboard/Admin/Bookings/AdminBookings";
+import TenantBooking from "./Dashboard/Tenant/TenantBooking/TenantBooking";
+import OwnerLeases from "./Dashboard/Owner/Ownerleases/Ownerleases";
+
 const AppContent = () => {
   const location = useLocation();
 
@@ -83,7 +87,7 @@ const AppContent = () => {
         <Route path="/register-form" element={<RegisterForm />} />
         <Route path="/success" element={<Success />} />
         <Route path="/detail/:id" element={<Detail />} />
-<Route path="/landlord/:type/:id" element={<Landlord />} />
+        <Route path="/landlord/:type/:id" element={<Landlord />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route
           path="/dashboard"
@@ -99,13 +103,14 @@ const AppContent = () => {
           <Route path="owner/my-properties" element={<MyProperties />} />
           <Route path="owner/bookings" element={<Bookings />} />
           <Route path="owner/settings" element={<div>Owner Settings</div>} />
-          <Route path="owner/tenants" element={<div>Tenants</div>} />
+          <Route path="owner/OwnerLeases/OwnerLeases" element={<OwnerLeases/>} />
           <Route path="owner/contracts" element={<div>Contracts</div>} />
           <Route path="owner/documents" element={<div>Documents</div>} />
           <Route path="owner/help" element={<div>Help & Support</div>} />
 
           <Route path="tenant" element={<TenantDashboard />} />
           <Route path="tenant/scheduled-viewings" element={<ScheduledViewings />} />
+          <Route path="tenant/TenantBooking/TenantBooking" element={<TenantBooking />} />
           <Route path="tenant/favorites" element={<Favorites />} />
           <Route path="tenant/payments" element={<Payments />} />
           <Route path="tenant/help" element={<HelpCenter />} />
@@ -113,21 +118,21 @@ const AppContent = () => {
           <Route path="tenant/bookings" element={<MyBookings />} />
           <Route path="tenant/profile" element={<Profile />} />
           <Route path="logout" element={<Logout />} />
-<Route path="admin" element={<AdminDashboard />} />
-<Route path="admin/users" element={<Users/>} />
-<Route path="/dashboard/admin/add-property" element={<AdminAddProperty />} />
+          <Route path="admin" element={<AdminDashboard />} />
+          <Route path="admin/users" element={<Users />} />
+          <Route path="/dashboard/admin/add-property" element={<AdminAddProperty />} />
 
-<Route path="admin/properties" element={<Allproperties/>} />
-<Route path="admin/pending" element={<Pending/>} />
-<Route path="admin/bookings" element={<div>Bookings</div>} />
-<Route path="admin/reports" element={<div>Reports</div>} />
-<Route path="admin/documents" element={<div>Documents</div>} />
-<Route path="admin/notifications" element={<div>Notifications</div>} />
-<Route path="admin/settings" element={<div>Admin Settings</div>} />
-<Route path="admin/profile" element={<div>Admin Profile</div>} />
+          <Route path="admin/properties" element={<Allproperties />} />
+          <Route path="admin/pending" element={<Pending />} />
+          <Route path="admin/bookings" element={<AdminBookings />} />
+          <Route path="admin/reports" element={<div>Reports</div>} />
+          <Route path="admin/documents" element={<div>Documents</div>} />
+          <Route path="admin/notifications" element={<div>Notifications</div>} />
+          <Route path="admin/settings" element={<div>Admin Settings</div>} />
+          <Route path="admin/profile" element={<div>Admin Profile</div>} />
         </Route>
       </Routes>
- <NotificationToastContainer />
+      <NotificationToastContainer />
       {!isDashboard && !shouldHideBottomNav && <MobileBottomNav />}
     </>
   );
@@ -135,7 +140,7 @@ const AppContent = () => {
 
 const App = () => {
   return <AppContent />;
-  
+
 };
 
 export default App;

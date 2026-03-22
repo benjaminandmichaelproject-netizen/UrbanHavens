@@ -1,0 +1,418 @@
+.ol-page {
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    font-family: "DM Sans", "Segoe UI", sans-serif;
+    background: #fafafa;
+    min-height: 100%;
+}
+
+.ol-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.ol-header h2 {
+    font-size: 1.55rem;
+    font-weight: 700;
+    margin: 0 0 4px;
+    color: #111827;
+}
+
+.ol-header p {
+    color: #6b7280;
+    margin: 0;
+    font-size: 0.88rem;
+}
+
+.ol-counts {
+    display: flex;
+    gap: 10px;
+}
+
+.ol-count {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.ol-count span {
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.ol-count.active {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.ol-count.ended {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.ol-toolbar {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.ol-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 9px 14px;
+    flex: 1;
+    min-width: 220px;
+    color: #9ca3af;
+}
+
+.ol-search input {
+    border: none;
+    background: transparent;
+    outline: none;
+    font-size: 0.88rem;
+    width: 100%;
+    color: #111827;
+}
+
+.ol-filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.ol-filters button {
+    padding: 7px 16px;
+    border-radius: 20px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.ol-filters button:hover,
+.ol-filters button.active {
+    background: #111827;
+    color: #fff;
+    border-color: #111827;
+}
+
+.ol-table-wrapper {
+    overflow-x: auto;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
+}
+
+.ol-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.ol-table thead tr {
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.ol-table th {
+    padding: 13px 16px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.ol-table td {
+    padding: 14px 16px;
+    border-top: 1px solid #f3f4f6;
+    vertical-align: middle;
+}
+
+.ol-table tbody tr:hover {
+    background: #fafafa;
+}
+
+.ol-id {
+    font-weight: 700;
+    color: #9ca3af;
+    font-size: 0.8rem;
+}
+
+.ol-prop-cell,
+.ol-tenant-cell {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.ol-prop-cell div,
+.ol-tenant-cell div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ol-prop-cell strong,
+.ol-tenant-cell strong {
+    font-size: 0.86rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+.ol-prop-cell span,
+.ol-tenant-cell span {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+
+.ol-cell-icon {
+    color: #9ca3af;
+    flex-shrink: 0;
+    margin-top: 3px;
+}
+
+.ol-room-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: #eff6ff;
+    color: #1e40af;
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.ol-na {
+    color: #d1d5db;
+    font-size: 0.85rem;
+}
+
+.ol-rent {
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #111827;
+    white-space: nowrap;
+}
+
+.ol-rent small {
+    font-size: 0.7rem;
+    color: #9ca3af;
+    font-weight: 400;
+    margin-left: 2px;
+}
+
+.ol-dates {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.78rem;
+    color: #374151;
+    white-space: nowrap;
+}
+
+.ol-date-sep {
+    color: #d1d5db;
+}
+
+.ol-payment {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: capitalize;
+}
+
+.ol-payment.pending {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.ol-payment.partial {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.ol-payment.paid {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.ol-status {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.ls-active {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.ls-ended {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.ls-cancelled {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.ol-action-btns {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.ol-terminate-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 7px;
+    border: 1px solid #fca5a5;
+    background: #fff5f5;
+    color: #dc2626;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.ol-terminate-btn:hover {
+    background: #ef4444;
+    color: #fff;
+    border-color: #ef4444;
+}
+
+.ol-renew-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 7px;
+    border: 1px solid #a7f3d0;
+    background: #ecfdf5;
+    color: #065f46;
+    font-size: 0.76rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.ol-renew-btn:hover {
+    background: #10b981;
+    color: #fff;
+    border-color: #10b981;
+}
+
+.ol-empty {
+    text-align: center;
+    padding: 48px !important;
+    color: #9ca3af;
+}
+
+.ol-info {
+    color: #6b7280;
+    padding: 12px 0;
+    font-size: 0.88rem;
+}
+
+.ol-error {
+    color: #dc2626;
+    padding: 12px 0;
+    font-size: 0.88rem;
+}
+
+.ol-popup-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 4000;
+}
+
+.ol-popup {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px 24px;
+    text-align: center;
+    max-width: 360px;
+    width: 90%;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+}
+
+.ol-popup-icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+}
+
+.ol-popup.success .ol-popup-icon {
+    color: #10b981;
+}
+
+.ol-popup.error .ol-popup-icon {
+    color: #ef4444;
+}
+
+.ol-popup h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0 0 8px;
+    color: #111827;
+}
+
+.ol-popup p {
+    font-size: 0.88rem;
+    color: #6b7280;
+    margin: 0 0 20px;
+}
+
+.ol-popup button {
+    background: #111827;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 28px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ol-popup button:hover {
+    background: #1f2937;
+}
+
+@media (max-width: 768px) {
+    .ol-page {
+        padding: 16px;
+    }
+}

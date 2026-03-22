@@ -5,8 +5,11 @@ import React, {
   useMemo,
   useRef,
   useState,
+  useCallback,
 } from "react";
 import notificationSound from "../notificationSound/sound.mp3";
+import { api, refreshAccessToken } from "../Dashboard/Owner/UploadDetails/api/api";
+
 const NotificationContext = createContext(null);
 
 export const NotificationProvider = ({ children }) => {
@@ -14,11 +17,20 @@ export const NotificationProvider = ({ children }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [socketConnected, setSocketConnected] = useState(false);
   const [toasts, setToasts] = useState([]);
+
   const socketRef = useRef(null);
+  const reconnectTimerRef = useRef(null);
+  const isMountedRef = useRef(true);
 
-  const token = localStorage.getItem("token");
+  const removeToast = (toastId) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== toastId));
+  };
 
-  const fetchNotifications = async () => {
+  // ─── Fetch notifications (always refresh token first) ──────────────────────
+  const fetchNotifications = useCallback(async () => {
+    // Refresh token before making the request so we never hit a stale token
+    const token = await refreshAccessToken();
+
     if (!token) {
       setNotifications([]);
       setUnreadCount(0);
@@ -26,38 +38,45 @@ export const NotificationProvider = ({ children }) => {
     }
 
     try {
-      const res = await fetch("/api/notifications/", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to fetch notifications");
-      }
-
-      const data = await res.json();
+      const res = await api.get("/notifications/");
+      const data = res.data;
       const results = Array.isArray(data) ? data : data.results || [];
 
+      if (!isMountedRef.current) return;
       setNotifications(results);
       setUnreadCount(results.filter((item) => !item.is_read).length);
     } catch (error) {
       console.error("Notification fetch error:", error);
     }
-  };
+  }, []);
 
-  const removeToast = (toastId) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== toastId));
-  };
+  // ─── Connect WebSocket (always refresh token first) ────────────────────────
+  const connectSocket = useCallback(async () => {
+    // Clear any pending reconnect timer
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
 
-  useEffect(() => {
-    if (!token) return;
+    // Close any existing socket cleanly before opening a new one
+    if (socketRef.current) {
+      socketRef.current.onclose = null; // prevent triggering reconnect on manual close
+      socketRef.current.close();
+      socketRef.current = null;
+    }
 
-    fetchNotifications();
+    // Always get a fresh token before connecting
+    const token = await refreshAccessToken();
+
+    if (!token || !isMountedRef.current) {
+      setSocketConnected(false);
+      return;
+    }
 
     const protocol = window.location.protocol === "https:" ? "wss" : "ws";
     const host =
-      window.location.hostname === "localhost"
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1"
         ? "127.0.0.1:8000"
         : window.location.host;
 
@@ -68,67 +87,90 @@ export const NotificationProvider = ({ children }) => {
     socketRef.current = socket;
 
     socket.onopen = () => {
+      if (!isMountedRef.current) return;
       setSocketConnected(true);
       console.log("Notification socket connected");
     };
 
-    socket.onclose = () => {
+    socket.onclose = (event) => {
+      if (!isMountedRef.current) return;
       setSocketConnected(false);
-      console.log("Notification socket disconnected");
+      console.log("Notification socket disconnected, code:", event.code);
+
+      // code 4001 = rejected by consumer (bad/expired token) — still retry
+      // Don't retry only if the component has unmounted
+      reconnectTimerRef.current = setTimeout(() => {
+        if (isMountedRef.current) {
+          console.log("Attempting socket reconnect...");
+          connectSocket();
+        }
+      }, 5000);
     };
 
     socket.onerror = (error) => {
       console.error("Notification socket error:", error);
     };
-socket.onmessage = (event) => {
-  try {
-    const data = JSON.parse(event.data);
 
-    if (data.event === "notification_counter_update") {
-      setUnreadCount(data.unread_count);
-      return;
-    }
+    socket.onmessage = (event) => {
+      if (!isMountedRef.current) return;
+      try {
+        const data = JSON.parse(event.data);
 
-    if (!data.id || !data.created_at) return;
+        if (data.event === "notification_counter_update") {
+          setUnreadCount(data.unread_count);
+          return;
+        }
 
-    setNotifications((prev) => [data, ...prev]);
-    setUnreadCount((prev) => prev + 1);
-    setToasts((prev) => [data, ...prev]);
+        if (!data.id || !data.created_at) return;
 
-    // 🔊 PLAY SOUND HERE
-    new Audio(notificationSound).play().catch(() => {
-      // browsers sometimes block autoplay
-    });
+        // Deduplicate — don't add if already in the list
+        setNotifications((prev) => {
+          if (prev.some((n) => n.id === data.id)) return prev;
+          return [data, ...prev];
+        });
 
-  } catch (error) {
-    console.error("Invalid socket payload:", error);
-  }
-};
+        setUnreadCount((prev) => prev + 1);
+
+        // Deduplicate toasts too
+        setToasts((prev) => {
+          if (prev.some((t) => t.id === data.id)) return prev;
+          return [data, ...prev];
+        });
+
+        new Audio(notificationSound).play().catch(() => {});
+      } catch (error) {
+        console.error("Invalid socket payload:", error);
+      }
+    };
+  }, []);
+
+  // ─── Boot on mount, clean up on unmount ────────────────────────────────────
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    fetchNotifications();
+    connectSocket();
 
     return () => {
-      socket.close();
-    };
-  }, [token]);
+      isMountedRef.current = false;
 
-  const markAsRead = async (notificationId) => {
-    if (!token) return;
-
-    try {
-      const res = await fetch(
-        `/api/notifications/${notificationId}/mark_as_read/`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!res.ok) {
-        throw new Error("Failed to mark notification as read");
+      if (reconnectTimerRef.current) {
+        clearTimeout(reconnectTimerRef.current);
       }
 
-      const data = await res.json();
+      if (socketRef.current) {
+        socketRef.current.onclose = null; // prevent reconnect on intentional unmount
+        socketRef.current.close();
+        socketRef.current = null;
+      }
+    };
+  }, [fetchNotifications, connectSocket]);
+
+  // ─── Mark single notification as read ─────────────────────────────────────
+  const markAsRead = async (notificationId) => {
+    try {
+      const res = await api.post(`/notifications/${notificationId}/mark_as_read/`);
+      const data = res.data;
 
       setNotifications((prev) =>
         prev.map((item) =>
@@ -146,22 +188,11 @@ socket.onmessage = (event) => {
     }
   };
 
+  // ─── Mark all notifications as read ───────────────────────────────────────
   const markAllAsRead = async () => {
-    if (!token) return;
-
     try {
-      const res = await fetch("/api/notifications/mark_all_as_read/", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to mark all as read");
-      }
-
-      const data = await res.json();
+      const res = await api.post("/notifications/mark_all_as_read/");
+      const data = res.data;
 
       setNotifications((prev) =>
         prev.map((item) => ({ ...item, is_read: true }))
@@ -187,10 +218,11 @@ socket.onmessage = (event) => {
       markAsRead,
       markAllAsRead,
       refreshNotifications: fetchNotifications,
+      reconnectNotifications: connectSocket,
       setNotifications,
       setUnreadCount,
     }),
-    [notifications, unreadCount, socketConnected, toasts]
+    [notifications, unreadCount, socketConnected, toasts, fetchNotifications, connectSocket]
   );
 
   return (

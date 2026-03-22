@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import BookingForm from "../../components/BookingForm/BookingForm";
-import { FaBath, FaRulerCombined, FaHome, FaBed } from "react-icons/fa";
+import { FaBath, FaRulerCombined, FaBed, FaCheckCircle,FaMapMarkerAlt , FaHome } from "react-icons/fa";
 import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -33,13 +33,13 @@ const Detail = () => {
 
         const token = localStorage.getItem("token");
 
-        const res = await fetch(`/api/properties/${id}/`, {
-          headers: token
-            ? {
-                Authorization: `Bearer ${token}`,
-              }
-            : {},
-        });
+       const res = await fetch(`http://127.0.0.1:8000/api/properties/${id}/`, {
+  headers: token
+    ? {
+        Authorization: `Bearer ${token}`,
+      }
+    : {},
+});
 
         if (!res.ok) {
           throw new Error("Failed to fetch property");
@@ -188,9 +188,9 @@ if (loading) {
       </section>
 
       <div className="detail-container">
-        <button className="back-btn" onClick={() => navigate(-1)}>
+        {/* <button className="back-btn" onClick={() => navigate(-1)}>
           ← Go Back
-        </button>
+        </button> */}
 
         <div className="detail-main-container">
           <div className="detail">
@@ -219,7 +219,7 @@ if (loading) {
 
                   {images.length > 1 && (
                     <button
-                      className="next-btn"
+                      className="nxts-btn"
                       onClick={() =>
                         setCurrentImageIndex((prev) =>
                           prev === images.length - 1 ? 0 : prev + 1
@@ -275,14 +275,14 @@ if (loading) {
 
                   <div className="spec-item">
                     <div className="spec-icon">
-                      <FaRulerCombined />
+                      <FaMapMarkerAlt />
                     </div>
                     <span>{property.region || "N/A"}</span>
                   </div>
 
                   <div className="spec-item">
                     <div className="spec-icon">
-                      <FaRulerCombined />
+                      <FaMapMarkerAlt />
                     </div>
                     <span>{property.city || "N/A"}</span>
                   </div>
@@ -296,11 +296,50 @@ if (loading) {
                     </div>
                   )}
 
+                  
+                </div>
+              </div>
+              <div className="price-specs">
+                <h3>Property Features</h3>
+                
+
+                <div className="specs-2">
+                  
+
+                  
+
+                  <div className="spec-item">
+                    <div className="spec-icon">
+                      <FaBed />
+                    </div>
+                    <span>{property.bedrooms || 0} Bedrooms</span>
+                  </div>
+
+                  <div className="spec-item">
+                    <div className="spec-icon">
+                      <FaBath />
+                    </div>
+                    <span>{property.bathrooms || 0} Bathrooms</span>
+                  </div>
+
+                 
+
+                  
+
+                  {property.school && (
+                    <div className="spec-item">
+                      <div className="spec-icon">
+                        <FaCheckCircle />
+                      </div>
+                      <span>{property.school}</span>
+                    </div>
+                  )}
+
                   {amenities.length > 0 &&
                     amenities.map((amenity, idx) => (
                       <div key={idx} className="spec-item">
                         <div className="spec-icon">
-                          <FaHome />
+                           <FaCheckCircle />
                         </div>
                         <span>{amenity}</span>
                       </div>

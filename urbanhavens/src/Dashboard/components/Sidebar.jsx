@@ -59,7 +59,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               </NavLink>
             </li>
             <li>
-              <NavLink to="/dashboard/admin/AddProperty/AdminAddProperty" onClick={handleClick} className={getLinkClass}>
+              <NavLink to="/dashboard/admin/AddProperty/add-property" onClick={handleClick} className={getLinkClass}>
                 <FaHome className="sidebar-icon" />
                 <span>AdminAddProperty</span>
               </NavLink>
@@ -155,7 +155,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             </li>
 
             <li>
-              <NavLink to="/dashboard/owner/tenants" onClick={handleClick} className={getLinkClass}>
+              <NavLink to="/dashboard/owner/OwnerLeases/OwnerLeases" onClick={handleClick} className={getLinkClass}>
                 <FaUsers className="sidebar-icon" />
                 <span>Tenants</span>
               </NavLink>
@@ -208,6 +208,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               </NavLink>
             </li>
 
+            <li>
+              <NavLink to="/dashboard/tenant/TenantBooking/TenantBooking" onClick={handleClick} className={getLinkClass}>
+                <FaCalendarCheck className="sidebar-icon" />
+                <span>Bookings</span>
+              </NavLink>
+            </li>
             <li>
               <NavLink to="/dashboard/tenant/scheduled-viewings" onClick={handleClick} className={getLinkClass}>
                 <FaCalendarCheck className="sidebar-icon" />

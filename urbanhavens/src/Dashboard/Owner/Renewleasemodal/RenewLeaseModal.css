@@ -1,0 +1,172 @@
+.rl-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 3000;
+  padding: 20px;
+}
+
+.rl-modal {
+  width: 100%;
+  max-width: 540px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  animation: rlPopIn 0.25s ease;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+@keyframes rlPopIn {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1);    }
+}
+
+.rl-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.rl-header h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.rl-close-btn {
+  background: #f3f4f6;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 14px;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.rl-close-btn:hover { background: #e5e7eb; }
+
+.rl-summary {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.rl-renew-icon { font-size: 1.6rem; margin-bottom: 6px; }
+
+.rl-summary p {
+  font-size: 0.88rem;
+  color: #374151;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.rl-room {
+  font-size: 0.78rem !important;
+  color: #6b7280 !important;
+  margin-top: 4px !important;
+}
+
+.rl-form { display: flex; flex-direction: column; gap: 0; }
+
+.rl-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.rl-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.rl-field label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.rl-optional { color: #9ca3af; font-weight: 400; }
+
+.rl-field input,
+.rl-field select,
+.rl-field textarea {
+  padding: 10px 12px;
+  border: 1px solid #dcdfe4;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  color: #111827;
+  background: #fff;
+}
+
+.rl-field input:focus,
+.rl-field select:focus,
+.rl-field textarea:focus {
+  border-color: #f4d63f;
+  box-shadow: 0 0 0 3px rgba(244, 214, 63, 0.18);
+}
+
+.rl-field input:disabled,
+.rl-field select:disabled,
+.rl-field textarea:disabled {
+  background: #f9fafb;
+  cursor: not-allowed;
+}
+
+.rl-field small {
+  color: #dc2626;
+  font-size: 0.75rem;
+}
+
+.rl-notes { margin-bottom: 20px; }
+.rl-notes textarea { resize: vertical; }
+
+.rl-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.rl-cancel-btn,
+.rl-confirm-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.rl-cancel-btn { background: #f3f4f6; color: #374151; }
+.rl-cancel-btn:hover:not(:disabled) { background: #e5e7eb; }
+
+.rl-confirm-btn { background: #f4d63f; color: #111827; }
+.rl-confirm-btn:hover:not(:disabled) { background: #e6c532; }
+
+.rl-cancel-btn:disabled,
+.rl-confirm-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+@media (max-width: 480px) {
+  .rl-grid { grid-template-columns: 1fr; }
+  .rl-actions { flex-direction: column; }
+}

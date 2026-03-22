@@ -1,13 +1,26 @@
 // src/components/Notifications/NotificationToastContainer.jsx
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "./NotificationContext";
 import { FaBell, FaTimes } from "react-icons/fa";
 import "./NotificationToast.css";
 
+const AUTO_DISMISS_MS = 3000;
+
 const NotificationToastContainer = () => {
   const navigate = useNavigate();
   const { toasts, removeToast, markAsRead } = useNotifications();
+
+  // Auto-dismiss each toast after 3 seconds
+  useEffect(() => {
+    if (!toasts.length) return;
+
+    const timers = toasts.map((toast) =>
+      setTimeout(() => removeToast(toast.id), AUTO_DISMISS_MS)
+    );
+
+    return () => timers.forEach(clearTimeout);
+  }, [toasts, removeToast]);
 
   const handleToastClick = async (toast) => {
     if (!toast.is_read) {

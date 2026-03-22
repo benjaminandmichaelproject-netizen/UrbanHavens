@@ -27,10 +27,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (
-      error.response?.status === 401 &&
-      !originalRequest._retry
-    ) {
+    if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       const refresh = localStorage.getItem("refresh");
@@ -45,14 +42,13 @@ api.interceptors.response.use(
       }
 
       try {
-        const res = await axios.post("http://127.0.0.1:8000/api/users/token/refresh/", {
-          refresh,
-        });
+        const res = await axios.post(
+          "http://127.0.0.1:8000/api/users/token/refresh/",
+          { refresh }
+        );
 
         const newAccess = res.data.access;
-
         localStorage.setItem("token", newAccess);
-
         originalRequest.headers.Authorization = `Bearer ${newAccess}`;
         return api(originalRequest);
       } catch (refreshError) {
@@ -69,12 +65,33 @@ api.interceptors.response.use(
   }
 );
 
+// ─── Exported helper ────────────────────────────────────────────────────────
+// Use this before opening a WebSocket so you always connect with a fresh token
+export const refreshAccessToken = async () => {
+  const refresh = localStorage.getItem("refresh");
+
+  if (!refresh || refresh === "undefined" || refresh === "null") {
+    return null;
+  }
+
+  try {
+    const res = await axios.post(
+      "http://127.0.0.1:8000/api/users/token/refresh/",
+      { refresh }
+    );
+    const newAccess = res.data.access;
+    localStorage.setItem("token", newAccess);
+    return newAccess;
+  } catch {
+    return null;
+  }
+};
+
+// ─── Property APIs ───────────────────────────────────────────────────────────
 export const uploadProperty = async (formData) => {
   try {
     const res = await api.post("/properties/", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
+      headers: { "Content-Type": "multipart/form-data" },
     });
     return res.data;
   } catch (err) {
@@ -95,8 +112,10 @@ export const getProperties = async () => {
 
 export const getMyProperties = async () => {
   try {
-    const res = await api.get("/properties/my_properties/");
-    return res.data;
+    const res = await api.get("/properties/my-properties/");
+    // Unwrap paginated response so callers always get an array
+    const data = res.data;
+    return Array.isArray(data) ? data : data.results ?? [];
   } catch (err) {
     console.error("Fetch my properties error:", err.response?.data || err.message);
     throw err.response?.data || err;
@@ -116,9 +135,7 @@ export const getPropertyById = async (id) => {
 export const updateProperty = async (id, formData) => {
   try {
     const res = await api.patch(`/properties/${id}/`, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
+      headers: { "Content-Type": "multipart/form-data" },
     });
     return res.data;
   } catch (err) {
@@ -136,6 +153,8 @@ export const deleteProperty = async (id) => {
     throw err.response?.data || err;
   }
 };
+
+// ─── Booking APIs ────────────────────────────────────────────────────────────
 export const createBooking = async (bookingData) => {
   try {
     const res = await api.post("/bookings/", bookingData);
@@ -165,6 +184,8 @@ export const getTenantBookings = async () => {
     throw err.response?.data || err;
   }
 };
+
+// ─── Notification APIs ───────────────────────────────────────────────────────
 export const getNotifications = async () => {
   try {
     const res = await api.get("/notifications/");
@@ -204,6 +225,8 @@ export const markAllNotificationsAsRead = async () => {
     throw err.response?.data || err;
   }
 };
+
+// ─── Lease APIs ──────────────────────────────────────────────────────────────
 export const createTenantLease = async (leaseData) => {
   try {
     const res = await api.post("/leases/", leaseData);
@@ -214,6 +237,7 @@ export const createTenantLease = async (leaseData) => {
   }
 };
 
+// ─── User APIs ───────────────────────────────────────────────────────────────
 export const getOwners = async () => {
   try {
     const res = await api.get("/users/owners/");
@@ -223,4 +247,10 @@ export const getOwners = async () => {
     throw err.response?.data || err;
   }
 };
+
+export const toggleUserVerification = async (userId) => {
+  const res = await api.post(`/users/${userId}/toggle-verification/`);
+  return res.data;
+};
+
 export { api };

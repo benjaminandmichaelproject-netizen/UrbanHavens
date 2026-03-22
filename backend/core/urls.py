@@ -8,8 +8,9 @@ urlpatterns = [
     path("api/", include("properties.urls")),
     path("api/", include("users.urls")),
     path("api/", include("bookings.urls")),
-    path("api/", include("notifications.urls")),  
-path("api/", include("leases.urls")),
+    path("api/", include("notifications.urls")),
+    path("api/", include("leases.urls")),
+    path("api/", include("schools.urls")),       # ← new
 ]
 
 if settings.DEBUG:

@@ -6,7 +6,6 @@ from django.core.mail import send_mail
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 
@@ -145,6 +144,37 @@ class UserViewSet(viewsets.ViewSet):
 
         return Response(data, status=status.HTTP_200_OK)
 
+    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated], url_path="all-users")
+    def all_users(self, request):
+        user = request.user
+
+        if not (user.is_superuser or getattr(user, "role", None) == "admin"):
+            return Response(
+                {"detail": "You do not have permission to perform this action."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        users = User.objects.all().order_by("username")
+
+        data = []
+        for item in users:
+            profile = getattr(item, "landlord_profile", None)
+
+            data.append({
+                "id": item.id,
+                "name": f"{item.first_name} {item.last_name}".strip() or item.username,
+                "username": item.username,
+                "email": item.email,
+                "phone": item.phone,
+                "role": item.role,
+                "status": "active" if item.is_active else "inactive",
+                "verified": profile.is_verified if profile else False,
+                "is_superuser": item.is_superuser,
+                "is_staff": item.is_staff,
+            })
+
+        return Response(data, status=status.HTTP_200_OK)
+
     @action(detail=False, methods=["post"])
     def forgot_password(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
@@ -223,3 +253,47 @@ class UserViewSet(viewsets.ViewSet):
         entry.save()
 
         return Response({"detail": "Password reset successfully."}, status=status.HTTP_200_OK)
+      
+      
+    @action(detail=True, methods=["post"], permission_classes=[IsAuthenticated], url_path="toggle-verification")
+    def toggle_verification(self, request, pk=None):
+        user = request.user
+
+        if not (user.is_superuser or getattr(user, "role", None) == "admin"):
+            return Response(
+                {"detail": "You do not have permission to perform this action."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        try:
+            target_user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "User not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if target_user.role != "owner":
+            return Response(
+                {"detail": "Only owners can be verified."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        profile = getattr(target_user, "landlord_profile", None)
+        if not profile:
+            return Response(
+                {"detail": "This owner does not have a landlord profile."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        profile.is_verified = not profile.is_verified
+        profile.save()
+
+        return Response(
+            {
+                "message": "Verification status updated successfully.",
+                "user_id": target_user.id,
+                "verified": profile.is_verified,
+            },
+            status=status.HTTP_200_OK,
+        )

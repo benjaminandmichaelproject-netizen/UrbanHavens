@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'bookings',
     'notifications',
     'leases',
+    'schools',
 ]
 
 MIDDLEWARE = [
@@ -146,3 +147,7 @@ AUTH_USER_MODEL = 'users.User'
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 DEFAULT_FROM_EMAIL = 'webmaster@localhost'
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
