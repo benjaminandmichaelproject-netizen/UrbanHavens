@@ -1,86 +1,267 @@
-/* ===== HERO SECTION ===== */
-
-.hero {
-  position: relative;
-  height: 100vh;
-  width: 100%;
-  overflow: hidden;
+:root {
+  --h3-bg:       #071a10;
+  --h3-green:    #1a7a40;
+  --h3-green-lt: #22a055;
+  --h3-accent:   #2dde72;
+  --h3-border:   rgba(255,255,255,0.1);
+  --h3-white:    #ffffff;
+  --h3-muted:    rgba(255,255,255,0.5);
 }
 
-/* ===== Background Images (Slider) ===== */
-.hero-img {
+.h3 {
+  background: var(--h3-bg);
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  font-family: "DM Sans", "Segoe UI", sans-serif;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.h3-bg-texture {
   position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.h3-layout {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  min-height: 100vh;
+  padding: 90px 15% 60px 15%;
+  gap: 5%;
+  box-sizing: border-box;
+}
+
+.h3-left {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.h3-title {
+  font-size: clamp(1.8rem, 3.2vw, 3.2rem);
+  font-weight: 900;
+  color: var(--h3-white);
+  margin: 0;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+}
+
+.h3-accent { color: var(--h3-accent); }
+
+.h3-tagline-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 20px;
+}
+
+.h3-tagline-row p {
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: var(--h3-muted);
+  letter-spacing: 0.12em;
+  margin: 0;
+  white-space: nowrap;   /* desktop: single line */
+}
+
+.h3-line {
+  flex: 1;
+  height: 1px;
+  background: var(--h3-border);
+  max-width: 50px;
+  flex-shrink: 0;
+}
+
+.h3-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.h3-feat {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--h3-border);
+  border-radius: 12px;
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.h3-feat:hover {
+  background: rgba(45,222,114,0.08);
+  border-color: rgba(45,222,114,0.25);
+}
+
+.h3-feat-icon  { font-size: 1.4rem; line-height: 1; }
+
+.h3-feat-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--h3-white);
+  margin: 0;
+}
+
+.h3-feat-sub {
+  font-size: 0.72rem;
+  color: var(--h3-muted);
+  margin: 0;
+}
+
+.h3-right {
+  flex: 0 0 38%;
+  height: 460px;
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.h3-propimg {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  top: 0;
-  left: 0;
+  object-position: center top;
   opacity: 0;
-  transition: opacity 1.2s ease-in-out;
+  transition: opacity 1.2s ease;
+}
+
+.h3-propimg.active { opacity: 1; }
+
+.h3-img-fade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 55%, rgba(0,0,0,0.5) 100%);
   z-index: 1;
 }
 
-/* Active Slide */
-.hero-img.active {
-  opacity: 1;
-}
-
-/* ===== Gradient Overlay ===== */
-.hero-overlay {
+.h3-badge {
   position: absolute;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(
-    90deg,
-    rgba(0, 0, 0, 0.9) 0%,
-    rgba(0, 0, 0, 0.85) 40%,
-    rgba(0, 0, 0, 0.75) 100%
-  );
+  bottom: 18px;
+  left: 18px;
+  background: var(--h3-green);
+  border: 1px solid var(--h3-green-lt);
+  border-radius: 10px;
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
   z-index: 2;
 }
 
-/* ===== Content ===== */
-.hero-content {
-  position: relative;
-  z-index: 3;
-  height: 100%;
+.h3-badge strong {
+  font-size: 1.1rem;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1;
+}
+
+.h3-badge span {
+  font-size: 0.6rem;
+  color: rgba(255,255,255,0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.h3-dots {
+  position: absolute;
+  bottom: 22px;
+  right: 16px;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 0 15%;
-  color: white;
+  gap: 5px;
+  z-index: 2;
 }
 
-.hero-content h1 {
-  font-size: 4rem;
-  margin-bottom: 20px;
-  max-width: 700px;
-}
-
-.hero-content p {
-  font-size: 18px;
-  margin-bottom: 15px;
-  opacity: 0.9;
-  max-width: 600px;
-}
-
-.hero-content h3 {
-  font-weight: 400;
-  margin-bottom: 25px;
-}
-
-.hero-btn {
-  width: fit-content;
-  padding: 12px 28px;
-  background: white;
-  color: black;
+.h3-dot {
+  width: 18px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.3);
   border: none;
-  font-weight: 600;
   cursor: pointer;
-  border-radius: 4px;
-  transition: 0.3s ease;
+  padding: 0;
+  transition: background 0.3s, width 0.3s;
 }
 
-.hero-btn:hover {
-  background: #e5e5e5;
+.h3-dot.active {
+  background: var(--h3-accent);
+  width: 32px;
+}
+
+/* ── MEDIA QUERIES ────────────────────────────────────────────────── */
+
+@media (max-width: 1024px) {
+  .h3-layout {
+    padding: 90px 8% 50px 8%;
+    gap: 4%;
+  }
+  .h3-right {
+    flex: 0 0 40%;
+    height: 400px;
+  }
+  .h3-title { font-size: clamp(1.6rem, 3.5vw, 2.8rem); }
+}
+
+@media (max-width: 768px) {
+  .h3-layout {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 86px 6% 40px;
+    gap: 24px;
+    min-height: unset;
+  }
+  .h3-left  { width: 100%; }
+  .h3-right {
+    flex: none;
+    width: 100%;
+    height: 300px;
+    border-radius: 14px;
+    margin-bottom: 16px;
+  }
+  .h3-title { font-size: 2rem; }
+  .h3-grid  { gap: 10px; }
+  .h3-feat  { padding: 14px 12px; }
+
+  /* Tagline: centered on mobile */
+  .h3-tagline-row {
+    justify-content: center;
+    text-align: center;
+  }
+  .h3-tagline-row .h3-line {
+    display: none;
+  }
+  .h3-tagline-row p {
+    white-space: normal !important;
+    text-align: center !important;
+    width: 100%;
+    font-size: 0.55rem;
+    letter-spacing: 0.1em;
+  }
+}
+
+@media (max-width: 480px) {
+  .h3-layout     { padding: 80px 5% 32px; }
+  .h3-title      { font-size: 1.75rem; }
+  .h3-right      { height: 240px; }
+  .h3-feat-title { font-size: 0.82rem; }
+  .h3-feat-sub   { font-size: 0.68rem; }
+}
+
+@media (max-width: 768px) {
+  .h3-title {
+    text-align: center;
+    width: 100%;
+  }
 }
