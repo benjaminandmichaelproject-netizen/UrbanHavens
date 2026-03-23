@@ -10,7 +10,8 @@ urlpatterns = [
     path("api/", include("bookings.urls")),
     path("api/", include("notifications.urls")),
     path("api/", include("leases.urls")),
-    path("api/", include("schools.urls")),       # ← new
+    path("api/", include("schools.urls")),       
+     path("api/assistant/", include("assistant.urls")),
 ]
 
 if settings.DEBUG:

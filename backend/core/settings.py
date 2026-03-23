@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'notifications',
     'leases',
     'schools',
+    'assistant',
 ]
 
 MIDDLEWARE = [
@@ -151,3 +152,9 @@ DEFAULT_FROM_EMAIL = 'webmaster@localhost'
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # ← this line exists?

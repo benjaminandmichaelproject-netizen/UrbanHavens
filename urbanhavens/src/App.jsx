@@ -47,6 +47,9 @@ import AdminBookings from "./Dashboard/Admin/Bookings/AdminBookings";
 import TenantBooking from "./Dashboard/Tenant/TenantBooking/TenantBooking";
 import OwnerLeases from "./Dashboard/Owner/Ownerleases/Ownerleases";
 
+// ── AI Assistant ─────────────────────────────────────────────────
+// import { AIAssistantButton } from "./components/AIAssistant/AIAssistant";
+
 const AppContent = () => {
   const location = useLocation();
 
@@ -67,8 +70,19 @@ const AppContent = () => {
     "/reset-password",
   ];
 
-  const shouldHideNavbar = hideNavbarRoutes.includes(location.pathname);
+  // Hide AI button on auth pages where it makes no sense
+  const hideAIRoutes = [
+    "/login",
+    "/forgot-password",
+    "/confirm-reset-code",
+    "/reset-password",
+    "/registration",
+    "/register-form",
+  ];
+
+  const shouldHideNavbar   = hideNavbarRoutes.includes(location.pathname);
   const shouldHideBottomNav = hideBottomNavRoutes.includes(location.pathname);
+  const shouldShowAI = !hideAIRoutes.includes(location.pathname);
 
   return (
     <>
@@ -103,7 +117,7 @@ const AppContent = () => {
           <Route path="owner/my-properties" element={<MyProperties />} />
           <Route path="owner/bookings" element={<Bookings />} />
           <Route path="owner/settings" element={<div>Owner Settings</div>} />
-          <Route path="owner/OwnerLeases/OwnerLeases" element={<OwnerLeases/>} />
+          <Route path="owner/OwnerLeases/OwnerLeases" element={<OwnerLeases />} />
           <Route path="owner/contracts" element={<div>Contracts</div>} />
           <Route path="owner/documents" element={<div>Documents</div>} />
           <Route path="owner/help" element={<div>Help & Support</div>} />
@@ -118,10 +132,10 @@ const AppContent = () => {
           <Route path="tenant/bookings" element={<MyBookings />} />
           <Route path="tenant/profile" element={<Profile />} />
           <Route path="logout" element={<Logout />} />
+
           <Route path="admin" element={<AdminDashboard />} />
           <Route path="admin/users" element={<Users />} />
           <Route path="/dashboard/admin/add-property" element={<AdminAddProperty />} />
-
           <Route path="admin/properties" element={<Allproperties />} />
           <Route path="admin/pending" element={<Pending />} />
           <Route path="admin/bookings" element={<AdminBookings />} />
@@ -132,15 +146,18 @@ const AppContent = () => {
           <Route path="admin/profile" element={<div>Admin Profile</div>} />
         </Route>
       </Routes>
+
+      {/* ── Global overlays ──────────────────────────────────────── */}
       <NotificationToastContainer />
+
+      {/*    {shouldShowAI && <AIAssistantButton />} */}
+   
+
       {!isDashboard && !shouldHideBottomNav && <MobileBottomNav />}
     </>
   );
 };
 
-const App = () => {
-  return <AppContent />;
-
-};
+const App = () => <AppContent />;
 
 export default App;
