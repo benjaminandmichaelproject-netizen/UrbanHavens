@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Booking, InspectionMeeting
 from notifications.utils import send_notification
 from django.contrib.auth import get_user_model
+from leases.models import TenantLease
 
 User = get_user_model()
 
@@ -36,8 +37,9 @@ class BookingSerializer(serializers.ModelSerializer):
     owner_email = serializers.EmailField(source="owner.email", read_only=True)
     owner_phone = serializers.CharField(source="owner.phone",  read_only=True)
 
-    # Nested meeting
+    # Nested
     meeting = serializers.SerializerMethodField()
+    lease   = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
@@ -48,14 +50,14 @@ class BookingSerializer(serializers.ModelSerializer):
             "tenant", "tenant_name", "tenant_email", "tenant_phone",
             "owner",  "owner_name",  "owner_email",  "owner_phone",
             "name", "email", "phone", "message",
-            "status", "meeting", "created_at",
+            "status", "meeting", "lease", "created_at",
         ]
         read_only_fields = [
             "tenant", "tenant_name", "tenant_email", "tenant_phone",
             "owner",  "owner_name",  "owner_email",  "owner_phone",
             "property_name", "property_city", "property_region",
             "property_price", "property_type", "property_images",
-            "status", "meeting", "created_at",
+            "status", "meeting", "lease", "created_at",
         ]
 
     def get_property_images(self, obj):
@@ -84,6 +86,17 @@ class BookingSerializer(serializers.ModelSerializer):
         if meeting is None:
             return None
         return InspectionMeetingSerializer(meeting, context=self.context).data
+
+    def get_lease(self, obj):
+     try:
+         lease = obj.tenant_lease  # uses OneToOneField related_name directly
+     except Exception:
+        return None
+     return {
+        "id": lease.id,
+        "status": lease.status,
+        "lease_end_date": str(lease.lease_end_date) if lease.lease_end_date else None,
+    }
 
     def validate_property(self, property_obj):
         if not property_obj.is_available:

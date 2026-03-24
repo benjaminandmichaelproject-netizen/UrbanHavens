@@ -53,17 +53,19 @@ const calcLeaseStats = (start_date, end_date) => {
 const TenantDashboard = () => {
   const navigate = useNavigate();
 
-  const [bookings, setBookings] = useState([]);
-  const [lease, setLease]       = useState(null);
-  const [loading, setLoading]   = useState(true);
+  const [bookings,  setBookings]  = useState([]);
+  const [lease,     setLease]     = useState(null);
+  const [loading,   setLoading]   = useState(true);
+  const [favorites, setFavorites] = useState([]);  // ← new
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [bookingsRes, leaseRes] = await Promise.allSettled([
+        const [bookingsRes, leaseRes, favoritesRes] = await Promise.allSettled([
           api.get("/bookings/my_tenant_bookings/"),
           api.get("/leases/my-lease/"),
+          api.get("/favorites/"),   // ← new
         ]);
 
         if (bookingsRes.status === "fulfilled") {
@@ -73,6 +75,11 @@ const TenantDashboard = () => {
 
         if (leaseRes.status === "fulfilled") {
           setLease(leaseRes.value.data || null);
+        }
+
+        if (favoritesRes.status === "fulfilled") {  // ← new
+          const data = favoritesRes.value.data;
+          setFavorites(Array.isArray(data) ? data : []);
         }
       } catch (err) {
         console.error("TenantDashboard fetch error:", err);
@@ -88,8 +95,8 @@ const TenantDashboard = () => {
     totalBookings:   bookings.length,
     pendingBookings: bookings.filter((b) => b.status === "pending").length,
     activeLease:     lease ? 1 : 0,
-    savedProperties: 0,
-  }), [bookings, lease]);
+    savedProperties: favorites.length,  // ← was: 0
+  }), [bookings, lease, favorites]);
 
   const recentBookings = bookings.slice(0, 3);
   const leaseStats     = lease ? calcLeaseStats(lease.lease_start_date, lease.lease_end_date) : null;

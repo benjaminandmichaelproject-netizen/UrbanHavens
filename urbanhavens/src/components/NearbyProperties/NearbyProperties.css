@@ -1,0 +1,273 @@
+/* ── Section wrapper ──────────────────────────────────────────────── */
+.np-section {
+  --np-green:   #1a7a40;
+  --np-green-lt:#22a055;
+  --np-accent:  #2dde72;
+  --np-light:   #f4f7f5;
+  --np-white:   #ffffff;
+  --np-border:  rgba(26,122,64,0.14);
+  --np-text:    #0f2d1c;
+  --np-muted:   #4a7060;
+  --np-font:    "DM Sans", "Segoe UI", sans-serif;
+}
+
+.np-section {
+  margin: 0 0 10px;
+  font-family: var(--np-font);
+}
+
+/* ── Prompt banner ────────────────────────────────────────────────── */
+.np-prompt {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--np-white);
+  border: 1px solid var(--np-border);
+  border-left: 4px solid var(--np-green);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 2px 12px rgba(26,122,64,0.07);
+  flex-wrap: wrap;
+}
+
+.np-prompt-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(26,122,64,0.1);
+  color: var(--np-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.np-prompt-text { flex: 1; min-width: 160px; }
+
+.np-prompt-text h4 {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--np-text);
+  margin: 0 0 3px;
+}
+
+.np-prompt-text p {
+  font-size: 0.78rem;
+  color: var(--np-muted);
+  margin: 0;
+}
+
+.np-prompt-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.np-enable-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--np-green);
+  color: #fff;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 9px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: var(--np-font);
+}
+
+.np-enable-btn:hover { background: var(--np-green-lt); }
+
+.np-dismiss-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--np-light);
+  border: 1px solid var(--np-border);
+  color: var(--np-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.np-dismiss-btn:hover { background: #e5e7eb; }
+
+/* ── Loading ──────────────────────────────────────────────────────── */
+.np-loading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px;
+  background: var(--np-white);
+  border: 1px solid var(--np-border);
+  border-radius: 14px;
+  font-size: 0.85rem;
+  color: var(--np-muted);
+}
+
+.np-spin { animation: np-spin 0.7s linear infinite; color: var(--np-green); }
+@keyframes np-spin { to { transform: rotate(360deg); } }
+
+/* ── Error ────────────────────────────────────────────────────────── */
+.np-error {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background: #fff5f5;
+  border: 1px solid #fca5a5;
+  border-radius: 12px;
+  font-size: 0.82rem;
+  color: #991b1b;
+}
+
+.np-error button {
+  background: none;
+  border: none;
+  color: var(--np-green);
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 0.82rem;
+}
+
+/* ── Success header ───────────────────────────────────────────────── */
+.np-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.np-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.np-header-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(26,122,64,0.1);
+  color: var(--np-green);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.np-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--np-text);
+  margin: 0 0 3px;
+}
+
+.np-subtitle {
+  font-size: 0.75rem;
+  color: var(--np-muted);
+  margin: 0;
+}
+
+/* Radius pills */
+.np-radius-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.np-radius-pill {
+  background: var(--np-white);
+  border: 1px solid var(--np-border);
+  border-radius: 20px;
+  padding: 5px 14px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--np-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: var(--np-font);
+}
+
+.np-radius-pill:hover { border-color: var(--np-green); color: var(--np-green); }
+
+.np-radius-pill.active {
+  background: var(--np-green);
+  color: #fff;
+  border-color: var(--np-green);
+}
+
+/* ── Cards grid ───────────────────────────────────────────────────── */
+.np-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+/* Card wrapper — positions the distance badge */
+.np-card-wrap {
+  position: relative;
+}
+
+/* Distance badge — floats top-right over the card */
+.np-dist-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  background: var(--np-green);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(26,122,64,0.3);
+}
+
+/* ── Empty ────────────────────────────────────────────────────────── */
+.np-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--np-muted);
+  font-size: 0.88rem;
+}
+
+.np-empty-icon { font-size: 2rem; color: var(--np-green); opacity: 0.3; }
+.np-empty p    { margin: 0; }
+.np-empty-hint { font-size: 0.76rem; color: #9ca3af !important; }
+
+/* ── Responsive ───────────────────────────────────────────────────── */
+@media (max-width: 1280px) { .np-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 900px)  { .np-grid { grid-template-columns: repeat(2, 1fr); } }
+
+@media (max-width: 768px) {
+  .np-prompt { gap: 12px; }
+  .np-header { flex-direction: column; align-items: flex-start; }
+  .np-grid   { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+}
+
+@media (max-width: 480px) {
+  .np-grid { grid-template-columns: 1fr; }
+  .np-prompt-actions { width: 100%; }
+  .np-enable-btn { flex: 1; justify-content: center; }
+}

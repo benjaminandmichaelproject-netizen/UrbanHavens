@@ -46,7 +46,7 @@ import NotificationToastContainer from "./context/NotificationToastContainer";
 import AdminBookings from "./Dashboard/Admin/Bookings/AdminBookings";
 import TenantBooking from "./Dashboard/Tenant/TenantBooking/TenantBooking";
 import OwnerLeases from "./Dashboard/Owner/Ownerleases/Ownerleases";
-
+import FavoritePage from "./Pages/Favotite/FavoritePage";
 // ── AI Assistant ─────────────────────────────────────────────────
 // import { AIAssistantButton } from "./components/AIAssistant/AIAssistant";
 
@@ -103,6 +103,7 @@ const AppContent = () => {
         <Route path="/detail/:id" element={<Detail />} />
         <Route path="/landlord/:type/:id" element={<Landlord />} />
         <Route path="/notifications" element={<Notifications />} />
+        <Route path="/favorites" element={<FavoritePage />} />
         <Route
           path="/dashboard"
           element={

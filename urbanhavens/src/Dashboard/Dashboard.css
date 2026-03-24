@@ -494,3 +494,17 @@
 .db-badge-red      { background: #fee2e2; color: #991b1b; }
 .db-badge-blue     { background: #dbeafe; color: #1e40af; }
 .db-badge-gray     { background: #f3f4f6; color: #374151; }
+
+.favorite-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-top: 20px;
+}
+
+.dashboard-empty-state {
+  margin-top: 20px;
+  padding: 24px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
+}

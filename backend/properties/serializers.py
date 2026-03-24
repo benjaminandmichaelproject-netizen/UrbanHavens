@@ -2,7 +2,7 @@ import json
 
 from rest_framework import serializers
 
-from .models import ExternalLandlord, Property, PropertyImage
+from .models import ExternalLandlord, Favorite, Property, PropertyImage
 from users.models import User
 
 
@@ -458,3 +458,30 @@ class PropertySerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    property = PropertySerializer(read_only=True)
+    property_id = serializers.IntegerField(write_only=True)
+
+    class Meta:
+        model = Favorite
+        fields = ["id", "property", "property_id", "created_at"]
+        read_only_fields = ["id", "property", "created_at"]
+
+    def validate_property_id(self, value):
+        try:
+            property_obj = Property.objects.get(id=value, approval_status="approved")
+        except Property.DoesNotExist:
+            raise serializers.ValidationError("Property not found or not approved.")
+        return value
+
+    def create(self, validated_data):
+        user = self.context["request"].user
+        property_id = validated_data.pop("property_id")
+        property_obj = Property.objects.get(id=property_id, approval_status="approved")
+
+        favorite, _ = Favorite.objects.get_or_create(
+            user=user,
+            property=property_obj,
+        )
+        return favorite

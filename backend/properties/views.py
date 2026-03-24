@@ -5,14 +5,14 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .models import ExternalLandlord, Property
+from .models import ExternalLandlord, Favorite, Property
 from .pagination import PropertyPagination
 from .serializers import (
     ExternalLandlordSerializer,
+    FavoriteSerializer,
     PropertySerializer,
     RegisteredLandlordSerializer,
 )
-
 User = get_user_model()
 
 
@@ -278,6 +278,60 @@ def _get_external_landlord_or_404(id):
         return ExternalLandlord.objects.get(id=id)
     except ExternalLandlord.DoesNotExist:
         return None
+
+@api_view(["GET"])
+@permission_classes([permissions.IsAuthenticated])
+def my_favorites(request):
+    favorites = (
+        Favorite.objects.filter(user=request.user)
+        .select_related("property", "property__owner", "property__external_landlord", "property__approved_by")
+        .prefetch_related("property__images")
+        .order_by("-created_at")
+    )
+
+    serializer = FavoriteSerializer(
+        favorites,
+        many=True,
+        context={"request": request},
+    )
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([permissions.IsAuthenticated])
+def add_favorite(request):
+    serializer = FavoriteSerializer(
+        data=request.data,
+        context={"request": request},
+    )
+    serializer.is_valid(raise_exception=True)
+    favorite = serializer.save()
+
+    return Response(
+        FavoriteSerializer(favorite, context={"request": request}).data,
+        status=status.HTTP_201_CREATED,
+    )
+
+
+@api_view(["DELETE"])
+@permission_classes([permissions.IsAuthenticated])
+def remove_favorite(request, property_id):
+    deleted_count, _ = Favorite.objects.filter(
+        user=request.user,
+        property_id=property_id,
+    ).delete()
+
+    if deleted_count == 0:
+        return Response(
+            {"detail": "Favorite not found."},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    return Response(
+        {"detail": "Removed from favorites."},
+        status=status.HTTP_200_OK,
+    )
+
 
 
 @api_view(["GET"])

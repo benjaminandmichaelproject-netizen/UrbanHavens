@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Favcard from "../../components/FavCard/Favcard";
-import "../Dashboard.css";
+import "./FavoritePage.css";
 
-const Favorites = () => {
+const FavoritePage = () => {
   const navigate = useNavigate();
   const [favorites, setFavorites] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,9 +31,6 @@ const Favorites = () => {
       if (res.status === 401) {
         localStorage.removeItem("access");
         localStorage.removeItem("refresh");
-        localStorage.removeItem("userId");
-        localStorage.removeItem("username");
-        localStorage.removeItem("role");
         navigate("/login");
         return;
       }
@@ -75,9 +72,6 @@ const Favorites = () => {
       if (res.status === 401) {
         localStorage.removeItem("access");
         localStorage.removeItem("refresh");
-        localStorage.removeItem("userId");
-        localStorage.removeItem("username");
-        localStorage.removeItem("role");
         navigate("/login");
         return;
       }
@@ -98,32 +92,32 @@ const Favorites = () => {
     navigate(`/detail/${property.id}`, { state: { property } });
   };
 
+  if (loading) {
+    return (
+      <div className="favorite-page">
+        <div className="favorite-page-state">Loading favorites...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="favorite-page">
+        <div className="favorite-page-state favorite-page-error">{error}</div>
+      </div>
+    );
+  }
+
   return (
-    <div className="dashboard-page">
-      <div className="dashboard-page-header">
+    <div className="favorite-page">
+      <div className="favorite-page-header">
         <h2>My Favorites</h2>
-        <p>Properties you saved for later</p>
+        <p>Saved properties you want to revisit</p>
       </div>
 
-      {loading && (
-        <div className="dashboard-empty-state">
-          <p>Loading favorite properties...</p>
-        </div>
-      )}
-
-      {!loading && error && (
-        <div className="dashboard-empty-state">
-          <p>{error}</p>
-        </div>
-      )}
-
-      {!loading && !error && favorites.length === 0 && (
-        <div className="dashboard-empty-state">
-          <p>No favorite properties yet.</p>
-        </div>
-      )}
-
-      {!loading && !error && favorites.length > 0 && (
+      {favorites.length === 0 ? (
+        <div className="favorite-page-state">No favorite properties yet.</div>
+      ) : (
         <div className="favorite-grid">
           {favorites.map((item) => (
             <Favcard
@@ -139,4 +133,4 @@ const Favorites = () => {
   );
 };
 
-export default Favorites;
+export default FavoritePage;

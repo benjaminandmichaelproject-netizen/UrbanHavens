@@ -27,18 +27,29 @@ const Bookings = () => {
 
   const transformBookings = (data) => {
     if (!Array.isArray(data)) return [];
+    const today = new Date();
 
-    return data.map((booking) => ({
-      ...booking,
-      property_name: booking.property_name || "Unknown Property",
-      tenant_name: booking.tenant_name || booking.name,
-      date: booking.created_at
-        ? new Date(booking.created_at).toLocaleDateString()
-        : "",
-      status: booking.status
-        ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1)
-        : "Pending",
-    }));
+    return data.map((booking) => {
+      const lease = booking.lease || null;
+      const leaseActive = lease?.status === "active";
+      const leaseExpired =
+        lease && lease.lease_end_date && new Date(lease.lease_end_date) < today;
+
+      return {
+        ...booking,
+        property_name: booking.property_name || "Unknown Property",
+        tenant_name: booking.tenant_name || booking.name,
+        date: booking.created_at
+          ? new Date(booking.created_at).toLocaleDateString()
+          : "",
+        status: booking.status
+          ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1)
+          : "Pending",
+        lease,
+        leaseActive,
+        leaseExpired,
+      };
+    });
   };
 
   const fetchBookings = async () => {
@@ -99,6 +110,47 @@ const Bookings = () => {
     } finally {
       setSubmittingLease(false);
     }
+  };
+
+  const renderConvertButton = (booking) => {
+    const { leaseActive, leaseExpired } = booking;
+    const isConverted = booking.status.toLowerCase() === "converted";
+
+    if (isConverted && leaseActive) {
+      return (
+        <button className="convert-btn lease-active-btn" disabled>
+          Lease In Progress
+        </button>
+      );
+    }
+
+    if (isConverted && leaseExpired) {
+      return (
+        <button
+          className="convert-btn"
+          onClick={() => openConvertModal(booking)}
+        >
+          Renew Lease
+        </button>
+      );
+    }
+
+    if (isConverted) {
+      return (
+        <button className="convert-btn" disabled>
+          Converted
+        </button>
+      );
+    }
+
+    return (
+      <button
+        className="convert-btn"
+        onClick={() => openConvertModal(booking)}
+      >
+        Convert to Tenant
+      </button>
+    );
   };
 
   if (loading) {
@@ -175,16 +227,7 @@ const Bookings = () => {
                         >
                           Schedule Meeting
                         </button>
-
-                        <button
-                          className="convert-btn"
-                          onClick={() => openConvertModal(booking)}
-                          disabled={booking.status.toLowerCase() === "converted"}
-                        >
-                          {booking.status.toLowerCase() === "converted"
-                            ? "Converted"
-                            : "Convert to Tenant"}
-                        </button>
+                        {renderConvertButton(booking)}
                       </div>
                     </td>
                   </tr>
@@ -222,16 +265,7 @@ const Bookings = () => {
                   >
                     Schedule Meeting
                   </button>
-
-                  <button
-                    className="convert-btn"
-                    onClick={() => openConvertModal(booking)}
-                    disabled={booking.status.toLowerCase() === "converted"}
-                  >
-                    {booking.status.toLowerCase() === "converted"
-                      ? "Converted"
-                      : "Convert to Tenant"}
-                  </button>
+                  {renderConvertButton(booking)}
                 </div>
               </div>
             ))}
@@ -239,13 +273,13 @@ const Bookings = () => {
         </>
       )}
 
-     {scheduleOpen && (
-  <ScheduleMeeting
-    booking={selectedBooking}
-    onClose={closeScheduleModal}
-    onSuccess={fetchBookings}
-  />
-)}
+      {scheduleOpen && (
+        <ScheduleMeeting
+          booking={selectedBooking}
+          onClose={closeScheduleModal}
+          onSuccess={fetchBookings}
+        />
+      )}
 
       {convertOpen && (
         <ConvertToTenantModal

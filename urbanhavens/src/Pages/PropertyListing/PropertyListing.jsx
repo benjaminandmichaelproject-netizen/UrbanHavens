@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -8,29 +8,33 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import RentalCard from "../../components/FeaturedRentals/RentalCard";
 import "./PropertyListing.css";
-
+import NearbyProperties from "../../components/NearbyProperties/NearbyProperties";
+import FavAlert from "../../components/Modals/FavAlert";
 const categories = [
-  { key: "all",        label: "All Properties"   },
-  { key: "house_rent", label: "House for Rent"    },
-  { key: "hostel",     label: "Hostel for Rent"   },
+  { key: "all", label: "All Properties" },
+  { key: "house_rent", label: "House for Rent" },
+  { key: "hostel", label: "Hostel for Rent" },
 ];
 
-const fadeUp  = { hidden: { opacity: 0, y: 36 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } } };
+const fadeUp = { hidden: { opacity: 0, y: 36 }, show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } } };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
 
 const PropertyListing = () => {
   const navigate = useNavigate();
 
-  const [properties, setProperties]           = useState([]);
-  const [displayed, setDisplayed]             = useState([]);
-  const [selectedCategory, setSelectedCat]    = useState("all");
-  const [searchTerm, setSearch]               = useState("");
-  const [dropdownOpen, setDropdown]           = useState(false);
-  const [viewMode, setView]                   = useState("grid");
-  const [loading, setLoading]                 = useState(true);
-  const [filterLoading, setFilterLoading]     = useState(false);
-  const [error, setError]                     = useState("");
-
+  const [properties, setProperties] = useState([]);
+  const [displayed, setDisplayed] = useState([]);
+  const [selectedCategory, setSelectedCat] = useState("all");
+  const [searchTerm, setSearch] = useState("");
+  const [dropdownOpen, setDropdown] = useState(false);
+  const [viewMode, setView] = useState("grid");
+  const [loading, setLoading] = useState(true);
+  const [filterLoading, setFilterLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [favoriteIds, setFavoriteIds] = useState([]);
+  const [showFavAlert, setShowFavAlert] = useState(false);
+  const [favAlertMessage, setFavAlertMessage] = useState("");
+  const [favAlertType, setFavAlertType] = useState("success");
   useEffect(() => {
     (async () => {
       try {
@@ -62,7 +66,100 @@ const PropertyListing = () => {
     }
     return Array.isArray(parsed) ? parsed.slice(0, 3) : [];
   };
+  const getAvailability = (property) => {
+    if (typeof property?.is_available === "boolean") return property.is_available;
 
+    const status = String(property?.status || "").toLowerCase().trim();
+    if (["unavailable", "not available", "occupied", "booked", "rented"].includes(status)) {
+      return false;
+    }
+
+    return true;
+  };
+
+  const fetchFavorites = useCallback(async () => {
+    const token = localStorage.getItem("access");
+
+    if (!token) {
+      setFavoriteIds([]);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/favorites/", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      const ids = Array.isArray(data)
+        ? data.map((item) => item.property?.id).filter(Boolean)
+        : [];
+
+      setFavoriteIds(ids);
+    } catch {
+      setFavoriteIds([]);
+    }
+  }, []);
+ useEffect(() => {
+      fetchFavorites();
+    }, [fetchFavorites]);
+  const toggleFavorite = async (propertyId) => {
+    const token = localStorage.getItem("access");
+
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    const isAlreadyFavorited = favoriteIds.includes(propertyId);
+
+    try {
+      const res = await fetch(
+        isAlreadyFavorited
+          ? `/api/favorites/remove/${propertyId}/`
+          : "/api/favorites/add/",
+        {
+          method: isAlreadyFavorited ? "DELETE" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: isAlreadyFavorited
+            ? null
+            : JSON.stringify({ property_id: propertyId }),
+        }
+      );
+
+      if (res.status === 401) {
+        localStorage.removeItem("access");
+        localStorage.removeItem("refresh");
+        navigate("/login");
+        return;
+      }
+
+      if (!res.ok) throw new Error("Failed to update favorite.");
+
+      setFavoriteIds((prev) =>
+        isAlreadyFavorited
+          ? prev.filter((id) => id !== propertyId)
+          : [...prev, propertyId]
+      );
+
+      setFavAlertMessage(
+        isAlreadyFavorited
+          ? "Property removed from favorites."
+          : "Property added to favorites."
+      );
+      setFavAlertType(isAlreadyFavorited ? "error" : "success");
+      setShowFavAlert(true);
+    } catch (err) {
+      console.error(err);
+    }
+  };
   const filtered = useMemo(() => {
     let list = [...properties];
     if (selectedCategory !== "all") list = list.filter(p => p.category === selectedCategory);
@@ -70,8 +167,8 @@ const PropertyListing = () => {
       const q = searchTerm.toLowerCase();
       list = list.filter(p =>
         p.property_name?.toLowerCase().includes(q) ||
-        p.city?.toLowerCase().includes(q)          ||
-        p.region?.toLowerCase().includes(q)        ||
+        p.city?.toLowerCase().includes(q) ||
+        p.region?.toLowerCase().includes(q) ||
         p.school?.toLowerCase().includes(q)
       );
     }
@@ -208,6 +305,11 @@ const PropertyListing = () => {
         </motion.div>
       </section>
 
+      {/* ══ NEARBY PROPERTIES ══════════════════════════════════════════ */}
+      <section className="pl-nearby-section">
+        <NearbyProperties />
+      </section>
+
       {/* ══ GRID ══════════════════════════════════════════════════════ */}
       <section className="pl-grid-section">
         <AnimatePresence mode="wait">
@@ -246,6 +348,9 @@ const PropertyListing = () => {
                   onBook={() => navigate(`/detail/${p.id}`)}
                   viewMode={viewMode}
                   theme="light"
+                  isAvailable={getAvailability(p)}
+                  isFavorited={favoriteIds.includes(p.id)}
+                  onFavorite={() => toggleFavorite(p.id)}
                 />
               ))}
             </motion.div>
@@ -260,7 +365,12 @@ const PropertyListing = () => {
           )}
         </AnimatePresence>
       </section>
-
+      <FavAlert
+        show={showFavAlert}
+        message={favAlertMessage}
+        type={favAlertType}
+        onClose={() => setShowFavAlert(false)}
+      />
     </div>
   );
 };

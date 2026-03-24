@@ -324,3 +324,10 @@
     width: 100%;
   }
 }
+
+.lease-active-btn {
+  background-color: #f59e0b;
+  color: #ffffff;
+  cursor: not-allowed;
+  opacity: 0.85;
+}

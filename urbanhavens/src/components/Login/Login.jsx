@@ -30,11 +30,11 @@ const Login = () => {
       const { access, refresh, id, username, role } = res.data;
       const userRole = role.toLowerCase();
 
-      localStorage.setItem("token",    access);
-      localStorage.setItem("refresh",  refresh);
-      localStorage.setItem("userId",   id);
-      localStorage.setItem("username", username);
-      localStorage.setItem("role",     userRole);
+    localStorage.setItem("access",   access);
+localStorage.setItem("refresh",  refresh);
+localStorage.setItem("userId",   id);
+localStorage.setItem("username", username);
+localStorage.setItem("role",     userRole);
 
       if      (userRole === "owner") window.location.href = "/dashboard/owner";
       else if (userRole === "admin") window.location.href = "/dashboard/admin";

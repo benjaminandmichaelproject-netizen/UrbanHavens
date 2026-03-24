@@ -33,7 +33,7 @@ const Navbar = () => {
         <li><Link to="/" onClick={() => setMenuOpen(false)}>Home</Link></li>
         <li><Link to="/about" onClick={() => setMenuOpen(false)}>About</Link></li>
         <li><Link to="/contact" onClick={() => setMenuOpen(false)}>Contact</Link></li>
-        <li><Link to="/propertylisting" onClick={() => setMenuOpen(false)}>propertylisting</Link></li>
+        <li><Link to="/propertylisting" onClick={() => setMenuOpen(false)}>Property</Link></li>
 
         {/* ACCOUNT DROPDOWN */}
         <li className="account-menu">

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { FaHome, FaBell, FaUser, FaHeart } from "react-icons/fa";
 import { getUnreadNotificationCount } from "../../Dashboard/Owner/UploadDetails/api/api";
 import "./MobileBottomNav.css";
@@ -8,42 +8,39 @@ const MobileBottomNav = () => {
   const [showNav, setShowNav] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
   const [notificationCount, setNotificationCount] = useState(0);
+  const location = useLocation();
 
   const role = localStorage.getItem("role");
-  const userId = localStorage.getItem("userId");
   const token = localStorage.getItem("token");
 
   let profileLink = "/login";
-  let label = "Profile";
+  let profileLabel = "Profile";
 
   if (token) {
     if (role === "owner") {
-      profileLink = `/landlord/${userId}`;
-      label = "Profile";
+      profileLink = "/dashboard/owner";
+      profileLabel = "Dashboard";
+    } else if (role === "user" || role === "tenant") {
+      profileLink = "/dashboard/tenant";
+      profileLabel = "Dashboard";
+    } else if (role === "admin") {
+      profileLink = "/dashboard/admin";
+      profileLabel = "Dashboard";
     } else {
-      profileLink = "/dashboard/user";
-      label = "Dashboard";
+      profileLink = "/dashboard/tenant";
+      profileLabel = "Dashboard";
     }
   }
 
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-
-      if (currentScrollY > lastScrollY) {
-        setShowNav(false);
-      } else {
-        setShowNav(true);
-      }
-
+      setShowNav(currentScrollY <= lastScrollY);
       setLastScrollY(currentScrollY);
     };
 
     window.addEventListener("scroll", handleScroll);
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
 
   useEffect(() => {
@@ -56,46 +53,70 @@ const MobileBottomNav = () => {
       try {
         const data = await getUnreadNotificationCount();
         setNotificationCount(data?.unread_count || 0);
-      } catch (error) {
-        console.error("Failed to fetch unread notification count:", error);
+      } catch {
         setNotificationCount(0);
       }
     };
 
     fetchUnreadCount();
-
     const interval = setInterval(fetchUnreadCount, 10000);
-
     return () => clearInterval(interval);
   }, [token]);
 
-  return (
-    <div className={`mobile-bottom-nav ${showNav ? "show" : "hide"}`}>
-      <NavLink to="/" className="nav-item">
-        <FaHome />
-        <span>Home</span>
-      </NavLink>
+  const isHomeActive = location.pathname === "/";
 
-      <NavLink to="/favorites" className="nav-item">
+  return (
+    <nav className={`mobile-bottom-nav ${showNav ? "show" : "hide"}`}>
+      <NavLink
+        to="/favorites"
+        className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
+      >
         <FaHeart />
         <span>Favorites</span>
       </NavLink>
 
-      <NavLink to="/notifications" className="nav-item notification-nav-item">
+      <NavLink
+        to="/notifications"
+        className={({ isActive }) =>
+          `nav-item notification-nav-item${isActive ? " active" : ""}`
+        }
+      >
         <div className="notification-icon-wrap">
           <FaBell />
           {notificationCount > 0 && (
             <span className="notification-badge">{notificationCount}</span>
           )}
         </div>
-        <span>Notifications</span>
+        <span>Alerts</span>
       </NavLink>
 
-      <NavLink to={profileLink} className="nav-item">
-        <FaUser />
-        <span>{label}</span>
+      <div className="nav-center-space" aria-hidden="true" />
+
+      <NavLink
+        to="/menu"
+        className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
+      >
+        <FaHeart style={{ visibility: "hidden", position: "absolute" }} />
       </NavLink>
-    </div>
+
+      <NavLink
+        to={profileLink}
+        className={({ isActive }) => `nav-item${isActive ? " active" : ""}`}
+      >
+        <FaUser />
+        <span>{profileLabel}</span>
+      </NavLink>
+
+      <NavLink
+        to="/"
+        className={`nav-center-btn${isHomeActive ? " active" : ""}`}
+      >
+        <div className="nav-center-circle">
+          <FaHome />
+        </div>
+        <span className="nav-center-label">Home</span>
+      </NavLink>
+    </nav>
   );
 };
 

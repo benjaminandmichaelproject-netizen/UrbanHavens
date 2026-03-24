@@ -3,17 +3,25 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     PropertyViewSet,
+    add_favorite,
     external_landlord_detail,
     external_landlord_properties,
+    my_favorites,
     registered_landlord_detail,
     registered_landlord_properties,
+    remove_favorite,
 )
+from .nearby_views import NearbyPropertiesView  # ← THIS LINE IS MISSING — add it here
 
 router = DefaultRouter()
 router.register(r"properties", PropertyViewSet, basename="property")
-
 urlpatterns = [
     path("", include(router.urls)),
+    path("nearby-properties/", NearbyPropertiesView.as_view(), name="nearby-properties"),
+
+    path("favorites/", my_favorites, name="my-favorites"),
+    path("favorites/add/", add_favorite, name="add-favorite"),
+    path("favorites/remove/<int:property_id>/", remove_favorite, name="remove-favorite"),
 
     path(
         "registered-landlords/<int:id>/",
