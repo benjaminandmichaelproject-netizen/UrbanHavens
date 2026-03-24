@@ -51,6 +51,7 @@ import Lease from "./Dashboard/Tenant/Lease/Lease";
 import TenantNotification from "./Dashboard/Tenant/TenantNotification/TenantNotification";
 import Report from "./Dashboard/Tenant/Report/Report";
 import AdminReport from "./Dashboard/Admin/AdminReport";
+import FlaggedProperty from "./Dashboard/Owner/FlaggedProperty/FlaggedProperty";
 // ── AI Assistant ─────────────────────────────────────────────────
  import { AIAssistantButton } from "./components/AIAssistant/AIAssistant";
 
@@ -146,6 +147,7 @@ const AppContent = () => {
           <Route path="/dashboard/admin/add-property" element={<AdminAddProperty />} />
           <Route path="admin/properties" element={<Allproperties />} />
           <Route path="admin/pending" element={<Pending />} />
+          <Route path="admin/FlaggedProperty/FlaggedProperty" element={<FlaggedProperty />} />
           <Route path="admin/bookings" element={<AdminBookings />} />
           <Route path="admin/reports" element={<AdminReport/>} />
           <Route path="admin/documents" element={<div>Documents</div>} />

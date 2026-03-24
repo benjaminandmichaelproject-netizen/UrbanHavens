@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Property, PropertyImage, ExternalLandlord
+from .models import Property, PropertyImage, ExternalLandlord, PropertyDuplicateMatch
 
 
 class PropertyImageInline(admin.TabularInline):
@@ -54,9 +54,33 @@ class PropertyAdmin(admin.ModelAdmin):
         "owner",
         "external_landlord",
         "is_available",
+        "security_flagged",
+        "security_flag_type",
+        "security_under_review",
     )
-    list_filter = ("category", "city", "region", "is_available")
-    search_fields = ("property_name", "city", "region", "description")
+    list_filter = (
+        "category",
+        "city",
+        "region",
+        "is_available",
+        "security_flagged",
+        "security_flag_type",
+        "security_under_review",
+    )
+    search_fields = (
+        "property_name",
+        "city",
+        "region",
+        "description",
+        "security_flag_reason",
+    )
+    readonly_fields = (
+        "security_flagged",
+        "security_flag_type",
+        "security_flag_reason",
+        "security_flagged_at",
+        "security_under_review",
+    )
     inlines = [PropertyImageInline]
 
 
@@ -74,3 +98,27 @@ class PropertyImageAdmin(admin.ModelAdmin):
         return "No Image"
 
     image_preview.short_description = "Preview"
+
+
+@admin.register(PropertyDuplicateMatch)
+class PropertyDuplicateMatchAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "property",
+        "matched_property",
+        "match_score",
+        "created_at",
+    )
+    list_filter = ("created_at",)
+    search_fields = (
+        "property__property_name",
+        "matched_property__property_name",
+        "match_reason",
+    )
+    readonly_fields = (
+        "property",
+        "matched_property",
+        "match_reason",
+        "match_score",
+        "created_at",
+    )

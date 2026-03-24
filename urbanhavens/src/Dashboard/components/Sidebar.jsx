@@ -58,6 +58,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               <NavItem to="/dashboard/admin/AddProperty/add-property" icon={<FaUpload />} label="Add Property" onClick={handleClick} />
               <NavItem to="/dashboard/admin/pending" icon={<FaClipboardCheck />} label="Pending Approvals" onClick={handleClick} />
               <NavItem to="/dashboard/admin/bookings" icon={<FaCalendarCheck />} label="Bookings" onClick={handleClick} />
+              <NavItem to="/dashboard/admin/FlaggedProperty/FlaggedProperty" icon={<FaCalendarCheck />} label="FlaggedProperty" onClick={handleClick} />
            
 
               <SectionLabel label="Insights" />

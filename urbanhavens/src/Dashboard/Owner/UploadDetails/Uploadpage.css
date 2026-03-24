@@ -715,3 +715,208 @@
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
   }
 }
+
+
+
+/* ============================================================
+   SECURITY ALERT MODAL
+   ============================================================ */
+
+.security-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 26, 16, 0.58);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 10000;
+  animation: securityFadeIn 0.25s ease;
+}
+
+.security-modal {
+  width: 100%;
+  max-width: 560px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 30px 28px 24px;
+  box-shadow: 0 24px 80px rgba(7, 26, 16, 0.22);
+  border: 1px solid rgba(245, 158, 11, 0.16);
+  animation: securityPopIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.security-modal__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff7e6;
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.24);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+
+.security-modal__title {
+  margin: 0 0 10px;
+  font-family: 'Fraunces', serif;
+  font-size: 28px;
+  line-height: 1.15;
+  color: var(--dark);
+  letter-spacing: -0.02em;
+}
+
+.security-modal__text {
+  margin: 0 0 20px;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+
+.security-modal__info {
+  background: linear-gradient(180deg, #fffaf0 0%, #ffffff 100%);
+  border: 1px solid rgba(245, 158, 11, 0.14);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.security-modal__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(15, 45, 28, 0.06);
+}
+
+.security-modal__row:last-child {
+  border-bottom: none;
+}
+
+.security-modal__row span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  min-width: 90px;
+}
+
+.security-modal__row strong {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  text-align: right;
+  font-weight: 600;
+}
+
+.security-modal__note {
+  background: #f7faf8;
+  border-left: 4px solid #f59e0b;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+  margin-bottom: 22px;
+}
+
+.security-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.security-modal__btn {
+  border: none;
+  outline: none;
+  border-radius: 12px;
+  padding: 13px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.security-modal__btn--primary {
+  background: linear-gradient(135deg, #1a7a40, #22a055);
+  color: #ffffff;
+  box-shadow: 0 10px 24px rgba(26, 122, 64, 0.22);
+}
+
+.security-modal__btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(26, 122, 64, 0.28);
+}
+
+@keyframes securityFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes securityPopIn {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 640px) {
+  .security-modal {
+    padding: 24px 18px 18px;
+    border-radius: 16px;
+  }
+
+  .security-modal__title {
+    font-size: 22px;
+  }
+
+  .security-modal__row {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .security-modal__row strong {
+    text-align: left;
+  }
+
+  .security-modal__actions {
+    justify-content: stretch;
+  }
+
+  .security-modal__btn {
+    width: 100%;
+  }
+}.security-modal__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 18px;
+}
+
+.security-modal__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #edf7f1;
+  border: 1px solid rgba(26, 122, 64, 0.14);
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
