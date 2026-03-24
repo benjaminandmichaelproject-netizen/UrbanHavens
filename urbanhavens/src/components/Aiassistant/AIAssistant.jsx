@@ -174,52 +174,64 @@ const AIAssistant = ({ isOpen, onClose }) => {
   }, [isOpen]);
 
   // ── Send message ───────────────────────────────────────────────
-  const sendMessage = useCallback(async (text) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
+ const sendMessage = useCallback(async (text) => {
+  const trimmed = text.trim();
+  if (!trimmed) return;
 
-    const userMsg = { id: genId(), role: "user", text: trimmed, ts: Date.now() };
-    setMessages(prev => [...prev, userMsg]);
-    setInput("");
-    setTyping(true);
+  const userMsg = { id: genId(), role: "user", text: trimmed, ts: Date.now() };
+  setMessages(prev => [...prev, userMsg]);
+  setInput("");
+  setTyping(true);
 
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("http://127.0.0.1:8000/api/assistant/chat/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ message: trimmed, session_id: sessionId }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const resData = await res.json();
-      const { reply, properties, session_id: sid } = resData;
-      if (sid) setSessionId(sid);
+  try {
+    const token = localStorage.getItem("access");
 
-      const aiMsg = {
-        id:         genId(),
-        role:       "assistant",
-        text:       reply || "",
-        properties: properties || [],
-        noResults:  (properties && properties.length === 0 && res.data.action?.action === "search_property"),
-        ts:         Date.now(),
-      };
+    const res = await fetch("http://127.0.0.1:8000/api/assistant/chat/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ message: trimmed, session_id: sessionId }),
+    });
 
-      setMessages(prev => [...prev, aiMsg]);
-    } catch (err) {
-      setMessages(prev => [...prev, {
-        id:   genId(),
-        role: "assistant",
-        text: "Sorry, something went wrong. Please try again.",
-        ts:   Date.now(),
-      }]);
-    } finally {
-      setTyping(false);
+    const resData = await res.json();
+
+    if (!res.ok) {
+      throw new Error(resData?.error || resData?.detail || `HTTP ${res.status}`);
     }
-  }, [sessionId]);
 
+    const { reply, properties, session_id: sid, action } = resData;
+
+    if (sid) setSessionId(sid);
+
+    const aiMsg = {
+      id: genId(),
+      role: "assistant",
+      text: reply || "",
+      properties: properties || [],
+      noResults:
+        Array.isArray(properties) &&
+        properties.length === 0 &&
+        action?.action === "search_property",
+      ts: Date.now(),
+    };
+
+    setMessages(prev => [...prev, aiMsg]);
+  } catch (err) {
+    setMessages(prev => [
+      ...prev,
+      {
+        id: genId(),
+        role: "assistant",
+        text: err.message || "Sorry, something went wrong. Please try again.",
+        ts: Date.now(),
+      },
+    ]);
+  } finally {
+    setTyping(false);
+  }
+}, [sessionId]);
   // ── Handle Enter key ───────────────────────────────────────────
   const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {

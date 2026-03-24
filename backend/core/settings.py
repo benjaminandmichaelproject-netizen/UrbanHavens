@@ -44,6 +44,8 @@ INSTALLED_APPS = [
     'leases',
     'schools',
     'assistant',
+    'reports',
+    
 ]
 
 MIDDLEWARE = [
@@ -154,7 +156,11 @@ AUTHENTICATION_BACKENDS = [
 ]
 import os
 from dotenv import load_dotenv
+from pathlib import Path
 
-load_dotenv()
+BASE_DIR = Path(__file__).resolve().parent.parent
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # ← this line exists?
+load_dotenv(BASE_DIR / ".env")
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+print("GEMINI_API_KEY loaded:", GEMINI_API_KEY)

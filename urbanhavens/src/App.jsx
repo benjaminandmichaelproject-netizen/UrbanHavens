@@ -50,8 +50,9 @@ import FavoritePage from "./Pages/Favotite/FavoritePage";
 import Lease from "./Dashboard/Tenant/Lease/Lease";
 import TenantNotification from "./Dashboard/Tenant/TenantNotification/TenantNotification";
 import Report from "./Dashboard/Tenant/Report/Report";
+import AdminReport from "./Dashboard/Admin/AdminReport";
 // ── AI Assistant ─────────────────────────────────────────────────
-// import { AIAssistantButton } from "./components/AIAssistant/AIAssistant";
+ import { AIAssistantButton } from "./components/AIAssistant/AIAssistant";
 
 const AppContent = () => {
   const location = useLocation();
@@ -146,7 +147,7 @@ const AppContent = () => {
           <Route path="admin/properties" element={<Allproperties />} />
           <Route path="admin/pending" element={<Pending />} />
           <Route path="admin/bookings" element={<AdminBookings />} />
-          <Route path="admin/reports" element={<div>Reports</div>} />
+          <Route path="admin/reports" element={<AdminReport/>} />
           <Route path="admin/documents" element={<div>Documents</div>} />
           <Route path="admin/notifications" element={<div>Notifications</div>} />
           <Route path="admin/settings" element={<div>Admin Settings</div>} />
@@ -157,7 +158,7 @@ const AppContent = () => {
       {/* ── Global overlays ──────────────────────────────────────── */}
       <NotificationToastContainer />
 
-      {/*    {shouldShowAI && <AIAssistantButton />} */}
+      {shouldShowAI && <AIAssistantButton />} 
    
 
       {!isDashboard && !shouldHideBottomNav && <MobileBottomNav />}
