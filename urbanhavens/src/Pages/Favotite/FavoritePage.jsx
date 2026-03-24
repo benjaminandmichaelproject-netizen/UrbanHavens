@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Favcard from "../../components/FavCard/Favcard";
 import "./FavoritePage.css";
+import { refreshAccessToken, clearAuth } from "../../utils/auth";
 
 const FavoritePage = () => {
   const navigate = useNavigate();
@@ -10,7 +11,7 @@ const FavoritePage = () => {
   const [error, setError] = useState("");
 
   const fetchFavorites = useCallback(async () => {
-    const token = localStorage.getItem("access");
+    let token = localStorage.getItem("access");
 
     if (!token) {
       setLoading(false);
@@ -22,22 +23,27 @@ const FavoritePage = () => {
       setLoading(true);
       setError("");
 
-      const res = await fetch("/api/favorites/", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      let res = await fetch("/api/favorites/", {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
+      // Token expired — try to refresh
       if (res.status === 401) {
-        localStorage.removeItem("access");
-        localStorage.removeItem("refresh");
-        navigate("/login");
-        return;
+        token = await refreshAccessToken();
+
+        if (!token) {
+          clearAuth();
+          navigate("/login");
+          return;
+        }
+
+        // Retry with new token
+        res = await fetch("/api/favorites/", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
       }
 
-      if (!res.ok) {
-        throw new Error("Failed to fetch favorites.");
-      }
+      if (!res.ok) throw new Error("Failed to fetch favorites.");
 
       const data = await res.json();
       setFavorites(Array.isArray(data) ? data : []);
@@ -54,7 +60,7 @@ const FavoritePage = () => {
   }, [fetchFavorites]);
 
   const handleRemoveFavorite = async (propertyId) => {
-    const token = localStorage.getItem("access");
+    let token = localStorage.getItem("access");
 
     if (!token) {
       navigate("/login");
@@ -62,23 +68,29 @@ const FavoritePage = () => {
     }
 
     try {
-      const res = await fetch(`/api/favorites/remove/${propertyId}/`, {
+      let res = await fetch(`/api/favorites/remove/${propertyId}/`, {
         method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
+      // Token expired — try to refresh
       if (res.status === 401) {
-        localStorage.removeItem("access");
-        localStorage.removeItem("refresh");
-        navigate("/login");
-        return;
+        token = await refreshAccessToken();
+
+        if (!token) {
+          clearAuth();
+          navigate("/login");
+          return;
+        }
+
+        // Retry with new token
+        res = await fetch(`/api/favorites/remove/${propertyId}/`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        });
       }
 
-      if (!res.ok) {
-        throw new Error("Failed to remove favorite.");
-      }
+      if (!res.ok) throw new Error("Failed to remove favorite.");
 
       setFavorites((prev) =>
         prev.filter((item) => item.property?.id !== propertyId)

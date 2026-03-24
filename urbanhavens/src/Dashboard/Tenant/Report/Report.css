@@ -1,0 +1,372 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* ── Tokens (inherit from ab2 palette) ───────────────────────────── */
+.report-page {
+  --rp-dark:      #071a10;
+  --rp-green:     #1a7a40;
+  --rp-green-lt:  #22a055;
+  --rp-accent:    #2dde72;
+  --rp-light:     #f4f7f5;
+  --rp-white:     #ffffff;
+  --rp-border:    rgba(26,122,64,0.15);
+  --rp-text:      #0f2d1c;
+  --rp-muted:     #4a7060;
+  --rp-surface:   #f0f5f2;
+  --rp-surface2:  #d4e2d9;
+  --rp-error:     #dc2626;
+  --rp-error-bg:  #fef2f2;
+  --rp-warn-bg:   #fffbeb;
+  --rp-warn-text: #92400e;
+  --rp-radius:    14px;
+  --rp-font:      'Plus Jakarta Sans', 'DM Sans', sans-serif;
+
+  padding: 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: var(--rp-light);
+  min-height: 100%;
+  font-family: var(--rp-font);
+  color: var(--rp-text);
+  box-sizing: border-box;
+  width: 100%;
+}
+
+/* ══ PAGE HEADER ══════════════════════════════════════════════════ */
+.report-page-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.report-header-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: var(--rp-green);
+  color: var(--rp-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(26,122,64,0.28);
+}
+
+.report-page-header h2 {
+  font-size: clamp(1.15rem, 3vw, 1.5rem);
+  font-weight: 800;
+  color: var(--rp-dark);
+  margin: 0 0 3px;
+  letter-spacing: -0.03em;
+}
+
+.report-page-header p {
+  font-size: 0.85rem;
+  color: var(--rp-muted);
+  margin: 0;
+}
+
+/* ══ WARNING BANNER ═══════════════════════════════════════════════ */
+.report-warning-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--rp-warn-bg);
+  border: 1px solid #fcd34d;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--rp-warn-text);
+}
+
+.report-warning-banner svg {
+  font-size: 0.95rem;
+  flex-shrink: 0;
+  color: #d97706;
+}
+
+/* ══ FORM ═════════════════════════════════════════════════════════ */
+.report-form {
+  background: var(--rp-white);
+  border: 1.5px solid var(--rp-border);
+  border-radius: var(--rp-radius);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  box-shadow: 0 1px 4px rgba(7,26,16,0.05);
+}
+
+/* Row layout */
+.report-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* ── Field ── */
+.report-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.report-field label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--rp-dark);
+  letter-spacing: 0.01em;
+}
+
+.report-field label span {
+  color: var(--rp-green);
+  margin-left: 2px;
+}
+
+.report-optional {
+  font-weight: 500 !important;
+  color: var(--rp-muted) !important;
+  font-size: 0.75rem;
+}
+
+/* Inputs & textarea */
+.report-field input,
+.report-field textarea {
+  width: 100%;
+  padding: 11px 14px;
+  border: 1.5px solid var(--rp-border);
+  border-radius: 9px;
+  background: var(--rp-surface);
+  font-size: 0.85rem;
+  font-family: var(--rp-font);
+  color: var(--rp-text);
+  outline: none;
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+  box-sizing: border-box;
+  resize: vertical;
+}
+
+.report-field input::placeholder,
+.report-field textarea::placeholder {
+  color: var(--rp-surface2);
+}
+
+.report-field input:focus,
+.report-field textarea:focus {
+  border-color: var(--rp-green);
+  background: var(--rp-white);
+  box-shadow: 0 0 0 3px rgba(26,122,64,0.1);
+}
+
+/* Error state */
+.report-field.has-error input,
+.report-field.has-error textarea,
+.report-field.has-error .report-select-wrapper select {
+  border-color: var(--rp-error);
+  background: var(--rp-error-bg);
+}
+
+.report-field.has-error input:focus,
+.report-field.has-error textarea:focus {
+  box-shadow: 0 0 0 3px rgba(220,38,38,0.1);
+}
+
+.report-error-msg {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--rp-error);
+}
+
+/* Field footer (error + char count) */
+.report-field-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 18px;
+}
+
+.report-char-count {
+  font-size: 0.7rem;
+  color: var(--rp-muted);
+  margin-left: auto;
+}
+
+/* ── Select ── */
+.report-select-wrapper {
+  position: relative;
+}
+
+.report-select-wrapper select {
+  width: 100%;
+  padding: 11px 36px 11px 14px;
+  border: 1.5px solid var(--rp-border);
+  border-radius: 9px;
+  background: var(--rp-surface);
+  font-size: 0.85rem;
+  font-family: var(--rp-font);
+  color: var(--rp-text);
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
+  box-sizing: border-box;
+}
+
+.report-select-wrapper select:focus {
+  border-color: var(--rp-green);
+  background: var(--rp-white);
+  box-shadow: 0 0 0 3px rgba(26,122,64,0.1);
+}
+
+.report-select-arrow {
+  position: absolute;
+  right: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--rp-muted);
+  font-size: 0.72rem;
+  pointer-events: none;
+}
+
+/* ══ FORM ACTIONS ═════════════════════════════════════════════════ */
+.report-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+  border-top: 1px solid var(--rp-border);
+}
+
+.report-cancel-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 18px;
+  border-radius: 9px;
+  border: 1.5px solid var(--rp-border);
+  background: var(--rp-surface);
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-family: var(--rp-font);
+  color: var(--rp-muted);
+  cursor: pointer;
+  transition: all 0.16s;
+}
+
+.report-cancel-btn:hover {
+  border-color: var(--rp-error);
+  color: var(--rp-error);
+  background: var(--rp-error-bg);
+}
+
+.report-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border-radius: 9px;
+  border: none;
+  background: var(--rp-green);
+  color: var(--rp-white);
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-family: var(--rp-font);
+  cursor: pointer;
+  transition: background 0.18s, transform 0.15s, box-shadow 0.18s;
+  box-shadow: 0 2px 8px rgba(26,122,64,0.25);
+  min-width: 148px;
+  justify-content: center;
+}
+
+.report-submit-btn:hover:not(:disabled) {
+  background: var(--rp-green-lt);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(26,122,64,0.35);
+}
+
+.report-submit-btn:disabled,
+.report-cancel-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Spinner ── */
+.report-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2.5px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: report-spin 0.7s linear infinite;
+  display: inline-block;
+}
+
+@keyframes report-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ══ SUCCESS CARD ═════════════════════════════════════════════════ */
+.report-success-card {
+  background: var(--rp-white);
+  border: 1.5px solid var(--rp-border);
+  border-radius: var(--rp-radius);
+  padding: 48px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  box-shadow: 0 1px 4px rgba(7,26,16,0.05);
+}
+
+.report-success-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: rgba(45,222,114,0.12);
+  border: 2px solid rgba(45,222,114,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  color: var(--rp-green);
+}
+
+.report-success-card h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: var(--rp-dark);
+  margin: 0;
+  letter-spacing: -0.03em;
+}
+
+.report-success-card p {
+  font-size: 0.87rem;
+  color: var(--rp-muted);
+  margin: 0;
+  max-width: 360px;
+  line-height: 1.6;
+}
+
+/* ══ RESPONSIVE ═══════════════════════════════════════════════════ */
+
+@media (max-width: 768px) {
+  .report-page { padding: 18px 16px; gap: 16px; }
+  .report-form { padding: 18px 16px; gap: 16px; }
+  .report-form-row { grid-template-columns: 1fr; gap: 16px; }
+  .report-form-actions { flex-direction: column-reverse; }
+  .report-cancel-btn,
+  .report-submit-btn { width: 100%; justify-content: center; }
+}
+
+@media (max-width: 480px) {
+  .report-page { padding: 14px 12px; gap: 14px; }
+  .report-form { padding: 16px 14px; }
+  .report-page-header { gap: 12px; }
+  .report-header-icon { width: 42px; height: 42px; font-size: 1rem; border-radius: 10px; }
+  .report-page-header h2 { font-size: 1.1rem; }
+  .report-success-card { padding: 36px 20px; }
+}

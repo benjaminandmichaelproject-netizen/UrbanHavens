@@ -12,10 +12,10 @@ const username = localStorage.getItem("username") || "Tenant";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const STATUS_META = {
-  pending:   { label: "Pending",   icon: <FaHourglass />,   cls: "st-pending"   },
-  confirmed: { label: "Confirmed", icon: <FaCheckCircle />, cls: "st-confirmed" },
-  converted: { label: "Converted", icon: <FaExchangeAlt />, cls: "st-converted" },
-  rejected:  { label: "Rejected",  icon: <FaTimesCircle />, cls: "st-rejected"  },
+  pending:   { label: "Pending",   icon: <FaHourglass />,   cls: "status-pending"   },
+  confirmed: { label: "Confirmed", icon: <FaCheckCircle />, cls: "status-confirmed" },
+  converted: { label: "Converted", icon: <FaExchangeAlt />, cls: "status-converted" },
+  rejected:  { label: "Rejected",  icon: <FaTimesCircle />, cls: "status-rejected"  },
 };
 
 const formatDate = (d) =>
@@ -56,7 +56,7 @@ const TenantDashboard = () => {
   const [bookings,  setBookings]  = useState([]);
   const [lease,     setLease]     = useState(null);
   const [loading,   setLoading]   = useState(true);
-  const [favorites, setFavorites] = useState([]);  // ← new
+  const [favorites, setFavorites] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -65,7 +65,7 @@ const TenantDashboard = () => {
         const [bookingsRes, leaseRes, favoritesRes] = await Promise.allSettled([
           api.get("/bookings/my_tenant_bookings/"),
           api.get("/leases/my-lease/"),
-          api.get("/favorites/"),   // ← new
+          api.get("/favorites/"),
         ]);
 
         if (bookingsRes.status === "fulfilled") {
@@ -77,7 +77,7 @@ const TenantDashboard = () => {
           setLease(leaseRes.value.data || null);
         }
 
-        if (favoritesRes.status === "fulfilled") {  // ← new
+        if (favoritesRes.status === "fulfilled") {
           const data = favoritesRes.value.data;
           setFavorites(Array.isArray(data) ? data : []);
         }
@@ -95,7 +95,7 @@ const TenantDashboard = () => {
     totalBookings:   bookings.length,
     pendingBookings: bookings.filter((b) => b.status === "pending").length,
     activeLease:     lease ? 1 : 0,
-    savedProperties: favorites.length,  // ← was: 0
+    savedProperties: favorites.length,
   }), [bookings, lease, favorites]);
 
   const recentBookings = bookings.slice(0, 3);
@@ -109,24 +109,24 @@ const TenantDashboard = () => {
   ];
 
   return (
-    <div className="td-page">
+    <div className="tenant-dashboard-page">
 
       {/* ── Welcome ───────────────────────────────────────────────── */}
-      <div className="td-welcome">
+      <div className="welcome-section">
         <div>
           <h1>Welcome back, <span>{username}</span> 👋</h1>
           <p>Here's everything going on with your rentals.</p>
         </div>
-        <button className="td-browse-btn" onClick={() => navigate("/")}>
+        <button className="browse-properties-btn" onClick={() => navigate("/")}>
           <FaHome /> Browse Properties
         </button>
       </div>
 
       {/* ── Stats ─────────────────────────────────────────────────── */}
-      <div className="td-stats">
+      <div className="stats-grid">
         {statCards.map((s, i) => (
-          <div className="td-stat-card" key={i} style={{ "--card-accent": s.color }}>
-            <div className="td-stat-icon" style={{ background: s.color + "1a", color: s.color }}>
+          <div className="stat-card" key={i} style={{ "--card-accent": s.color }}>
+            <div className="stat-icon" style={{ background: s.color + "1a", color: s.color }}>
               {s.icon}
             </div>
             <div>
@@ -137,43 +137,43 @@ const TenantDashboard = () => {
         ))}
       </div>
 
-      <div className="td-bottom">
+      <div className="dashboard-bottom-grid">
 
         {/* ── Recent Bookings ───────────────────────────────────── */}
-        <div className="td-panel">
-          <div className="td-panel-head">
+        <div className="dashboard-panel">
+          <div className="panel-header">
             <h3>Recent Bookings</h3>
-            <button className="td-see-all" onClick={() => navigate("/dashboard/tenant/TenantBooking/TenantBooking")}>
+            <button className="see-all-btn" onClick={() => navigate("/dashboard/tenant/TenantBooking/TenantBooking")}>
               See all <FaArrowRight />
             </button>
           </div>
 
           {loading ? (
-            <p className="td-loading">Loading bookings...</p>
+            <p className="loading-text">Loading bookings...</p>
           ) : recentBookings.length > 0 ? (
-            <div className="td-booking-list">
+            <div className="booking-list">
               {recentBookings.map((b) => {
                 const meta = STATUS_META[b.status] || STATUS_META.pending;
                 return (
-                  <div className="td-booking-item" key={b.id}>
-                    <div className="td-booking-icon"><FaHome /></div>
-                    <div className="td-booking-info">
+                  <div className="booking-item" key={b.id}>
+                    <div className="booking-icon"><FaHome /></div>
+                    <div className="booking-info">
                       <strong>{b.property_name}</strong>
                       <span>{[b.property_city, b.property_region].filter(Boolean).join(", ")}</span>
-                      <span className="td-booking-date">{formatDate(b.created_at)}</span>
+                      <span className="booking-date">{formatDate(b.created_at)}</span>
                     </div>
-                    <div className="td-booking-right">
-                      <span className="td-price">
+                    <div className="booking-right-side">
+                      <span className="property-price">
                         GHS {b.property_price ? Number(b.property_price).toLocaleString() : "—"}
                       </span>
-                      <span className={`td-status ${meta.cls}`}>{meta.icon} {meta.label}</span>
+                      <span className={`booking-status ${meta.cls}`}>{meta.icon} {meta.label}</span>
                     </div>
                   </div>
                 );
               })}
             </div>
           ) : (
-            <div className="td-empty">
+            <div className="empty-state">
               <FaCalendarCheck />
               <p>No bookings yet. Start by browsing properties.</p>
               <button onClick={() => navigate("/")}>Browse Now</button>
@@ -182,26 +182,26 @@ const TenantDashboard = () => {
         </div>
 
         {/* ── Right column ─────────────────────────────────────── */}
-        <div className="td-right-col">
+        <div className="right-column">
 
           {/* Active Lease */}
-          <div className="td-panel td-lease-panel">
-            <div className="td-panel-head">
+          <div className="dashboard-panel lease-panel">
+            <div className="panel-header">
               <h3>Active Lease</h3>
-              <button className="td-see-all" onClick={() => navigate("/dashboard/tenant/lease")}>
+              <button className="see-all-btn" onClick={() => navigate("/dashboard/tenant/lease")}>
                 Details <FaArrowRight />
               </button>
             </div>
 
             {loading ? (
-              <p className="td-loading">Loading lease...</p>
+              <p className="loading-text">Loading lease...</p>
             ) : lease && leaseStats ? (
-              <div className="td-lease-card">
-                <div className="td-lease-badge">Active</div>
+              <div className="lease-card">
+                <div className="lease-active-badge">Active</div>
                 <h4>{lease.property_name}</h4>
                 <p><FaHome /> {lease.property_city || "—"}</p>
 
-                <div className="td-lease-dates">
+                <div className="lease-dates-row">
                   <div>
                     <span>Start</span>
                     <strong>{formatDate(lease.lease_start_date)}</strong>
@@ -212,35 +212,35 @@ const TenantDashboard = () => {
                   </div>
                 </div>
 
-                <div className="td-lease-progress-wrap">
-                  <div className="td-lease-progress-bar">
-                    <div className="td-lease-progress-fill" style={{ width: `${leaseStats.progress}%` }} />
+                <div className="lease-progress-wrapper">
+                  <div className="lease-progress-track">
+                    <div className="lease-progress-fill" style={{ width: `${leaseStats.progress}%` }} />
                   </div>
                   <span>{leaseStats.progress}% elapsed</span>
                 </div>
 
-                <div className="td-lease-meta-grid">
-                  <div className="td-lease-meta-item">
+                <div className="lease-stats-grid">
+                  <div className="lease-stat-item">
                     <h5>{leaseStats.totalMonths}</h5><p>Total Months</p>
                   </div>
-                  <div className="td-lease-meta-item">
+                  <div className="lease-stat-item">
                     <h5>{leaseStats.daysElapsed}</h5><p>Days Elapsed</p>
                   </div>
-                  <div className="td-lease-meta-item highlight">
+                  <div className="lease-stat-item highlight">
                     <h5>{leaseStats.monthsLeft}</h5><p>Months Left</p>
                   </div>
-                  <div className="td-lease-meta-item">
+                  <div className="lease-stat-item">
                     <h5>{leaseStats.daysLeft}</h5><p>Days Left</p>
                   </div>
                 </div>
 
-                <div className="td-lease-rent">
+                <div className="monthly-rent">
                   GHS {Number(lease.monthly_rent).toLocaleString()}
                   <small>/month</small>
                 </div>
               </div>
             ) : (
-              <div className="td-empty">
+              <div className="empty-state">
                 <FaFileContract />
                 <p>No active lease found.</p>
               </div>
@@ -248,12 +248,12 @@ const TenantDashboard = () => {
           </div>
 
           {/* Quick Actions */}
-          <div className="td-panel td-actions-panel">
+          <div className="dashboard-panel quick-actions-panel">
             <h3>Quick Actions</h3>
-            <div className="td-quick-actions">
+            <div className="quick-actions-grid">
               <button onClick={() => navigate("/")}><FaHome /> Browse Properties</button>
-              <button onClick={() => navigate("/dashboard/tenant/bookings")}><FaCalendarCheck /> My Bookings</button>
-              <button onClick={() => navigate("/dashboard/tenant/lease")}><FaFileContract /> My Lease</button>
+              <button onClick={() => navigate("/dashboard/tenant/TenantBooking/TenantBooking")}><FaCalendarCheck /> My Bookings</button>
+              <button onClick={() => navigate("/dashboard/tenant/lease/Lease")}><FaFileContract /> My Lease</button>
               <button onClick={() => navigate("/dashboard/tenant/notifications")}><FaBell /> Notifications</button>
             </div>
           </div>

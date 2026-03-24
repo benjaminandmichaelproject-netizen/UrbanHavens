@@ -8,6 +8,7 @@ import {
 } from "react-icons/fa";
 import { getMyProperties, deleteProperty } from "../UploadDetails/api/api";
 import NoPropertyUploaded from "../NoPropertyUploaded/NoPropertyUploaded";
+import EditPropertyModal from "./EditPropertyModal";
 import "./MyProperties.css";
 
 const API_MEDIA_BASE = "http://127.0.0.1:8000";
@@ -28,6 +29,7 @@ const MyProperties = () => {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [selectedPropertyId, setSelectedPropertyId] = useState(null);
   const [deleting, setDeleting]               = useState(false);
+  const [editProperty, setEditProperty]       = useState(null); // ← NEW
 
   const totalProperties = useMemo(() => properties.length, [properties]);
 
@@ -69,8 +71,16 @@ const MyProperties = () => {
   const showPrev    = () => setViewerIndex(p => p === 0 ? viewerImages.length - 1 : p - 1);
   const showNext    = () => setViewerIndex(p => p === viewerImages.length - 1 ? 0 : p + 1);
 
-  const handleEdit = (property) =>
-    navigate(`/dashboard/owner/properties/edit/${property.id}`, { state: { property } });
+  // ── UPDATED: open modal instead of navigating ──────────────
+  const handleEdit = (property) => setEditProperty(property);
+
+  const handleUpdated = (updatedProp) => {
+    if (!updatedProp) return;
+    const [normalised] = transformProperties([updatedProp]);
+    setProperties((prev) =>
+      prev.map((p) => (p.id === normalised.id ? normalised : p))
+    );
+  };
 
   const openDeleteModal  = (id) => { setSelectedPropertyId(id); setDeleteModalOpen(true); };
   const closeDeleteModal = () => { if (deleting) return; setDeleteModalOpen(false); setSelectedPropertyId(null); };
@@ -90,7 +100,6 @@ const MyProperties = () => {
     }
   };
 
-  /* ── Loading ── */
   if (loading) return (
     <div className="mp-page">
       <div className="mp-loading">
@@ -100,7 +109,6 @@ const MyProperties = () => {
     </div>
   );
 
-  /* ── Empty ── */
   if (!loading && properties.length === 0) {
     return (
       <NoPropertyUploaded
@@ -112,7 +120,7 @@ const MyProperties = () => {
   return (
     <div className="mp-page">
 
-      {/* ── Header ──────────────────────────────────────────── */}
+      {/* ── Header ── */}
       <div className="mp-header">
         <div>
           <h1 className="mp-title">My Properties</h1>
@@ -124,7 +132,7 @@ const MyProperties = () => {
         </div>
       </div>
 
-      {/* ── Desktop table ───────────────────────────────────── */}
+      {/* ── Desktop table ── */}
       <div className="mp-table-wrap">
         <table className="mp-table">
           <thead>
@@ -148,23 +156,16 @@ const MyProperties = () => {
                 transition={{ delay: i * 0.04, duration: 0.3 }}
               >
                 <td className="mp-td-id">#{p.id}</td>
-
                 <td>
                   {p.images?.length > 0 ? (
                     <div className="mp-thumb-cell" onClick={() => openViewer(p.images, 0)}>
                       <img src={p.images[0]} alt={p.property_name} className="mp-thumb" />
-                      <div className="mp-thumb-overlay">
-                        <FaImages />
-                        <span>View</span>
-                      </div>
+                      <div className="mp-thumb-overlay"><FaImages /><span>View</span></div>
                     </div>
                   ) : (
-                    <div className="mp-thumb-cell mp-thumb-empty">
-                      <FaHome />
-                    </div>
+                    <div className="mp-thumb-cell mp-thumb-empty"><FaHome /></div>
                   )}
                 </td>
-
                 <td className="mp-td-name">{p.property_name}</td>
                 <td>
                   <span className="mp-cat-badge">
@@ -173,13 +174,11 @@ const MyProperties = () => {
                 </td>
                 <td className="mp-td-price">GHS {Number(p.price).toLocaleString()}</td>
                 <td>{p.city}</td>
-
                 <td>
-                  <span className={`mp-status mp-status--${p.status.toLowerCase()}`}>
-                    {p.status}
+                  <span className={`mp-status mp-status--${(p.status ?? "active").toLowerCase()}`}>
+                    {p.status ?? "Active"}
                   </span>
                 </td>
-
                 <td>
                   <div className="mp-actions">
                     <button className="mp-btn mp-btn--edit" onClick={() => handleEdit(p)}>
@@ -196,30 +195,21 @@ const MyProperties = () => {
         </table>
       </div>
 
-      {/* ── Mobile cards ────────────────────────────────────── */}
+      {/* ── Mobile cards ── */}
       <div className="mp-mobile-list">
         {properties.map((p) => (
           <div className="mp-mobile-card" key={p.id}>
-            <div
-              className="mp-mobile-img-wrap"
-              onClick={() => p.images?.length > 0 && openViewer(p.images, 0)}
-            >
+            <div className="mp-mobile-img-wrap" onClick={() => p.images?.length > 0 && openViewer(p.images, 0)}>
               {p.images?.length > 0 ? (
                 <>
                   <img src={p.images[0]} alt={p.property_name} className="mp-mobile-img" />
-                  <div className="mp-mobile-img-overlay">
-                    <FaImages />
-                    <span>View all images</span>
-                  </div>
+                  <div className="mp-mobile-img-overlay"><FaImages /><span>View all images</span></div>
                 </>
               ) : (
                 <div className="mp-mobile-no-img"><FaHome /></div>
               )}
-              <span className={`mp-status mp-status--${p.status.toLowerCase()} mp-status--float`}>
-                {p.status}
-              </span>
+              <span className={`mp-status mp-status--${(p.status ?? "active").toLowerCase()} mp-status--float`}>{p.status ?? "Active"}</span>
             </div>
-
             <div className="mp-mobile-body">
               <h3>{p.property_name}</h3>
               <div className="mp-mobile-meta">
@@ -241,49 +231,33 @@ const MyProperties = () => {
         ))}
       </div>
 
-      {/* ── Image Viewer ─────────────────────────────────────── */}
+      {/* ── Image Viewer ── */}
       <AnimatePresence>
         {viewerOpen && (
           <motion.div
             className="mp-viewer-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={closeViewer}
           >
             <motion.div
               className="mp-viewer-modal"
-              initial={{ scale: 0.92, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.92, opacity: 0 }}
+              initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
               transition={{ duration: 0.25 }}
               onClick={e => e.stopPropagation()}
             >
-              <button className="mp-viewer-close" onClick={closeViewer}>
-                <FaTimes />
-              </button>
-
+              <button className="mp-viewer-close" onClick={closeViewer}><FaTimes /></button>
               <div className="mp-viewer-main">
-                <button className="mp-viewer-nav mp-viewer-nav--prev" onClick={showPrev}>
-                  <FaChevronLeft />
-                </button>
+                <button className="mp-viewer-nav mp-viewer-nav--prev" onClick={showPrev}><FaChevronLeft /></button>
                 <img src={viewerImages[viewerIndex]} alt={`Property ${viewerIndex + 1}`} className="mp-viewer-img" />
-                <button className="mp-viewer-nav mp-viewer-nav--next" onClick={showNext}>
-                  <FaChevronRight />
-                </button>
+                <button className="mp-viewer-nav mp-viewer-nav--next" onClick={showNext}><FaChevronRight /></button>
               </div>
-
               <div className="mp-viewer-footer">
                 <span>{viewerIndex + 1} / {viewerImages.length}</span>
                 <div className="mp-viewer-thumbs">
                   {viewerImages.map((img, i) => (
-                    <img
-                      key={i}
-                      src={img}
-                      alt={`thumb ${i + 1}`}
+                    <img key={i} src={img} alt={`thumb ${i + 1}`}
                       className={`mp-viewer-thumb ${viewerIndex === i ? "active" : ""}`}
-                      onClick={() => setViewerIndex(i)}
-                    />
+                      onClick={() => setViewerIndex(i)} />
                   ))}
                 </div>
               </div>
@@ -292,35 +266,26 @@ const MyProperties = () => {
         )}
       </AnimatePresence>
 
-      {/* ── Delete modal ─────────────────────────────────────── */}
+      {/* ── Delete modal ── */}
       <AnimatePresence>
         {deleteModalOpen && (
           <motion.div
             className="mp-delete-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={closeDeleteModal}
           >
             <motion.div
               className="mp-delete-modal"
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
               transition={{ duration: 0.22 }}
               onClick={e => e.stopPropagation()}
             >
-              <div className="mp-delete-icon">
-                <FaExclamationTriangle />
-              </div>
+              <div className="mp-delete-icon"><FaExclamationTriangle /></div>
               <h3>Delete Property</h3>
               <p>Are you sure you want to delete this property?</p>
               <p className="mp-delete-subtext">This action cannot be undone.</p>
-
               <div className="mp-delete-actions">
-                <button className="mp-btn mp-btn--cancel" onClick={closeDeleteModal} disabled={deleting}>
-                  Cancel
-                </button>
+                <button className="mp-btn mp-btn--cancel" onClick={closeDeleteModal} disabled={deleting}>Cancel</button>
                 <button className="mp-btn mp-btn--confirm-delete" onClick={confirmDelete} disabled={deleting}>
                   {deleting ? "Deleting..." : "Yes, Delete"}
                 </button>
@@ -329,6 +294,15 @@ const MyProperties = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Edit Property Modal ── ← NEW */}
+      {editProperty && (
+        <EditPropertyModal
+          property={editProperty}
+          onClose={() => setEditProperty(null)}
+          onUpdated={handleUpdated}
+        />
+      )}
 
     </div>
   );

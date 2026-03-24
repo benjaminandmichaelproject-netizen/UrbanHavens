@@ -47,6 +47,9 @@ import AdminBookings from "./Dashboard/Admin/Bookings/AdminBookings";
 import TenantBooking from "./Dashboard/Tenant/TenantBooking/TenantBooking";
 import OwnerLeases from "./Dashboard/Owner/Ownerleases/Ownerleases";
 import FavoritePage from "./Pages/Favotite/FavoritePage";
+import Lease from "./Dashboard/Tenant/Lease/Lease";
+import TenantNotification from "./Dashboard/Tenant/TenantNotification/TenantNotification";
+import Report from "./Dashboard/Tenant/Report/Report";
 // ── AI Assistant ─────────────────────────────────────────────────
 // import { AIAssistantButton } from "./components/AIAssistant/AIAssistant";
 
@@ -127,6 +130,9 @@ const AppContent = () => {
           <Route path="tenant/scheduled-viewings" element={<ScheduledViewings />} />
           <Route path="tenant/TenantBooking/TenantBooking" element={<TenantBooking />} />
           <Route path="tenant/favorites" element={<Favorites />} />
+          <Route path="tenant/Lease/Lease" element={<Lease />} />
+          <Route path="tenant/TenantNotification/TenantNotification" element={<TenantNotification />} />
+          <Route path="tenant/Report/Report" element={<Report />} />
           <Route path="tenant/payments" element={<Payments />} />
           <Route path="tenant/help" element={<HelpCenter />} />
           <Route path="tenant/settings" element={<AccountSettings />} />
