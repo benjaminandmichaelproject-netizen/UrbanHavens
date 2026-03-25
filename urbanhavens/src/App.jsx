@@ -53,7 +53,7 @@ import Report from "./Dashboard/Tenant/Report/Report";
 import AdminReport from "./Dashboard/Admin/AdminReport";
 import FlaggedProperty from "./Dashboard/Owner/FlaggedProperty/FlaggedProperty";
 // ── AI Assistant ─────────────────────────────────────────────────
- import { AIAssistantButton } from "./components/AIAssistant/AIAssistant";
+//  import { AIAssistantButton } from "./components/AIAssistant/AIAssistant";
 
 const AppContent = () => {
   const location = useLocation();
@@ -76,14 +76,14 @@ const AppContent = () => {
   ];
 
   // Hide AI button on auth pages where it makes no sense
-  const hideAIRoutes = [
-    "/login",
-    "/forgot-password",
-    "/confirm-reset-code",
-    "/reset-password",
-    "/registration",
-    "/register-form",
-  ];
+  // const hideAIRoutes = [
+  //   "/login",
+  //   "/forgot-password",
+  //   "/confirm-reset-code",
+  //   "/reset-password",
+  //   "/registration",
+  //   "/register-form",
+  // ];
 
   const shouldHideNavbar   = hideNavbarRoutes.includes(location.pathname);
   const shouldHideBottomNav = hideBottomNavRoutes.includes(location.pathname);
@@ -160,7 +160,7 @@ const AppContent = () => {
       {/* ── Global overlays ──────────────────────────────────────── */}
       <NotificationToastContainer />
 
-      {shouldShowAI && <AIAssistantButton />} 
+      {/* {shouldShowAI && <AIAssistantButton />}  */}
    
 
       {!isDashboard && !shouldHideBottomNav && <MobileBottomNav />}
