@@ -42,7 +42,7 @@ import Users from "./Dashboard/Admin/Users/Users";
 import Allproperties from "./Dashboard/Admin/Allproperties/Allproperties";
 import AdminAddProperty from "./Dashboard/Admin/AddProperty/AdminAddProperty";
 import Pending from "./Dashboard/Admin/Pending/Pending";
-import NotificationToastContainer from "./Context/NotificationToastContainer";
+import NotificationToastContainer from "./context/NotificationToastContainer";
 import AdminBookings from "./Dashboard/Admin/Bookings/AdminBookings";
 import TenantBooking from "./Dashboard/Tenant/TenantBooking/TenantBooking";
 import OwnerLeases from "./Dashboard/Owner/Ownerleases/Ownerleases";
