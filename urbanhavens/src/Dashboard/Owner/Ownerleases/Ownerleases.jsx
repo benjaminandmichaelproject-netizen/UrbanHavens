@@ -4,8 +4,8 @@ import {
   FaTimesCircle, FaBed, FaRedo,
 } from "react-icons/fa";
 import { api } from "../UploadDetails/api/api";
-import TerminateLeaseModal from "../Terminateleasemodal/Terminateleasemodal";
-import RenewLeaseModal from "../Renewleasemodal/Renewleasemodal";
+import RenewLeaseModal from "../Renewleasemodal/RenewLeaseModal";
+import TerminateLeaseModal from "../Terminateleasemodal/TerminateLeaseModal";
 import "./OwnerLeases.css";
 
 const STATUS_META = {
