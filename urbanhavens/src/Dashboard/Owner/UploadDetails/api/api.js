@@ -1,13 +1,15 @@
 import axios from "axios";
 
-const API_BASE = "http://127.0.0.1:8000/api";
+const API_BASE = `${import.meta.env.VITE_API_BASE_URL}/api`;
 
 const api = axios.create({
   baseURL: API_BASE,
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const token =
+    localStorage.getItem("access") ||
+    localStorage.getItem("token");
 
   const invalidToken =
     !token ||
@@ -33,6 +35,7 @@ api.interceptors.response.use(
       const refresh = localStorage.getItem("refresh");
 
       if (!refresh || refresh === "undefined" || refresh === "null") {
+        localStorage.removeItem("access");
         localStorage.removeItem("token");
         localStorage.removeItem("refresh");
         localStorage.removeItem("username");
@@ -43,15 +46,17 @@ api.interceptors.response.use(
 
       try {
         const res = await axios.post(
-          "http://127.0.0.1:8000/api/users/token/refresh/",
+          `${import.meta.env.VITE_API_BASE_URL}/api/users/token/refresh/`,
           { refresh }
         );
 
         const newAccess = res.data.access;
+        localStorage.setItem("access", newAccess);
         localStorage.setItem("token", newAccess);
         originalRequest.headers.Authorization = `Bearer ${newAccess}`;
         return api(originalRequest);
       } catch (refreshError) {
+        localStorage.removeItem("access");
         localStorage.removeItem("token");
         localStorage.removeItem("refresh");
         localStorage.removeItem("username");
@@ -76,10 +81,11 @@ export const refreshAccessToken = async () => {
 
   try {
     const res = await axios.post(
-      "http://127.0.0.1:8000/api/users/token/refresh/",
+      `${import.meta.env.VITE_API_BASE_URL}/api/users/token/refresh/`,
       { refresh }
     );
     const newAccess = res.data.access;
+    localStorage.setItem("access", newAccess);
     localStorage.setItem("token", newAccess);
     return newAccess;
   } catch {
@@ -113,7 +119,6 @@ export const getProperties = async () => {
 export const getMyProperties = async () => {
   try {
     const res = await api.get("/properties/my-properties/");
-    // Unwrap paginated response so callers always get an array
     const data = res.data;
     return Array.isArray(data) ? data : data.results ?? [];
   } catch (err) {
