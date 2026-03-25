@@ -1,6 +1,6 @@
 import React from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
-import Navbar from "./Components/Navbar/Navbar";
+import Navbar from "./components/Navbar/Navbar";
 import MobileBottomNav from "./components/MobileBottomNav/MobileBottomNav";
 import ForgotPassword from "./components/Login/ForgotPassword";
 import ConfirmResetCode from "./components/Login/ConfirmResetCode";
