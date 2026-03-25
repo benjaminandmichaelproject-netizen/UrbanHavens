@@ -87,7 +87,7 @@ const AppContent = () => {
 
   const shouldHideNavbar   = hideNavbarRoutes.includes(location.pathname);
   const shouldHideBottomNav = hideBottomNavRoutes.includes(location.pathname);
-  const shouldShowAI = !hideAIRoutes.includes(location.pathname);
+  // const shouldShowAI = !hideAIRoutes.includes(location.pathname);
 
   return (
     <>
