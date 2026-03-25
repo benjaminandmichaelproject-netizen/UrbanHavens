@@ -132,15 +132,14 @@ STORAGES = {
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
-
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://your-real-netlify-site.netlify.app",
+    "https://urbanhavss.netlify.app",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
-    "https://your-real-netlify-site.netlify.app",
+    "https://urbanhavss.netlify.app",
 ]
 
 REST_FRAMEWORK = {
