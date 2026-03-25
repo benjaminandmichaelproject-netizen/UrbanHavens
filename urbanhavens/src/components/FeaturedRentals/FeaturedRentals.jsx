@@ -4,54 +4,25 @@ import { motion } from "framer-motion";
 import "./FeaturedRentals.css";
 import RentalCard from "./RentalCard";
 import FavAlert from "../Modals/FavAlert";
-
-const API_BASE = `${import.meta.env.VITE_API_BASE_URL}/api`;
-
 const stagger = {
   hidden: {},
-  show: { transition: { staggerChildren: 0.1 } },
+  show:   { transition: { staggerChildren: 0.1 } },
 };
 
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: "easeOut" } },
-};
-
-// ── Token refresh helper ─────────────────────────────────
-const refreshAccessToken = async () => {
-  const refresh = localStorage.getItem("refresh");
-  if (!refresh) return null;
-
-  try {
-    const res = await fetch(`${API_BASE}/users/token/refresh/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ refresh }),
-    });
-
-    if (!res.ok) return null;
-
-    const data = await res.json();
-    localStorage.setItem("access", data.access);
-    localStorage.setItem("token", data.access);
-    return data.access;
-  } catch {
-    return null;
-  }
+  show:   { opacity: 1, y: 0, transition: { duration: 0.55, ease: "easeOut" } },
 };
 
 const FeaturedRentals = () => {
   const navigate = useNavigate();
-  const [properties, setProperties] = useState([]);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [properties, setProperties]   = useState([]);
+  const [error, setError]             = useState("");
+  const [loading, setLoading]         = useState(true);
   const [favoriteIds, setFavoriteIds] = useState([]);
-  const [showFavAlert, setShowFavAlert] = useState(false);
-  const [favAlertMessage, setFavAlertMessage] = useState("");
-  const [favAlertType, setFavAlertType] = useState("success");
-
+const [showFavAlert, setShowFavAlert] = useState(false);
+const [favAlertMessage, setFavAlertMessage] = useState("");
+const [favAlertType, setFavAlertType] = useState("success");
   // ── Helpers ────────────────────────────────────────────
   const getAvailability = (property) => {
     if (typeof property?.is_available === "boolean") return property.is_available;
@@ -68,11 +39,8 @@ const FeaturedRentals = () => {
     if (!amenities) return [];
     let parsed = amenities;
     if (typeof amenities === "string") {
-      try {
-        parsed = JSON.parse(amenities);
-      } catch {
-        parsed = amenities.split(",").map((s) => s.trim()).filter(Boolean);
-      }
+      try { parsed = JSON.parse(amenities); }
+      catch { parsed = amenities.split(",").map((s) => s.trim()).filter(Boolean); }
     }
     return Array.isArray(parsed) ? parsed.slice(0, 3) : [];
   };
@@ -83,10 +51,8 @@ const FeaturedRentals = () => {
       try {
         setLoading(true);
         setError("");
-
-        const res = await fetch(`${API_BASE}/properties/featured/`);
+        const res = await fetch("/api/properties/featured/");
         if (!res.ok) throw new Error("Failed to fetch featured properties.");
-
         const data = await res.json();
         setProperties(Array.isArray(data) ? data : []);
         if (!Array.isArray(data)) setError("Invalid response from server.");
@@ -97,38 +63,26 @@ const FeaturedRentals = () => {
         setLoading(false);
       }
     };
-
     fetchFeaturedProperties();
   }, []);
 
   // ── Fetch favorites ────────────────────────────────────
   const fetchFavorites = useCallback(async () => {
-    const token = localStorage.getItem("access") || localStorage.getItem("token");
-
+    const token = localStorage.getItem("access"); // JWT access token
     if (!token) {
       setFavoriteIds([]);
       return;
     }
-
     try {
-      const res = await fetch(`${API_BASE}/favorites/`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const res = await fetch("/api/favorites/", {
+        headers: { Authorization: `Bearer ${token}` }, // JWT Bearer
       });
-
-      if (res.status === 401) {
-        setFavoriteIds([]);
-        return;
-      }
-
+      if (res.status === 401) { setFavoriteIds([]); return; }
       if (!res.ok) return;
-
       const data = await res.json();
       const ids = Array.isArray(data)
         ? data.map((item) => item.property?.id).filter(Boolean)
         : [];
-
       setFavoriteIds(ids);
     } catch {
       setFavoriteIds([]);
@@ -140,64 +94,83 @@ const FeaturedRentals = () => {
   }, [fetchFavorites]);
 
   // ── Toggle favorite ────────────────────────────────────
-  const toggleFavorite = async (propertyId) => {
-    const token = localStorage.getItem("access") || localStorage.getItem("token");
+ // ── Toggle favorite ────────────────────────────────────
+const toggleFavorite = async (propertyId) => {
+  const token = localStorage.getItem("access");
 
-    if (!token) {
-      navigate("/login");
+  if (!token) {
+    navigate("/login");
+    return;
+  }
+
+  const isAlreadyFavorited = favoriteIds.includes(propertyId);
+  const url = isAlreadyFavorited
+    ? `/api/favorites/remove/${propertyId}/`
+    : "/api/favorites/add/";
+
+  try {
+    const res = await fetch(url, {
+      method: isAlreadyFavorited ? "DELETE" : "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,  // ✅ already correct
+      },
+      ...(isAlreadyFavorited ? {} : { body: JSON.stringify({ property_id: propertyId }) }),
+    });
+
+    if (res.status === 401) {
+      // ── Token expired → try refresh before giving up ──
+      const newToken = await refreshAccessToken();
+      if (!newToken) {
+        localStorage.removeItem("access");
+        localStorage.removeItem("refresh");
+        navigate("/login");
+        return;
+      }
+      // Retry once with the new token
+      await toggleFavorite(propertyId);
       return;
     }
 
-    const isAlreadyFavorited = favoriteIds.includes(propertyId);
-    const url = isAlreadyFavorited
-      ? `${API_BASE}/favorites/remove/${propertyId}/`
-      : `${API_BASE}/favorites/add/`;
+    if (!res.ok) throw new Error("Failed to update favorite.");
 
-    try {
-      const res = await fetch(url, {
-        method: isAlreadyFavorited ? "DELETE" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        ...(isAlreadyFavorited
-          ? {}
-          : { body: JSON.stringify({ property_id: propertyId }) }),
-      });
+    setFavoriteIds((prev) =>
+      isAlreadyFavorited
+        ? prev.filter((id) => id !== propertyId)
+        : [...prev, propertyId]
+    );
 
-      if (res.status === 401) {
-        const newToken = await refreshAccessToken();
+    setFavAlertMessage(
+      isAlreadyFavorited ? "Removed from favorites." : "Added to favorites."
+    );
+    setFavAlertType(isAlreadyFavorited ? "error" : "success");
+    setShowFavAlert(true);
+  } catch (err) {
+    console.error("toggleFavorite error:", err);
+  }
+};
 
-        if (!newToken) {
-          localStorage.removeItem("access");
-          localStorage.removeItem("token");
-          localStorage.removeItem("refresh");
-          navigate("/login");
-          return;
-        }
+// ── Token refresh helper (add this outside the component) ──
+const refreshAccessToken = async () => {
+  const refresh = localStorage.getItem("refresh");
+  if (!refresh) return null;
 
-        await toggleFavorite(propertyId);
-        return;
-      }
+  try {
+   const res = await fetch("/api/users/token/refresh/", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh }),
+    });
 
-      if (!res.ok) throw new Error("Failed to update favorite.");
+    if (!res.ok) return null;
 
-      setFavoriteIds((prev) =>
-        isAlreadyFavorited
-          ? prev.filter((id) => id !== propertyId)
-          : [...prev, propertyId]
-      );
-
-      setFavAlertMessage(
-        isAlreadyFavorited ? "Removed from favorites." : "Added to favorites."
-      );
-      setFavAlertType(isAlreadyFavorited ? "error" : "success");
-      setShowFavAlert(true);
-    } catch (err) {
-      console.error("toggleFavorite error:", err);
-    }
-  };
-
+    const data = await res.json();
+    localStorage.setItem("access", data.access);
+    return data.access;
+  } catch {
+    return null;
+  }
+};
   // ── Handlers ───────────────────────────────────────────
   const handleBook = (property) =>
     navigate(`/detail/${property.id}`, { state: { property } });
@@ -205,6 +178,8 @@ const FeaturedRentals = () => {
   // ── Render ─────────────────────────────────────────────
   return (
     <section className="fr-section">
+
+      {/* Header */}
       <motion.div
         className="fr-header"
         variants={stagger}
@@ -223,6 +198,7 @@ const FeaturedRentals = () => {
         </motion.p>
       </motion.div>
 
+      {/* States */}
       {loading && (
         <div className="fr-state">
           <div className="fr-spinner" />
@@ -230,12 +206,15 @@ const FeaturedRentals = () => {
         </div>
       )}
 
-      {error && !loading && <p className="fr-error">{error}</p>}
+      {error && !loading && (
+        <p className="fr-error">{error}</p>
+      )}
 
       {!loading && !error && properties.length === 0 && (
         <p className="fr-empty">No featured properties available at the moment.</p>
       )}
 
+      {/* Grid */}
       {!loading && !error && properties.length > 0 && (
         <motion.div
           className="fr-grid"
@@ -265,6 +244,7 @@ const FeaturedRentals = () => {
         </motion.div>
       )}
 
+      {/* CTA */}
       <motion.div
         className="fr-cta"
         initial={{ opacity: 0, y: 24 }}
@@ -279,13 +259,12 @@ const FeaturedRentals = () => {
           View All Properties →
         </button>
       </motion.div>
-
-      <FavAlert
-        show={showFavAlert}
-        message={favAlertMessage}
-        type={favAlertType}
-        onClose={() => setShowFavAlert(false)}
-      />
+<FavAlert
+  show={showFavAlert}
+  message={favAlertMessage}
+  type={favAlertType}
+  onClose={() => setShowFavAlert(false)}
+/>
     </section>
   );
 };
