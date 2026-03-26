@@ -304,7 +304,16 @@ justify-content: center;
   color: #111827;
   transform: scale(1.08);
 }
-
+.booking-error-message {
+  margin: 10px 0 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fff1f1;
+  color: #b42318;
+  font-size: 0.95rem;
+  font-weight: 500;
+  border: 1px solid #f4c7c7;
+}
 @keyframes fadeInPopup {
   from {
     opacity: 0;
