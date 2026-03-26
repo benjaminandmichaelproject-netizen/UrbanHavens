@@ -170,22 +170,19 @@ class TenantLeaseSerializer(serializers.ModelSerializer):
             )
 
         return attrs
+def create(self, validated_data):
+    property_obj = validated_data["property"]
+    room_obj = validated_data.get("room")
 
-    def create(self, validated_data):
-        request = self.context.get("request")
-        user = request.user if request else None
+    if not validated_data.get("monthly_rent"):
+        if (
+            property_obj.category == "hostel"
+            and room_obj
+            and room_obj.price_override is not None
+        ):
+            validated_data["monthly_rent"] = room_obj.price_override
+        else:
+            validated_data["monthly_rent"] = property_obj.price
 
-        property_obj = validated_data["property"]
-        room_obj = validated_data.get("room")
-
-        validated_data["tenant"] = user
-        validated_data["landlord"] = property_obj.owner
-
-        if not validated_data.get("monthly_rent"):
-            if property_obj.category == "hostel" and room_obj and room_obj.price_override is not None:
-                validated_data["monthly_rent"] = room_obj.price_override
-            else:
-                validated_data["monthly_rent"] = property_obj.price
-
-        lease = TenantLease.objects.create(**validated_data)
-        return lease
+    lease = TenantLease.objects.create(**validated_data)
+    return lease
