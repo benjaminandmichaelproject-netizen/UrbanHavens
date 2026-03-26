@@ -4,7 +4,7 @@ import PropertyLocation from "./PropertyLocation";
 import PropertyLook from "./PropertyLook";
 import PreviewStep from "./PreviewStep";
 import { DEFAULT_FORM_DATA, DEFAULT_FILES } from "./constants";
-import { uploadProperty, getPropertyById } from "./api/api";
+import { uploadProperty, getPropertyById, api } from "./api/api";
 import "./Uploadpage.css";
 
 const STEPS = [
@@ -38,7 +38,7 @@ const Uploadpage = () => {
 
   const [submitStatus, setSubmitStatus] = useState("idle");
   const [submitError, setSubmitError] = useState(null);
-  const [showFileWarning, setShowFileWarning] = useState(!!saved && step > 1);
+  const [showFileWarning, setShowFileWarning] = useState(!!saved && (saved?.step ?? 1) > 1);
 
   const [showSecurityModal, setShowSecurityModal] = useState(false);
   const [securityAlertData, setSecurityAlertData] = useState(null);
@@ -127,80 +127,114 @@ const Uploadpage = () => {
       matchedPropertyName: topMatch?.matched_property_name || null,
     };
   }, [securityAlertData]);
-const handleSubmit = async () => {
-  setSubmitStatus("submitting");
-  setSubmitError(null);
-  setShowSecurityModal(false);
-  setSecurityAlertData(null);
 
-  const formPayload = new FormData();
+  const createHostelRooms = async (propertyId, rooms) => {
+    if (!propertyId || !Array.isArray(rooms) || rooms.length === 0) return;
 
-  const combinedData = {
-    ...formData.property,
-    ...formData.property_location,
+    for (const room of rooms) {
+      await api.post("/rooms/", {
+        property: propertyId,
+        room_number: room.room_number,
+        room_type: room.room_type,
+        gender_restriction: room.gender_restriction,
+        max_capacity: room.max_capacity,
+        price_override:
+          room.price_override === "" || room.price_override === null
+            ? null
+            : room.price_override,
+      });
+    }
   };
 
-  Object.entries(combinedData).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== "") {
-      if (key === "amenities") {
-        formPayload.append("amenities", JSON.stringify(Array.isArray(value) ? value : []));
-      } else {
-        formPayload.append(key, value);
+  const handleSubmit = async () => {
+    setSubmitStatus("submitting");
+    setSubmitError(null);
+    setShowSecurityModal(false);
+    setSecurityAlertData(null);
+
+    const formPayload = new FormData();
+
+    const propertyData = formData.property || {};
+    const locationData = formData.property_location || {};
+    const combinedData = {
+      ...propertyData,
+      ...locationData,
+    };
+
+    Object.entries(combinedData).forEach(([key, value]) => {
+      if (key === "rooms") return;
+
+      if (value !== undefined && value !== null && value !== "") {
+        if (key === "amenities") {
+          formPayload.append(
+            "amenities",
+            JSON.stringify(Array.isArray(value) ? value : [])
+          );
+        } else {
+          formPayload.append(key, value);
+        }
       }
+    });
+
+    const imageFiles = files.property_images?.property_images || [];
+    imageFiles.forEach((file) => {
+      if (file instanceof File) {
+        formPayload.append("property_images", file);
+      }
+    });
+
+    try {
+      const response = await uploadProperty(formPayload);
+      const createdProperty = response?.data || response;
+      const propertyId = createdProperty?.id;
+
+      if (
+        propertyData.category === "hostel" &&
+        Array.isArray(propertyData.rooms) &&
+        propertyData.rooms.length > 0 &&
+        propertyId
+      ) {
+        await createHostelRooms(propertyId, propertyData.rooms);
+      }
+
+      localStorage.removeItem("uploadFormState");
+      setFormData(DEFAULT_FORM_DATA);
+      setFiles({ ...DEFAULT_FILES });
+      setStep(1);
+      setSubmitStatus("success");
+      setShowFileWarning(false);
+
+      if (propertyId) {
+        let attempts = 0;
+        const maxAttempts = 5;
+        const interval = setInterval(async () => {
+          attempts++;
+          try {
+            const updated = await getPropertyById(propertyId);
+            if (
+              updated?.security_flagged &&
+              updated?.security_flag_type === "duplicate_property"
+            ) {
+              clearInterval(interval);
+              setSecurityAlertData(updated);
+              setShowSecurityModal(true);
+            }
+          } catch (_) {}
+
+          if (attempts >= maxAttempts) clearInterval(interval);
+        }, 2000);
+      }
+    } catch (err) {
+      console.error("Submit failed:", err);
+      setSubmitError(
+        err?.response?.data?.detail ||
+          err?.detail ||
+          err?.message ||
+          JSON.stringify(err)
+      );
+      setSubmitStatus("error");
     }
-  });
-
-  const imageFiles = files.property_images?.property_images || [];
-  imageFiles.forEach((file) => {
-    if (file instanceof File) {
-      formPayload.append("property_images", file);
-    }
-  });
-
-  try {
-    const response = await uploadProperty(formPayload);
-    const createdProperty = response?.data || response;
-    const propertyId = createdProperty?.id;
-
-    localStorage.removeItem("uploadFormState");
-    setFormData(DEFAULT_FORM_DATA);
-    setFiles({ ...DEFAULT_FILES });
-    setStep(1);
-    setSubmitStatus("success");
-    setShowFileWarning(false);
-
-    // Poll for security flag since duplicate check runs async after commit
-    if (propertyId) {
-      let attempts = 0;
-      const maxAttempts = 5;
-      const interval = setInterval(async () => {
-        attempts++;
-        try {
-          const updated = await getPropertyById(propertyId);
-          if (
-            updated?.security_flagged &&
-            updated?.security_flag_type === "duplicate_property"
-          ) {
-            clearInterval(interval);
-            setSecurityAlertData(updated);
-            setShowSecurityModal(true);
-          }
-        } catch (_) {}
-        if (attempts >= maxAttempts) clearInterval(interval);
-      }, 2000);
-    }
-
-  } catch (err) {
-    console.error("Submit failed:", err);
-    setSubmitError(
-      err?.response?.data?.detail ||
-        err?.detail ||
-        err?.message ||
-        JSON.stringify(err)
-    );
-    setSubmitStatus("error");
-  }
-};
+  };
 
   const renderStep = () => {
     const currentStep = STEPS[step - 1];

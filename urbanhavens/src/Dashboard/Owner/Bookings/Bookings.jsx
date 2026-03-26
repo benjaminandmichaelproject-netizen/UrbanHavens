@@ -125,26 +125,40 @@ const Bookings = () => {
     setPopupMessage("");
   };
 
-  const handleConvertSubmit = async (leaseData) => {
-    try {
-      setSubmittingLease(true);
-      await createTenantLease(leaseData);
-      closeConvertModal();
-      await fetchBookings();
-      openPopup("success", "Tenant lease created successfully.");
-    } catch (error) {
-      console.error("Failed to create tenant lease:", error);
-      openPopup(
-        "error",
-        error?.response?.data?.detail ||
-          error?.detail ||
-          "Failed to create tenant lease."
-      );
-    } finally {
-      setSubmittingLease(false);
-    }
-  };
+ const formatApiError = (error) => {
+  if (!error) return "Failed to create tenant lease.";
+  if (typeof error === "string") return error;
+  if (error.detail) return error.detail;
 
+  const entries = Object.entries(error)
+    .map(([key, value]) => {
+      if (Array.isArray(value)) return `${key}: ${value.join(", ")}`;
+      if (typeof value === "string") return `${key}: ${value}`;
+      return null;
+    })
+    .filter(Boolean);
+
+  return entries.length ? entries.join(" | ") : "Failed to create tenant lease.";
+};
+
+const handleConvertSubmit = async (leaseData) => {
+  try {
+    console.log("LEASE PAYLOAD", leaseData);
+    setSubmittingLease(true);
+    await createTenantLease(leaseData);
+    closeConvertModal();
+    await fetchBookings();
+    openPopup("success", "Tenant lease created successfully.");
+  } catch (error) {
+    console.error(
+      "Failed to create tenant lease:",
+      error?.response?.data || error?.detail || error?.message || error
+    );
+    openPopup("error", formatApiError(error));
+  } finally {
+    setSubmittingLease(false);
+  }
+};
   const handleRejectBooking = async (booking) => {
     try {
       setActionLoadingId(`reject-${booking.id}`);

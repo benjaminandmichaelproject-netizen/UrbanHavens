@@ -349,19 +349,19 @@ class PropertySerializer(serializers.ModelSerializer):
     # ------------------------------------------------------------------ #
 
     def get_total_capacity(self, obj):
-        if obj.category != "hostel":
-            return None
-        return sum(r.max_capacity for r in obj.rooms.all())
+     if obj.category != "hostel":
+        return None
+     return sum(r.max_capacity for r in obj.rooms.all())
 
     def get_total_occupied(self, obj):
-        if obj.category != "hostel":
-            return None
-        return sum(r.occupied_spaces for r in obj.rooms.all())
+     if obj.category != "hostel":
+        return None
+     return sum(r.occupied_spaces for r in obj.rooms.all())
 
     def get_total_available(self, obj):
-        if obj.category != "hostel":
-            return None
-        return sum(r.available_spaces for r in obj.rooms.all())
+     if obj.category != "hostel":
+        return None
+     return sum(r.available_spaces() for r in obj.rooms.all())
 
     # ------------------------------------------------------------------ #
     #  Read helpers (unchanged)                                           #

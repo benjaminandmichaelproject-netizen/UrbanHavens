@@ -5,15 +5,15 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .models import ExternalLandlord, Favorite, Property
+from .models import ExternalLandlord, Favorite, Property, Room
 from .pagination import PropertyPagination
 from .serializers import (
     ExternalLandlordSerializer,
     FavoriteSerializer,
     PropertySerializer,
     RegisteredLandlordSerializer,
+    RoomSerializer,
 )
-
 User = get_user_model()
 
 
@@ -279,7 +279,92 @@ class PropertyViewSet(viewsets.ModelViewSet):
             status=status.HTTP_200_OK,
         )
 
+class RoomViewSet(viewsets.ModelViewSet):
+    serializer_class = RoomSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
+    def _is_admin(self, user):
+        return bool(
+            user
+            and user.is_authenticated
+            and (user.is_superuser or getattr(user, "role", None) == "admin")
+        )
+
+    def get_queryset(self):
+        user = self.request.user
+        queryset = Room.objects.select_related("property", "property__owner").order_by("-id")
+
+        if self._is_admin(user):
+            return queryset
+
+        if getattr(user, "role", None) == "owner":
+            return queryset.filter(property__owner=user)
+
+        return queryset.none()
+
+    def create(self, request, *args, **kwargs):
+        property_id = request.data.get("property")
+        if not property_id:
+            return Response(
+                {"detail": "Property is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            property_obj = Property.objects.get(id=property_id)
+        except Property.DoesNotExist:
+            return Response(
+                {"detail": "Property not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if property_obj.category != "hostel":
+            return Response(
+                {"detail": "Rooms can only be created for hostel properties."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not self._is_admin(request.user) and property_obj.owner_id != request.user.id:
+            return Response(
+                {"detail": "You can only add rooms to your own property."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        serializer = self.get_serializer(data=request.data, context={"property": property_obj})
+        serializer.is_valid(raise_exception=True)
+        room = serializer.save()
+
+        return Response(
+            self.get_serializer(room).data,
+            status=status.HTTP_201_CREATED,
+        )
+
+    def update(self, request, *args, **kwargs):
+        room = self.get_object()
+        if not self._is_admin(request.user) and room.property.owner_id != request.user.id:
+            return Response(
+                {"detail": "You can only update rooms for your own property."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        room = self.get_object()
+        if not self._is_admin(request.user) and room.property.owner_id != request.user.id:
+            return Response(
+                {"detail": "You can only update rooms for your own property."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        room = self.get_object()
+        if not self._is_admin(request.user) and room.property.owner_id != request.user.id:
+            return Response(
+                {"detail": "You can only delete rooms for your own property."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        return super().destroy(request, *args, **kwargs)
 def _get_registered_landlord_or_404(id):
     try:
         return User.objects.get(id=id, role="owner")

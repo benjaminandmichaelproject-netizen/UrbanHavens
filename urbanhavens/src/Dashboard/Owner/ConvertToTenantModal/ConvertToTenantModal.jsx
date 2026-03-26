@@ -8,8 +8,9 @@ const formatMoney = (value) => {
 };
 
 const ConvertToTenantModal = ({ booking, onClose, onSubmit, submitting }) => {
-  const isHostel = booking?.property_category === "hostel";
+  const propertyId = booking?.property || booking?.property_id;
 
+  const [propertyData, setPropertyData] = useState(null);
   const [rooms, setRooms] = useState([]);
   const [roomsLoading, setRoomsLoading] = useState(false);
   const [roomsError, setRoomsError] = useState("");
@@ -27,33 +28,36 @@ const ConvertToTenantModal = ({ booking, onClose, onSubmit, submitting }) => {
 
   const [errors, setErrors] = useState({});
 
+  const isHostel = propertyData?.category === "hostel";
+
   useEffect(() => {
     let ignore = false;
 
-    const fetchPropertyRooms = async () => {
-      if (!isHostel || !booking?.property) return;
+    const fetchPropertyDetails = async () => {
+      if (!propertyId) return;
 
       try {
         setRoomsLoading(true);
         setRoomsError("");
 
-        const res = await api.get(`/properties/${booking.property}/`);
-        const propertyData = res.data;
-        const propertyRooms = Array.isArray(propertyData?.rooms)
-          ? propertyData.rooms
-          : [];
+        const res = await api.get(`/properties/${propertyId}/`);
+        const property = res.data;
+        const propertyRooms = Array.isArray(property?.rooms) ? property.rooms : [];
 
         if (!ignore) {
-          const availableRooms = propertyRooms.filter(
-            (room) => room.is_available && Number(room.available_spaces) > 0
+          setPropertyData(property);
+          setRooms(
+            propertyRooms.filter(
+              (room) => room.is_available && Number(room.available_spaces) > 0
+            )
           );
-          setRooms(availableRooms);
         }
       } catch (err) {
         if (!ignore) {
+          setPropertyData(null);
           setRooms([]);
           setRoomsError(
-            err.response?.data?.detail || "Failed to load available rooms."
+            err.response?.data?.detail || "Failed to load property details."
           );
         }
       } finally {
@@ -63,12 +67,12 @@ const ConvertToTenantModal = ({ booking, onClose, onSubmit, submitting }) => {
       }
     };
 
-    fetchPropertyRooms();
+    fetchPropertyDetails();
 
     return () => {
       ignore = true;
     };
-  }, [booking?.property, isHostel]);
+  }, [propertyId]);
 
   const selectedRoom = useMemo(
     () => rooms.find((room) => String(room.id) === String(formData.room)),
@@ -117,13 +121,21 @@ const ConvertToTenantModal = ({ booking, onClose, onSubmit, submitting }) => {
       newErrors.move_in_date = "Move-in date is required";
     }
 
-    if (!formData.monthly_rent && formData.monthly_rent !== 0 && formData.monthly_rent !== "0") {
+    if (
+      formData.monthly_rent === "" ||
+      formData.monthly_rent === null ||
+      formData.monthly_rent === undefined
+    ) {
       newErrors.monthly_rent = "Monthly rent is required";
     } else if (Number(formData.monthly_rent) <= 0) {
       newErrors.monthly_rent = "Monthly rent must be greater than 0";
     }
 
-    if (!formData.deposit_amount && formData.deposit_amount !== 0 && formData.deposit_amount !== "0") {
+    if (
+      formData.deposit_amount === "" ||
+      formData.deposit_amount === null ||
+      formData.deposit_amount === undefined
+    ) {
       newErrors.deposit_amount = "Deposit amount is required";
     } else if (Number(formData.deposit_amount) < 0) {
       newErrors.deposit_amount = "Deposit amount cannot be negative";
@@ -143,24 +155,22 @@ const ConvertToTenantModal = ({ booking, onClose, onSubmit, submitting }) => {
       formData.move_in_date &&
       formData.move_in_date < formData.lease_start_date
     ) {
-      newErrors.move_in_date = "Move-in date cannot be earlier than lease start date";
+      newErrors.move_in_date =
+        "Move-in date cannot be earlier than lease start date";
     }
 
-    return newErrors;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    const validationErrors = validate();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
+    if (!validate()) return;
 
     onSubmit({
       booking: booking.id,
-      property: booking.property,
+      property: propertyId,
       room: isHostel ? Number(formData.room) : null,
       lease_start_date: formData.lease_start_date,
       lease_end_date: formData.lease_end_date,
@@ -199,7 +209,7 @@ const ConvertToTenantModal = ({ booking, onClose, onSubmit, submitting }) => {
           </p>
           <p>
             <strong>Category:</strong>{" "}
-            {isHostel ? "Hostel" : "House Rent"}
+            {propertyData?.category === "hostel" ? "Hostel" : "House Rent"}
           </p>
 
           {isHostel && (
@@ -227,7 +237,8 @@ const ConvertToTenantModal = ({ booking, onClose, onSubmit, submitting }) => {
                     <option key={room.id} value={room.id}>
                       {room.room_number}
                       {room.room_type ? ` • ${room.room_type}` : ""}
-                      {room.available_spaces !== undefined && room.available_spaces !== null
+                      {room.available_spaces !== undefined &&
+                      room.available_spaces !== null
                         ? ` • ${room.available_spaces} space${
                             Number(room.available_spaces) === 1 ? "" : "s"
                           } left`
@@ -237,23 +248,6 @@ const ConvertToTenantModal = ({ booking, onClose, onSubmit, submitting }) => {
                 </select>
                 {errors.room && <small>{errors.room}</small>}
                 {!errors.room && roomsError && <small>{roomsError}</small>}
-                {!errors.room &&
-                  !roomsError &&
-                  selectedRoom && (
-                    <small className="convert-room-preview">
-                      Room {selectedRoom.room_number}
-                      {selectedRoom.room_type ? ` • ${selectedRoom.room_type}` : ""}
-                      {selectedRoom.gender_restriction
-                        ? ` • ${selectedRoom.gender_restriction}`
-                        : ""}
-                      {selectedRoom.available_spaces !== undefined &&
-                      selectedRoom.available_spaces !== null
-                        ? ` • ${selectedRoom.available_spaces} space${
-                            Number(selectedRoom.available_spaces) === 1 ? "" : "s"
-                          } left`
-                        : ""}
-                    </small>
-                  )}
               </div>
             )}
 
@@ -300,7 +294,6 @@ const ConvertToTenantModal = ({ booking, onClose, onSubmit, submitting }) => {
                 name="monthly_rent"
                 value={formData.monthly_rent}
                 onChange={handleChange}
-                placeholder="Enter monthly rent"
                 min="0"
                 step="0.01"
                 disabled={submitting}
@@ -320,7 +313,6 @@ const ConvertToTenantModal = ({ booking, onClose, onSubmit, submitting }) => {
                 name="deposit_amount"
                 value={formData.deposit_amount}
                 onChange={handleChange}
-                placeholder="Enter deposit amount"
                 min="0"
                 step="0.01"
                 disabled={submitting}
