@@ -24,7 +24,7 @@ const BookingForm = ({ property }) => {
 
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [closingPopup, setClosingPopup] = useState(false);
-
+const [bookingError, setBookingError] = useState("");
   const [showStatusPopup, setShowStatusPopup] = useState(false);
   const [statusPopupType, setStatusPopupType] = useState("success");
   const [statusPopupMessage, setStatusPopupMessage] = useState("");
@@ -150,56 +150,60 @@ const BookingForm = ({ property }) => {
     setShowStatusPopup(false);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setBookingError("");
 
-    if (!isLoggedIn) {
-      openLoginPopup();
-      return;
-    }
+  if (!isLoggedIn) {
+    openLoginPopup();
+    return;
+  }
 
-    const validationErrors = validate();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
+  const validationErrors = validate();
+  if (Object.keys(validationErrors).length > 0) {
+    setErrors(validationErrors);
+    return;
+  }
 
-    try {
-      const payload = {
-        property: property.id,
-        phone: formData.phone,
-        preferred_date: formData.preferred_date,
-        preferred_time: formData.preferred_time,
-        message: formData.message,
-      };
+  try {
+    const payload = {
+      property: property.id,
+      phone: formData.phone,
+      preferred_date: formData.preferred_date,
+      preferred_time: formData.preferred_time,
+      message: formData.message,
+    };
 
-      await createBooking(payload);
+    await createBooking(payload);
 
-      openStatusPopup(
-        "success",
-        isHostel
-          ? "Your hostel viewing request has been sent successfully."
-          : "Your viewing request has been sent successfully."
-      );
+    openStatusPopup(
+      "success",
+      isHostel
+        ? "Your hostel viewing request has been sent successfully."
+        : "Your viewing request has been sent successfully."
+    );
 
-      setFormData({
-        phone: storedPhone || "",
-        preferred_date: "",
-        preferred_time: "",
-        message: initialMessage,
-      });
-      setErrors({});
-    } catch (error) {
-      console.error("Booking submission failed:", error);
-      openStatusPopup(
-        "error",
-        error?.detail ||
-          error?.response?.data?.detail ||
-          "Failed to schedule viewing. Please try again."
-      );
-    }
-  };
+    setFormData({
+      phone: storedPhone || "",
+      preferred_date: "",
+      preferred_time: "",
+      message: initialMessage,
+    });
+    setErrors({});
+  } catch (error) {
+  console.error("Booking submission failed:", error);
 
+  const backendError =
+    error?.response?.data?.detail ||
+    error?.response?.data?.non_field_errors?.[0] ||
+    error?.response?.data?.property?.[0] ||
+    error?.response?.data?.message ||
+    "Failed to schedule viewing. Please try again.";
+
+  openStatusPopup("error", backendError);
+  setBookingError(backendError);
+}
+};
   const handleLoginRedirect = () => {
     navigate("/login", {
       state: {
@@ -330,7 +334,9 @@ const BookingForm = ({ property }) => {
                 <small className="error">{errors.message}</small>
               )}
             </div>
-
+{bookingError && (
+  <p className="booking-error-message">{bookingError}</p>
+)}
             <div className="input-group">
               <button type="submit">
                 {isHostel ? "Schedule Hostel Viewing" : "Schedule Viewing"}

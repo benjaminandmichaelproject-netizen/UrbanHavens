@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import Booking, InspectionMeeting
 from notifications.utils import send_notification
 from django.contrib.auth import get_user_model
-
+from leases.models import TenantLease
 User = get_user_model()
 
 
@@ -149,6 +149,35 @@ class BookingSerializer(serializers.ModelSerializer):
         if value < timezone.localdate():
             raise serializers.ValidationError("Preferred viewing date cannot be in the past.")
         return value
+    
+    def validate(self, attrs):
+      attrs = super().validate(attrs)
+
+      request = self.context.get("request")
+      user = request.user if request else None
+      property_obj = attrs.get("property")
+
+      if not user or not user.is_authenticated:
+        raise serializers.ValidationError("Authentication required.")
+
+      if property_obj:
+        has_active_lease_for_same_property = TenantLease.objects.filter(
+            tenant=user,
+            property=property_obj,
+            status="active",
+        ).exists()
+
+        if has_active_lease_for_same_property:
+            raise serializers.ValidationError({
+                "detail": "You already have an active lease for this property and cannot book it again until the lease ends."
+            })
+
+      return attrs
+    
+    
+    
+    
+    
 
     def create(self, validated_data):
         request = self.context.get("request")

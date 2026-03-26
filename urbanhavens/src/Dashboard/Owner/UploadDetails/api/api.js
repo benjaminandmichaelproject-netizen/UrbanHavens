@@ -183,7 +183,7 @@ export const createBooking = async (bookingData) => {
     return res.data;
   } catch (err) {
     console.error("Create booking error:", err.response?.data || err.message);
-    throw err.response?.data || err;
+    throw err;
   }
 };
 
