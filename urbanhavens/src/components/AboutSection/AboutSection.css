@@ -13,17 +13,17 @@
 
 /* ── Section ──────────────────────────────────────────────────────── */
 .ab {
-  background: var(--ab-bg);
+
   position: relative;
   width: 100%;
-  padding: 100px 15% 0;
+  padding: 10px 15% 0;
   box-sizing: border-box;
   font-family: "DM Sans", "Segoe UI", sans-serif;
   overflow: hidden;
 }
 
 /* Subtle grid texture on light bg */
-.ab-texture {
+/* .ab-texture {
   position: absolute;
   inset: 0;
   background-image:
@@ -32,7 +32,7 @@
   background-size: 40px 40px;
   pointer-events: none;
   z-index: 0;
-}
+} */
 
 .ab-header,
 .ab-cards,

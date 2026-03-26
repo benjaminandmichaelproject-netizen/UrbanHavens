@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faHeart, faShieldAlt, faBolt, faBullseye } from "@fortawesome/free-solid-svg-icons";
 import "./About.css";
-
+import Footer from "../../components/Footer/Footer";
 // ── Animated counter ──────────────────────────────────────────────────────────
 const Counter = ({ target, suffix = "", prefix = "" }) => {
   const [count, setCount] = useState(0);
@@ -231,8 +231,9 @@ const About = () => (
         ))}
       </motion.div>
     </section>
-
+  <Footer />
   </div>
+
 );
 
 export default About;

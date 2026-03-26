@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import "./RentalProcess.css";
-import TestimonialSlider from "../TestimonialSlider/TestimonialSlider";
+
 import CallToAction from "../CallToAction/CallToAction";
 const fadeUp = {
   hidden: { opacity: 0, y: 40 },
@@ -90,7 +90,7 @@ const RentalProcess = () => (
       ))}
     </motion.div>
     <CallToAction/>
-    <TestimonialSlider/>
+
   </section>
 );
 

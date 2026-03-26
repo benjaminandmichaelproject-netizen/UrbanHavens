@@ -1,11 +1,11 @@
 :root {
-  --h3-bg:       #071a10;
-  --h3-green:    #1a7a40;
+  --h3-bg: #071a10;
+  --h3-green: #1a7a40;
   --h3-green-lt: #22a055;
-  --h3-accent:   #2dde72;
-  --h3-border:   rgba(255,255,255,0.1);
-  --h3-white:    #ffffff;
-  --h3-muted:    rgba(255,255,255,0.5);
+  --h3-accent: #2dde72;
+  --h3-border: rgba(255, 255, 255, 0.1);
+  --h3-white: #ffffff;
+  --h3-muted: rgba(255, 255, 255, 0.5);
 }
 
 .h3 {
@@ -18,14 +18,14 @@
   box-sizing: border-box;
 }
 
-.h3-bg-texture {
+/* .h3-bg-texture {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
   background-size: 28px 28px;
   pointer-events: none;
   z-index: 0;
-}
+} */
 
 .h3-layout {
   position: relative;
@@ -55,7 +55,9 @@
   text-transform: uppercase;
 }
 
-.h3-accent { color: var(--h3-accent); }
+.h3-accent {
+  color: var(--h3-accent);
+}
 
 .h3-tagline-row {
   display: flex;
@@ -70,7 +72,8 @@
   color: var(--h3-muted);
   letter-spacing: 0.12em;
   margin: 0;
-  white-space: nowrap;   /* desktop: single line */
+  white-space: nowrap;
+  /* desktop: single line */
 }
 
 .h3-line {
@@ -88,7 +91,7 @@
 }
 
 .h3-feat {
-  background: rgba(255,255,255,0.06);
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--h3-border);
   border-radius: 12px;
   padding: 16px 14px;
@@ -99,11 +102,23 @@
 }
 
 .h3-feat:hover {
-  background: rgba(45,222,114,0.08);
-  border-color: rgba(45,222,114,0.25);
+  background: rgba(45, 222, 114, 0.08);
+  border-color: rgba(45, 222, 114, 0.25);
 }
 
-.h3-feat-icon  { font-size: 1.4rem; line-height: 1; }
+/* SVG icon — replaces the old emoji font-size rule */
+.h3-feat-icon {
+  display: flex;
+  align-items: center;
+  color: var(--h3-accent);
+  line-height: 1;
+}
+
+.h3-feat-icon svg {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+}
 
 .h3-feat-title {
   font-size: 0.88rem;
@@ -124,7 +139,7 @@
   position: relative;
   border-radius: 18px;
   overflow: hidden;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .h3-propimg {
@@ -138,12 +153,14 @@
   transition: opacity 1.2s ease;
 }
 
-.h3-propimg.active { opacity: 1; }
+.h3-propimg.active {
+  opacity: 1;
+}
 
 .h3-img-fade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to bottom, transparent 55%, rgba(0,0,0,0.5) 100%);
+  background: linear-gradient(to bottom, transparent 55%, rgba(0, 0, 0, 0.5) 100%);
   z-index: 1;
 }
 
@@ -170,7 +187,7 @@
 
 .h3-badge span {
   font-size: 0.6rem;
-  color: rgba(255,255,255,0.7);
+  color: rgba(255, 255, 255, 0.7);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -188,7 +205,7 @@
   width: 18px;
   height: 4px;
   border-radius: 2px;
-  background: rgba(255,255,255,0.3);
+  background: rgba(255, 255, 255, 0.3);
   border: none;
   cursor: pointer;
   padding: 0;
@@ -207,11 +224,15 @@
     padding: 90px 8% 50px 8%;
     gap: 4%;
   }
+
   .h3-right {
     flex: 0 0 40%;
     height: 400px;
   }
-  .h3-title { font-size: clamp(1.6rem, 3.5vw, 2.8rem); }
+
+  .h3-title {
+    font-size: clamp(1.6rem, 3.5vw, 2.8rem);
+  }
 }
 
 @media (max-width: 768px) {
@@ -222,7 +243,11 @@
     gap: 24px;
     min-height: unset;
   }
-  .h3-left  { width: 100%; }
+
+  .h3-left {
+    width: 100%;
+  }
+
   .h3-right {
     flex: none;
     width: 100%;
@@ -230,18 +255,29 @@
     border-radius: 14px;
     margin-bottom: 16px;
   }
-  .h3-title { font-size: 2rem; }
-  .h3-grid  { gap: 10px; }
-  .h3-feat  { padding: 14px 12px; }
+
+  .h3-title {
+    font-size: 2rem;
+  }
+
+  .h3-grid {
+    gap: 10px;
+  }
+
+  .h3-feat {
+    padding: 14px 12px;
+  }
 
   /* Tagline: centered on mobile */
   .h3-tagline-row {
     justify-content: center;
     text-align: center;
   }
+
   .h3-tagline-row .h3-line {
     display: none;
   }
+
   .h3-tagline-row p {
     white-space: normal !important;
     text-align: center !important;
@@ -252,11 +288,25 @@
 }
 
 @media (max-width: 480px) {
-  .h3-layout     { padding: 80px 5% 32px; }
-  .h3-title      { font-size: 1.75rem; }
-  .h3-right      { height: 240px; }
-  .h3-feat-title { font-size: 0.82rem; }
-  .h3-feat-sub   { font-size: 0.68rem; }
+  .h3-layout {
+    padding: 80px 5% 32px;
+  }
+
+  .h3-title {
+    font-size: 1.75rem;
+  }
+
+  .h3-right {
+    height: 240px;
+  }
+
+  .h3-feat-title {
+    font-size: 0.82rem;
+  }
+
+  .h3-feat-sub {
+    font-size: 0.68rem;
+  }
 }
 
 @media (max-width: 768px) {
@@ -264,4 +314,5 @@
     text-align: center;
     width: 100%;
   }
+
 }

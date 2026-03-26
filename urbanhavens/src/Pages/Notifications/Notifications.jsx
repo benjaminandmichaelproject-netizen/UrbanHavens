@@ -3,6 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { useNotifications } from "../../context/NotificationContext";
 import "./Notifications.css";
 
+// Notification types that belong to the owner — clicking these
+// navigates to the owner bookings page instead of the property detail.
+const OWNER_NOTIFICATION_TYPES = ["inspection_request", "new_booking"];
+
 const Notification = () => {
   const navigate = useNavigate();
   const [filter, setFilter] = useState("all");
@@ -26,28 +30,20 @@ const Notification = () => {
   }, [notifications, filter]);
 
   const formatDate = (dateString) => {
-  if (!dateString) return "Unknown date";
+    if (!dateString) return "Unknown date";
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return "Unknown date";
+    return date.toLocaleDateString([], {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
 
-  const date = new Date(dateString);
-
-  if (Number.isNaN(date.getTime())) {
-    return "Unknown date";
-  }
-
-  return date.toLocaleDateString([], {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-};
   const groupedNotifications = useMemo(() => {
     return filteredNotifications.reduce((groups, notification) => {
       const dateKey = formatDate(notification.created_at);
-
-      if (!groups[dateKey]) {
-        groups[dateKey] = [];
-      }
-
+      if (!groups[dateKey]) groups[dateKey] = [];
       groups[dateKey].push(notification);
       return groups;
     }, {});
@@ -58,6 +54,13 @@ const Notification = () => {
       await markAsRead(notification.id);
     }
 
+    // Owner notifications → go to owner bookings page
+    if (OWNER_NOTIFICATION_TYPES.includes(notification.notification_type)) {
+      navigate("/dashboard/owner/bookings");
+      return;
+    }
+
+    // Tenant / other notifications → go to property detail
     if (notification.related_property_id) {
       navigate(`/detail/${notification.related_property_id}`);
     }

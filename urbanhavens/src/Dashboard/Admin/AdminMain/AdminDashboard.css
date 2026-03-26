@@ -320,3 +320,29 @@
 
   .action-btn { width: 100%; }
 }
+
+.activity-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.clear-activity-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid #e53e3e;
+  color: #e53e3e;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.clear-activity-btn:hover {
+  background: #e53e3e;
+  color: #fff;
+}

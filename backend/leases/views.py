@@ -1,12 +1,12 @@
+from django.db import transaction
 from django.db.models import Sum
-from rest_framework import viewsets, permissions, status
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .models import TenantLease
 from .serializers import TenantLeaseSerializer
 from notifications.utils import send_notification
-from bookings.models import Booking
 
 
 class TenantLeaseViewSet(viewsets.ModelViewSet):
@@ -17,31 +17,63 @@ class TenantLeaseViewSet(viewsets.ModelViewSet):
         user = self.request.user
         role = getattr(user, "role", None)
 
+        base_qs = (
+            TenantLease.objects.select_related(
+                "property",
+                "tenant",
+                "landlord",
+                "room",
+            )
+            .prefetch_related("property__images", "property__rooms")
+            .order_by("-id")
+        )
+
         if user.is_superuser or role == "admin":
-            return TenantLease.objects.select_related(
-                "property", "tenant", "landlord"
-            ).order_by("-id")
+            return base_qs
 
         if role == "owner":
-            return TenantLease.objects.filter(
-                landlord=user
-            ).select_related("property", "tenant", "landlord").order_by("-id")
+            return base_qs.filter(landlord=user)
 
-        return TenantLease.objects.filter(
-            tenant=user
-        ).select_related("property", "tenant", "landlord").order_by("-id")
+        return base_qs.filter(tenant=user)
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context["request"] = self.request
         return context
 
-    # ── Tenant: active lease ──────────────────────────────────────────
+    def _is_admin(self, user):
+        return bool(
+            user
+            and user.is_authenticated
+            and (user.is_superuser or getattr(user, "role", None) == "admin")
+        )
+
+    def _can_manage_property_lease(self, user, property_obj):
+        if self._is_admin(user):
+            return True
+        return bool(
+            user
+            and user.is_authenticated
+            and property_obj.owner_id
+            and property_obj.owner_id == user.id
+        )
+
+    def _sync_house_property_availability(self, property_obj):
+        active_exists = TenantLease.objects.filter(
+            property=property_obj,
+            status="active",
+        ).exists()
+        property_obj.is_available = not active_exists
+        property_obj.save(update_fields=["is_available"])
+
     @action(detail=False, methods=["get"], url_path="my-lease")
     def my_lease(self, request):
-        lease = TenantLease.objects.filter(
-            tenant=request.user, status="active"
-        ).select_related("property", "tenant", "landlord").first()
+        lease = (
+            TenantLease.objects.filter(tenant=request.user, status="active")
+            .select_related("property", "tenant", "landlord", "room")
+            .prefetch_related("property__images", "property__rooms")
+            .first()
+        )
 
         if not lease:
             return Response(None, status=status.HTTP_200_OK)
@@ -49,18 +81,16 @@ class TenantLeaseViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(lease)
         return Response(serializer.data)
 
-    # ── Owner: terminate a lease ──────────────────────────────────────
     @action(detail=True, methods=["post"], url_path="terminate")
     def terminate(self, request, pk=None):
         lease = self.get_object()
-        user  = request.user
+        user = request.user
 
-        if lease.landlord != user:
-            if not (user.is_superuser or getattr(user, "role", None) == "admin"):
-                return Response(
-                    {"detail": "Only the property owner can terminate this lease."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+        if lease.landlord != user and not self._is_admin(user):
+            return Response(
+                {"detail": "Only the property owner can terminate this lease."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         if lease.status != "active":
             return Response(
@@ -69,25 +99,22 @@ class TenantLeaseViewSet(viewsets.ModelViewSet):
             )
 
         move_out_note = request.data.get("note", "").strip()
-
-        lease.status = "ended"
-        if move_out_note:
-            existing = lease.notes or ""
-            lease.notes = f"{existing}\n[Move-out] {move_out_note}".strip()
-        lease.save()
-
         property_obj = lease.property
 
-        if property_obj.category == "hostel":
-            occupied = TenantLease.objects.filter(
-                property=property_obj, status="active"
-            ).count()
-            if occupied < property_obj.bedrooms:
-                property_obj.is_available = True
-                property_obj.save()
-        else:
-            property_obj.is_available = True
-            property_obj.save()
+        with transaction.atomic():
+            lease.status = "ended"
+            if move_out_note:
+                existing = lease.notes or ""
+                lease.notes = f"{existing}\n[Move-out] {move_out_note}".strip()
+            lease.save(update_fields=["status", "notes"])
+
+            if property_obj.category == "hostel":
+                room_obj = lease.room
+                if room_obj and room_obj.occupied_spaces > 0:
+                    room_obj.occupied_spaces -= 1
+                    room_obj.save()
+            else:
+                self._sync_house_property_availability(property_obj)
 
         send_notification(
             user=lease.tenant,
@@ -102,18 +129,16 @@ class TenantLeaseViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(lease)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    # ── Owner: renew an ended lease ───────────────────────────────────
     @action(detail=True, methods=["post"], url_path="renew")
     def renew(self, request, pk=None):
         old_lease = self.get_object()
-        user      = request.user
+        user = request.user
 
-        if old_lease.landlord != user:
-            if not (user.is_superuser or getattr(user, "role", None) == "admin"):
-                return Response(
-                    {"detail": "Only the property owner can renew this lease."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
+        if old_lease.landlord != user and not self._is_admin(user):
+            return Response(
+                {"detail": "Only the property owner can renew this lease."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
         if old_lease.status not in ("ended", "cancelled"):
             return Response(
@@ -121,74 +146,77 @@ class TenantLeaseViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        lease_start_date     = request.data.get("lease_start_date")
-        lease_end_date       = request.data.get("lease_end_date")
-        move_in_date         = request.data.get("move_in_date")
-        monthly_rent         = request.data.get("monthly_rent", old_lease.monthly_rent)
-        deposit_amount       = request.data.get("deposit_amount", old_lease.deposit_amount)
-        first_payment_status = request.data.get("first_payment_status", "pending")
-        notes                = request.data.get("notes", "")
-        room_number          = request.data.get("room_number", old_lease.room_number)
-
-        if not lease_start_date:
-            return Response({"detail": "lease_start_date is required."}, status=status.HTTP_400_BAD_REQUEST)
-        if not lease_end_date:
-            return Response({"detail": "lease_end_date is required."}, status=status.HTTP_400_BAD_REQUEST)
-        if not move_in_date:
-            return Response({"detail": "move_in_date is required."}, status=status.HTTP_400_BAD_REQUEST)
-        if lease_end_date <= lease_start_date:
-            return Response({"detail": "Lease end date must be after start date."}, status=status.HTTP_400_BAD_REQUEST)
-
         property_obj = old_lease.property
+        room_obj = old_lease.room
 
-        if property_obj.category == "hostel":
-            occupied = TenantLease.objects.filter(
-                property=property_obj, status="active"
-            ).count()
-            if occupied >= property_obj.bedrooms:
-                return Response(
-                    {"detail": "All rooms in this hostel are currently occupied."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
-        else:
-            if TenantLease.objects.filter(property=property_obj, status="active").exists():
-                return Response(
-                    {"detail": "This property already has an active lease."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        payload = {
+            "property": property_obj.id,
+            "room": room_obj.id if room_obj else None,
+            "booking": None,
+            "lease_start_date": request.data.get("lease_start_date"),
+            "lease_end_date": request.data.get("lease_end_date"),
+            "move_in_date": request.data.get("move_in_date"),
+            "monthly_rent": request.data.get("monthly_rent", old_lease.monthly_rent),
+            "deposit_amount": request.data.get("deposit_amount", old_lease.deposit_amount),
+            "first_payment_status": request.data.get("first_payment_status", "pending"),
+            "notes": request.data.get("notes", "") or f"Renewal of lease #{old_lease.id}",
+        }
 
-        new_lease = TenantLease.objects.create(
-            property=property_obj,
-            tenant=old_lease.tenant,
-            landlord=user,
-            booking=None,
-            room_number=room_number,
-            lease_start_date=lease_start_date,
-            lease_end_date=lease_end_date,
-            move_in_date=move_in_date,
-            monthly_rent=monthly_rent,
-            deposit_amount=deposit_amount,
-            first_payment_status=first_payment_status,
-            notes=notes or f"Renewal of lease #{old_lease.id}",
-            status="active",
-        )
+        serializer = self.get_serializer(data=payload)
+        serializer.is_valid(raise_exception=True)
 
-        if property_obj.category != "hostel":
-            property_obj.is_available = False
-            property_obj.save()
+        with transaction.atomic():
+            if property_obj.category == "hostel":
+                if not room_obj:
+                    return Response(
+                        {"detail": "Cannot renew hostel lease without an assigned room."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                if room_obj.available_spaces() <= 0:
+                    return Response(
+                        {"detail": "This room is already full."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                room_obj.occupied_spaces += 1
+                room_obj.save()
+
+            else:
+                active_exists = TenantLease.objects.filter(
+                    property=property_obj,
+                    status="active",
+                ).exists()
+                if active_exists:
+                    return Response(
+                        {"detail": "This property already has an active lease."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            new_lease = serializer.save(
+                tenant=old_lease.tenant,
+                landlord=old_lease.landlord,
+                status="active",
+            )
+
+            if property_obj.category == "house_rent":
+                property_obj.is_available = False
+                property_obj.save(update_fields=["is_available"])
 
         send_notification(
             user=old_lease.tenant,
             message=(
                 f"Your lease for {property_obj.property_name} has been renewed. "
-                f"New lease period: {lease_start_date} to {lease_end_date}."
+                f"New lease period: {new_lease.lease_start_date} to {new_lease.lease_end_date}."
             ),
             notification_type="lease_renewed",
             property_id=property_obj.id,
         )
 
-        serializer = self.get_serializer(new_lease)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(
+            self.get_serializer(new_lease).data,
+            status=status.HTTP_201_CREATED,
+        )
 
     @action(detail=False, methods=["get"], url_path="owner-stats")
     def owner_stats(self, request):
@@ -196,119 +224,142 @@ class TenantLeaseViewSet(viewsets.ModelViewSet):
         role = getattr(user, "role", None)
 
         if not (user.is_superuser or role in ("owner", "admin")):
-            return Response({"detail": "Not authorized."}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"detail": "Not authorized."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
-        leases = TenantLease.objects.filter(
-            landlord=user, status="active"
-        ).select_related("property")
+        if user.is_superuser or role == "admin":
+            leases = TenantLease.objects.filter(status="active").select_related("property", "room")
+        else:
+            leases = TenantLease.objects.filter(
+                landlord=user,
+                status="active",
+            ).select_related("property", "room")
 
         total_active_leases = leases.count()
         total_revenue = leases.aggregate(total=Sum("monthly_rent"))["total"] or 0
 
-        hostel_leases = leases.filter(property__category="hostel")
         hostel_properties = {}
-        for lease in hostel_leases:
+        for lease in leases.filter(property__category="hostel"):
             prop = lease.property
             if prop.id not in hostel_properties:
+                rooms = list(prop.rooms.all())
+                total_rooms = len(rooms)
+                total_capacity = sum(room.max_capacity for room in rooms)
+                total_occupied = sum(room.occupied_spaces for room in rooms)
                 hostel_properties[prop.id] = {
                     "id": prop.id,
                     "property_name": prop.property_name,
-                    "total_rooms": prop.bedrooms,
-                    "occupied_rooms": 0,
+                    "total_rooms": total_rooms,
+                    "total_capacity": total_capacity,
+                    "occupied_spaces": total_occupied,
+                    "available_spaces": max(total_capacity - total_occupied, 0),
                     "monthly_revenue": 0,
                 }
-            hostel_properties[prop.id]["occupied_rooms"] += 1
+
             hostel_properties[prop.id]["monthly_revenue"] += float(lease.monthly_rent)
 
         hostel_stats = []
-        for h in hostel_properties.values():
-            h["available_rooms"] = max(0, h["total_rooms"] - h["occupied_rooms"])
-            h["full"] = h["available_rooms"] == 0
-            hostel_stats.append(h)
+        for item in hostel_properties.values():
+            item["full"] = item["available_spaces"] == 0
+            hostel_stats.append(item)
 
-        return Response({
-            "total_active_leases": total_active_leases,
-            "total_monthly_revenue": float(total_revenue),
-            "hostel_stats": hostel_stats,
-        })
+        return Response(
+            {
+                "total_active_leases": total_active_leases,
+                "total_monthly_revenue": float(total_revenue),
+                "hostel_stats": hostel_stats,
+            }
+        )
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        booking     = serializer.validated_data.get("booking")
+        booking = serializer.validated_data.get("booking")
         property_obj = serializer.validated_data.get("property")
-        tenant      = serializer.validated_data.get("tenant")
+        room_obj = serializer.validated_data.get("room")
 
-        if property_obj.owner != request.user:
+        if not self._can_manage_property_lease(request.user, property_obj):
             return Response(
                 {"detail": "You can only create leases for your own property."},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
         if booking:
-            if booking.owner != request.user:
-                return Response(
-                    {"detail": "This booking does not belong to you."},
-                    status=status.HTTP_403_FORBIDDEN,
-                )
-            if booking.property != property_obj:
+            if booking.property_id != property_obj.id:
                 return Response(
                     {"detail": "Selected property does not match the booking property."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            if booking.tenant != tenant:
-                return Response(
-                    {"detail": "Selected tenant does not match the booking tenant."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
 
-            # ── Block if lease already exists for this booking ─────────
             if TenantLease.objects.filter(booking=booking, status="active").exists():
                 return Response(
                     {"detail": "An active lease already exists for this booking."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        if property_obj.category == "hostel":
-            occupied = TenantLease.objects.filter(
-                property=property_obj, status="active"
-            ).count()
-            if occupied >= property_obj.bedrooms:
+        with transaction.atomic():
+            if property_obj.category == "hostel":
+                if not room_obj:
+                    return Response(
+                        {"detail": "A room is required for hostel leases."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                if room_obj.property_id != property_obj.id:
+                    return Response(
+                        {"detail": "Selected room does not belong to this hostel property."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                if room_obj.available_spaces() <= 0:
+                    return Response(
+                        {"detail": "This room is already full."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                room_obj.occupied_spaces += 1
+                room_obj.save()
+
+            else:
+                active_exists = TenantLease.objects.filter(
+                    property=property_obj,
+                    status="active",
+                ).exists()
+
+                if active_exists or not property_obj.is_available:
+                    return Response(
+                        {"detail": "This property already has an active tenant lease."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            if booking:
+                TenantLease.objects.filter(booking=booking).update(booking=None)
+
+            lease = serializer.save(
+                tenant=booking.tenant if booking else None,
+                landlord=request.user,
+                status="active",
+            )
+
+            if lease.tenant is None:
                 return Response(
-                    {"detail": "All rooms in this hostel are currently occupied."},
+                    {"detail": "Lease tenant could not be resolved. Attach a valid booking or set tenant in serializer logic."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-        else:
-            if TenantLease.objects.filter(property=property_obj, status="active").exists():
-                return Response(
-                    {"detail": "This property already has an active tenant lease."},
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
 
-        # ── Detach booking from any old lease to avoid OneToOneField conflict ──
-        if booking:
-            TenantLease.objects.filter(booking=booking).update(booking=None)
+            if property_obj.category == "house_rent":
+                property_obj.is_available = False
+                property_obj.save(update_fields=["is_available"])
 
-        lease = serializer.save(landlord=request.user, status="active")
-
-        # ── Mark booking as converted ──────────────────────────────────
-        if booking:
-            booking.status = "converted"
-            booking.save()
-
-        if property_obj.category == "hostel":
-            occupied_after_create = TenantLease.objects.filter(
-                property=property_obj, status="active"
-            ).count()
-            property_obj.is_available = occupied_after_create < property_obj.bedrooms
-        else:
-            property_obj.is_available = False
-
-        property_obj.save()
+            if booking:
+                booking.status = "converted"
+                booking.save(update_fields=["status"])
 
         send_notification(
-            user=tenant,
+            user=lease.tenant,
             message=(
                 f"Your lease for {property_obj.property_name} has been confirmed. "
                 f"You are now a tenant."
@@ -318,9 +369,6 @@ class TenantLeaseViewSet(viewsets.ModelViewSet):
         )
 
         return Response(
-            TenantLeaseSerializer(lease, context={"request": request}).data,
+            self.get_serializer(lease).data,
             status=status.HTTP_201_CREATED,
         )
-
-    def perform_create(self, serializer):
-        serializer.save(landlord=self.request.user, status="active")

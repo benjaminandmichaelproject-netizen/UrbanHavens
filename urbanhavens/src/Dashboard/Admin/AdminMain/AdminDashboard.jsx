@@ -6,6 +6,7 @@ import {
   FaClipboardCheck,
   FaArrowUp,
   FaBell,
+  FaTrash,
 } from "react-icons/fa";
 import "./AdminDashboard.css";
 import { useNavigate } from "react-router-dom";
@@ -14,7 +15,7 @@ import { useNotifications } from "../../../context/NotificationContext";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
-  const { notifications } = useNotifications();
+  const { notifications, setNotifications, setUnreadCount } = useNotifications();
 
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -24,6 +25,11 @@ const AdminDashboard = () => {
   });
 
   const [loading, setLoading] = useState(true);
+
+  const clearNotifications = () => {
+    setNotifications([]);
+    setUnreadCount(0);
+  };
 
   const formatActivity = (notification) => {
     const date = notification.created_at
@@ -44,8 +50,6 @@ const AdminDashboard = () => {
     };
   };
 
-  // Derived directly from NotificationContext — updates in real time
-  // when the WebSocket pushes a new notification
   const activities = notifications.slice(0, 5).map(formatActivity);
 
   useEffect(() => {
@@ -53,8 +57,6 @@ const AdminDashboard = () => {
       try {
         setLoading(true);
 
-        // Notifications are already handled by NotificationContext
-        // so we only fetch stats here
         const [usersRes, propertiesRes, bookingsRes] =
           await Promise.allSettled([
             api.get("/users/all-users/"),
@@ -62,7 +64,6 @@ const AdminDashboard = () => {
             api.get("/bookings/"),
           ]);
 
-        // ── Users ──────────────────────────────────────────────────────
         const totalUsers =
           usersRes.status === "fulfilled"
             ? Array.isArray(usersRes.value.data)
@@ -70,7 +71,6 @@ const AdminDashboard = () => {
               : usersRes.value.data.results?.length ?? 0
             : 0;
 
-        // ── Properties ─────────────────────────────────────────────────
         let totalProperties = 0;
         let pendingProperties = 0;
 
@@ -86,7 +86,6 @@ const AdminDashboard = () => {
           ).length;
         }
 
-        // ── Bookings ───────────────────────────────────────────────────
         const totalBookings =
           bookingsRes.status === "fulfilled"
             ? Array.isArray(bookingsRes.value.data)
@@ -177,9 +176,17 @@ const AdminDashboard = () => {
       {/* ── Bottom Panels ──────────────────────────────────────────────── */}
       <div className="admin-dashboard-bottom">
 
-        {/* Recent Activity — live from NotificationContext WebSocket */}
+        {/* Recent Activity */}
         <div className="admin-panel admin-activity-panel">
-          <h3>Recent Activity</h3>
+          <div className="activity-panel-header">
+            <h3>Recent Activity</h3>
+            {activities.length > 0 && (
+              <button className="clear-activity-btn" onClick={clearNotifications}>
+                <FaTrash />
+                <span>Clear</span>
+              </button>
+            )}
+          </div>
 
           {loading ? (
             <p className="activity-loading">Loading activity...</p>

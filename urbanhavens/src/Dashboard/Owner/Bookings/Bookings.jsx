@@ -1,10 +1,14 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import "./Bookings.css";
 import ScheduleMeeting from "../ScheduleMeeting/ScheduleMeeting";
 import ConvertToTenantModal from "../ConvertToTenantModal/ConvertToTenantModal";
 import {
   getOwnerBookings,
   createTenantLease,
+  cancelMeeting,
+  completeMeeting,
+  rejectBooking,
+  clearBooking,
 } from "../UploadDetails/api/api";
 
 const Bookings = () => {
@@ -19,13 +23,23 @@ const Bookings = () => {
   const [popupType, setPopupType] = useState("success");
   const [popupMessage, setPopupMessage] = useState("");
 
+  const [actionLoadingId, setActionLoadingId] = useState(null);
+
   const totalBookings = useMemo(() => bookings.length, [bookings]);
 
-  useEffect(() => {
-    fetchBookings();
-  }, []);
+  const formatDate = (value) => {
+    if (!value) return "—";
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? value : d.toLocaleDateString();
+  };
 
-  const transformBookings = (data) => {
+  const formatTime = (value) => {
+    if (!value) return "—";
+    const raw = String(value).slice(0, 5);
+    return raw || "—";
+  };
+
+  const transformBookings = useCallback((data) => {
     if (!Array.isArray(data)) return [];
     const today = new Date();
 
@@ -35,24 +49,34 @@ const Bookings = () => {
       const leaseExpired =
         lease && lease.lease_end_date && new Date(lease.lease_end_date) < today;
 
+      const meetingStatus = booking?.meeting?.status?.toLowerCase() || "";
+      const propertyCategory =
+        booking.property_category || booking.property?.category || "";
+
       return {
         ...booking,
         property_name: booking.property_name || "Unknown Property",
-        tenant_name: booking.tenant_name || booking.name,
-        date: booking.created_at
+        property_category: propertyCategory,
+        tenant_name: booking.tenant_name || "Unknown Tenant",
+        tenant_email: booking.tenant_email || "—",
+        tenant_phone: booking.phone || booking.tenant_phone || "—",
+        requested_date: booking.preferred_date || "",
+        requested_time: booking.preferred_time || "",
+        created_date: booking.created_at
           ? new Date(booking.created_at).toLocaleDateString()
           : "",
         status: booking.status
           ? booking.status.charAt(0).toUpperCase() + booking.status.slice(1)
           : "Pending",
+        meetingStatus,
         lease,
         leaseActive,
         leaseExpired,
       };
     });
-  };
+  }, []);
 
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getOwnerBookings();
@@ -63,7 +87,11 @@ const Bookings = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [transformBookings]);
+
+  useEffect(() => {
+    fetchBookings();
+  }, [fetchBookings]);
 
   const openScheduleModal = (booking) => {
     setSelectedBooking(booking);
@@ -106,10 +134,81 @@ const Bookings = () => {
       openPopup("success", "Tenant lease created successfully.");
     } catch (error) {
       console.error("Failed to create tenant lease:", error);
-      openPopup("error", error?.detail || "Failed to create tenant lease.");
+      openPopup(
+        "error",
+        error?.response?.data?.detail ||
+          error?.detail ||
+          "Failed to create tenant lease."
+      );
     } finally {
       setSubmittingLease(false);
     }
+  };
+
+  const handleRejectBooking = async (booking) => {
+    try {
+      setActionLoadingId(`reject-${booking.id}`);
+      await rejectBooking(booking.id);
+      await fetchBookings();
+      openPopup("success", "Booking request rejected successfully.");
+    } catch (error) {
+      console.error("Failed to reject booking:", error);
+      openPopup("error", "Failed to reject booking request.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleCancelMeeting = async (meetingId) => {
+    try {
+      setActionLoadingId(`cancel-${meetingId}`);
+      await cancelMeeting(meetingId);
+      await fetchBookings();
+      openPopup("success", "Meeting cancelled successfully.");
+    } catch (error) {
+      console.error("Failed to cancel meeting:", error);
+      openPopup("error", "Failed to cancel meeting.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleCompleteMeeting = async (meetingId) => {
+    try {
+      setActionLoadingId(`complete-${meetingId}`);
+      await completeMeeting(meetingId);
+      await fetchBookings();
+      openPopup("success", "Meeting marked as completed.");
+    } catch (error) {
+      console.error("Failed to complete meeting:", error);
+      openPopup("error", "Failed to mark meeting as completed.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleClearBooking = async (bookingId) => {
+    try {
+      setActionLoadingId(`clear-${bookingId}`);
+      await clearBooking(bookingId);
+      await fetchBookings();
+      openPopup("success", "Booking cleared from active list.");
+    } catch (error) {
+      console.error("Failed to clear booking:", error);
+      openPopup("error", "Failed to clear booking.");
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const canConvertBooking = (booking) => {
+    const bookingStatus = booking.status?.toLowerCase();
+    const meetingStatus = booking?.meetingStatus || "";
+
+    if (bookingStatus === "converted" || bookingStatus === "rejected") return false;
+    if (!booking.meeting) return false;
+
+    return meetingStatus === "completed";
   };
 
   const renderConvertButton = (booking) => {
@@ -138,7 +237,15 @@ const Bookings = () => {
     if (isConverted) {
       return (
         <button className="convert-btn" disabled>
-          Converted
+          Converted to Tenant
+        </button>
+      );
+    }
+
+    if (!canConvertBooking(booking)) {
+      return (
+        <button className="convert-btn disabled-btn" disabled>
+          Complete Meeting First
         </button>
       );
     }
@@ -150,6 +257,142 @@ const Bookings = () => {
       >
         Convert to Tenant
       </button>
+    );
+  };
+
+  const renderMeetingBlock = (booking) => {
+    if (!booking.meeting) {
+      return <span className="meeting-none">Not yet scheduled</span>;
+    }
+
+    return (
+      <div className="confirmed-schedule-block">
+        <div>
+          <strong>{formatDate(booking.meeting.date)}</strong>
+        </div>
+        <div>{formatTime(booking.meeting.time)}</div>
+        <div>{booking.meeting.location || "—"}</div>
+        <div className={`meeting-status ${booking.meeting.status || ""}`}>
+          {booking.meeting.status || "—"}
+        </div>
+      </div>
+    );
+  };
+
+  const renderActionButtons = (booking) => {
+    const bookingStatus = booking.status?.toLowerCase();
+    const meetingStatus = booking?.meeting?.status?.toLowerCase();
+
+    if (bookingStatus === "converted") {
+      return (
+        <>
+          <button className="schedule-btn disabled-btn" disabled>
+            Converted to Tenant
+          </button>
+
+          <button
+            className="clear-btn"
+            onClick={() => handleClearBooking(booking.id)}
+            disabled={actionLoadingId === `clear-${booking.id}`}
+          >
+            {actionLoadingId === `clear-${booking.id}`
+              ? "Clearing..."
+              : "Clear Booking"}
+          </button>
+        </>
+      );
+    }
+
+    if (bookingStatus === "rejected") {
+      return (
+        <button className="schedule-btn disabled-btn" disabled>
+          Rejected
+        </button>
+      );
+    }
+
+    if (!booking.meeting) {
+      return (
+        <>
+          <button
+            className="schedule-btn"
+            onClick={() => openScheduleModal(booking)}
+            disabled={actionLoadingId === `reject-${booking.id}`}
+          >
+            Schedule Meeting
+          </button>
+
+          <button
+            className="reject-btn"
+            onClick={() => handleRejectBooking(booking)}
+            disabled={actionLoadingId === `reject-${booking.id}`}
+          >
+            {actionLoadingId === `reject-${booking.id}`
+              ? "Rejecting..."
+              : "Reject Request"}
+          </button>
+        </>
+      );
+    }
+
+    if (meetingStatus === "completed") {
+      return (
+        <button className="complete-btn" disabled>
+          Completed
+        </button>
+      );
+    }
+
+    if (meetingStatus === "cancelled") {
+      return (
+        <button
+          className="schedule-btn"
+          onClick={() => openScheduleModal(booking)}
+        >
+          Reschedule Meeting
+        </button>
+      );
+    }
+
+    return (
+      <>
+        <button
+          className="schedule-btn"
+          onClick={() => openScheduleModal(booking)}
+          disabled={
+            actionLoadingId === `cancel-${booking.meeting.id}` ||
+            actionLoadingId === `complete-${booking.meeting.id}`
+          }
+        >
+          Reschedule Meeting
+        </button>
+
+        <button
+          className="cancel-btn"
+          onClick={() => handleCancelMeeting(booking.meeting.id)}
+          disabled={
+            actionLoadingId === `cancel-${booking.meeting.id}` ||
+            actionLoadingId === `complete-${booking.meeting.id}`
+          }
+        >
+          {actionLoadingId === `cancel-${booking.meeting.id}`
+            ? "Cancelling..."
+            : "Cancel Meeting"}
+        </button>
+
+        <button
+          className="complete-btn"
+          onClick={() => handleCompleteMeeting(booking.meeting.id)}
+          disabled={
+            actionLoadingId === `cancel-${booking.meeting.id}` ||
+            actionLoadingId === `complete-${booking.meeting.id}`
+          }
+        >
+          {actionLoadingId === `complete-${booking.meeting.id}`
+            ? "Saving..."
+            : "Mark Completed"}
+        </button>
+      </>
     );
   };
 
@@ -168,7 +411,7 @@ const Bookings = () => {
       <div className="bookings-header">
         <div>
           <h1>Bookings</h1>
-          <p>View all booking requests sent by tenants for your properties.</p>
+          <p>View all viewing requests sent by tenants for your properties.</p>
         </div>
 
         <div className="bookings-summary">
@@ -180,7 +423,10 @@ const Bookings = () => {
       {bookings.length === 0 ? (
         <div className="bookings-empty">
           <h3>No bookings yet</h3>
-          <p>When tenants send requests for your properties, they will appear here.</p>
+          <p>
+            When tenants send viewing requests for your properties, they will
+            appear here.
+          </p>
         </div>
       ) : (
         <>
@@ -190,11 +436,11 @@ const Bookings = () => {
                 <tr>
                   <th>ID</th>
                   <th>Property</th>
-                  <th>Name</th>
-                  <th>Email</th>
+                  <th>Tenant</th>
                   <th>Contact</th>
+                  <th>Requested Schedule</th>
+                  <th>Confirmed Meeting</th>
                   <th>Message</th>
-                  <th>Date</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -204,16 +450,39 @@ const Bookings = () => {
                 {bookings.map((booking) => (
                   <tr key={booking.id}>
                     <td>#{booking.id}</td>
-                    <td>{booking.property_name}</td>
-                    <td>{booking.tenant_name}</td>
-                    <td>{booking.email}</td>
                     <td>
-                      <a href={`tel:${booking.phone}`} className="call-link">
-                        {booking.phone}
+                      <div className="booking-property-stack">
+                        <span>{booking.property_name}</span>
+                        <small>
+                          {booking.property_category === "hostel"
+                            ? "Hostel"
+                            : booking.property_category === "house_rent"
+                            ? "House Rent"
+                            : "Property"}
+                        </small>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="tenant-block">
+                        <div className="tenant-name">{booking.tenant_name}</div>
+                        <div className="tenant-email">{booking.tenant_email}</div>
+                      </div>
+                    </td>
+                    <td>
+                      <a href={`tel:${booking.tenant_phone}`} className="call-link">
+                        {booking.tenant_phone}
                       </a>
                     </td>
-                    <td className="message-cell">{booking.message}</td>
-                    <td>{booking.date}</td>
+                    <td>
+                      <div className="requested-schedule-block">
+                        <div>
+                          <strong>{formatDate(booking.requested_date)}</strong>
+                        </div>
+                        <div>{formatTime(booking.requested_time)}</div>
+                      </div>
+                    </td>
+                    <td>{renderMeetingBlock(booking)}</td>
+                    <td className="message-cell">{booking.message || "—"}</td>
                     <td>
                       <span className={`booking-status ${booking.status.toLowerCase()}`}>
                         {booking.status}
@@ -221,12 +490,7 @@ const Bookings = () => {
                     </td>
                     <td>
                       <div className="booking-action-buttons">
-                        <button
-                          className="schedule-btn"
-                          onClick={() => openScheduleModal(booking)}
-                        >
-                          Schedule Meeting
-                        </button>
+                        {renderActionButtons(booking)}
                         {renderConvertButton(booking)}
                       </div>
                     </td>
@@ -247,24 +511,31 @@ const Bookings = () => {
                 </div>
 
                 <p><strong>ID:</strong> #{booking.id}</p>
-                <p><strong>Name:</strong> {booking.tenant_name}</p>
-                <p><strong>Email:</strong> {booking.email}</p>
+                <p><strong>Category:</strong> {booking.property_category || "—"}</p>
+                <p><strong>Tenant:</strong> {booking.tenant_name}</p>
+                <p><strong>Email:</strong> {booking.tenant_email}</p>
                 <p>
                   <strong>Contact:</strong>{" "}
-                  <a href={`tel:${booking.phone}`} className="call-link">
-                    {booking.phone}
+                  <a href={`tel:${booking.tenant_phone}`} className="call-link">
+                    {booking.tenant_phone}
                   </a>
                 </p>
-                <p><strong>Date:</strong> {booking.date}</p>
-                <p><strong>Message:</strong> {booking.message}</p>
+                <p>
+                  <strong>Requested Date:</strong> {formatDate(booking.requested_date)}
+                </p>
+                <p>
+                  <strong>Requested Time:</strong> {formatTime(booking.requested_time)}
+                </p>
+
+                <div className="booking-meeting-mobile">
+                  <strong>Confirmed Meeting:</strong>
+                  <div>{renderMeetingBlock(booking)}</div>
+                </div>
+
+                <p><strong>Message:</strong> {booking.message || "—"}</p>
 
                 <div className="booking-card-actions booking-action-buttons">
-                  <button
-                    className="schedule-btn"
-                    onClick={() => openScheduleModal(booking)}
-                  >
-                    Schedule Meeting
-                  </button>
+                  {renderActionButtons(booking)}
                   {renderConvertButton(booking)}
                 </div>
               </div>

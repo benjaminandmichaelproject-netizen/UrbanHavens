@@ -1,34 +1,66 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import "./RenewLeaseModal.css";
 
+const formatMoney = (value) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num.toLocaleString() : value;
+};
+
 const RenewLeaseModal = ({ lease, onClose, onConfirm, submitting }) => {
+  const isHostel = lease?.property_category === "hostel";
+
   const [formData, setFormData] = useState({
-    lease_start_date:     "",
-    lease_end_date:       "",
-    move_in_date:         "",
-    monthly_rent:         lease?.monthly_rent     || "",
-    deposit_amount:       lease?.deposit_amount   || "",
+    lease_start_date: "",
+    lease_end_date: "",
+    move_in_date: "",
+    monthly_rent: lease?.monthly_rent || "",
+    deposit_amount: lease?.deposit_amount || "",
     first_payment_status: "pending",
-    room_number:          lease?.room_number      || "",
-    notes:                "",
+    notes: "",
   });
 
   const [errors, setErrors] = useState({});
 
-  const isHostel = lease?.property_category === "hostel";
+  const roomAvailabilityText = useMemo(() => {
+    if (!isHostel) return "";
+    const spaces = lease?.room_available_spaces;
+    if (spaces === null || spaces === undefined) return "";
+    return `${spaces} space${Number(spaces) === 1 ? "" : "s"} left`;
+  }, [isHostel, lease?.room_available_spaces]);
 
   const handleChange = (e) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-    setErrors((prev)  => ({ ...prev, [e.target.name]: "" }));
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
   const validate = () => {
     const err = {};
-    if (!formData.lease_start_date) err.lease_start_date = "Start date is required";
-    if (!formData.lease_end_date)   err.lease_end_date   = "End date is required";
-    if (!formData.move_in_date)     err.move_in_date     = "Move-in date is required";
-    if (!formData.monthly_rent)     err.monthly_rent     = "Monthly rent is required";
-    if (!formData.deposit_amount)   err.deposit_amount   = "Deposit amount is required";
+
+    if (!formData.lease_start_date) {
+      err.lease_start_date = "Start date is required";
+    }
+
+    if (!formData.lease_end_date) {
+      err.lease_end_date = "End date is required";
+    }
+
+    if (!formData.move_in_date) {
+      err.move_in_date = "Move-in date is required";
+    }
+
+    if (!formData.monthly_rent) {
+      err.monthly_rent = "Monthly rent is required";
+    } else if (Number(formData.monthly_rent) <= 0) {
+      err.monthly_rent = "Monthly rent must be greater than 0";
+    }
+
+    if (!formData.deposit_amount && formData.deposit_amount !== 0 && formData.deposit_amount !== "0") {
+      err.deposit_amount = "Deposit amount is required";
+    } else if (Number(formData.deposit_amount) < 0) {
+      err.deposit_amount = "Deposit amount cannot be negative";
+    }
+
     if (
       formData.lease_start_date &&
       formData.lease_end_date &&
@@ -36,6 +68,15 @@ const RenewLeaseModal = ({ lease, onClose, onConfirm, submitting }) => {
     ) {
       err.lease_end_date = "End date must be after start date";
     }
+
+    if (
+      formData.lease_start_date &&
+      formData.move_in_date &&
+      formData.move_in_date < formData.lease_start_date
+    ) {
+      err.move_in_date = "Move-in date cannot be earlier than start date";
+    }
+
     setErrors(err);
     return Object.keys(err).length === 0;
   };
@@ -43,16 +84,31 @@ const RenewLeaseModal = ({ lease, onClose, onConfirm, submitting }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validate()) return;
-    onConfirm(formData);
+
+    onConfirm({
+      lease_start_date: formData.lease_start_date,
+      lease_end_date: formData.lease_end_date,
+      move_in_date: formData.move_in_date,
+      monthly_rent: formData.monthly_rent,
+      deposit_amount: formData.deposit_amount,
+      first_payment_status: formData.first_payment_status,
+      notes: formData.notes,
+    });
   };
 
   return (
     <div className="rl-overlay" onClick={onClose}>
       <div className="rl-modal" onClick={(e) => e.stopPropagation()}>
-
         <div className="rl-header">
           <h2>Renew Lease</h2>
-          <button className="rl-close-btn" onClick={onClose} disabled={submitting}>✕</button>
+          <button
+            className="rl-close-btn"
+            onClick={onClose}
+            disabled={submitting}
+            type="button"
+          >
+            ✕
+          </button>
         </div>
 
         <div className="rl-summary">
@@ -61,14 +117,27 @@ const RenewLeaseModal = ({ lease, onClose, onConfirm, submitting }) => {
             Renewing lease for <strong>{lease?.tenant_name}</strong> at{" "}
             <strong>{lease?.property_name}</strong>
           </p>
+
           {isHostel && lease?.room_number && (
-            <p className="rl-room">Room: <strong>{lease.room_number}</strong></p>
+            <p className="rl-room">
+              Room: <strong>{lease.room_number}</strong>
+              {lease?.room_type ? ` • ${lease.room_type}` : ""}
+            </p>
           )}
+
+          {isHostel && roomAvailabilityText && (
+            <p className="rl-room-subtext">
+              Current availability: <strong>{roomAvailabilityText}</strong>
+            </p>
+          )}
+
+          <p className="rl-rent-preview">
+            Current rent: <strong>GHS {formatMoney(lease?.monthly_rent)}</strong>
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="rl-form">
           <div className="rl-grid">
-
             <div className="rl-field">
               <label>New Lease Start Date</label>
               <input
@@ -112,6 +181,8 @@ const RenewLeaseModal = ({ lease, onClose, onConfirm, submitting }) => {
                 name="monthly_rent"
                 value={formData.monthly_rent}
                 onChange={handleChange}
+                min="0"
+                step="0.01"
                 disabled={submitting}
               />
               {errors.monthly_rent && <small>{errors.monthly_rent}</small>}
@@ -124,6 +195,8 @@ const RenewLeaseModal = ({ lease, onClose, onConfirm, submitting }) => {
                 name="deposit_amount"
                 value={formData.deposit_amount}
                 onChange={handleChange}
+                min="0"
+                step="0.01"
                 disabled={submitting}
               />
               {errors.deposit_amount && <small>{errors.deposit_amount}</small>}
@@ -142,25 +215,12 @@ const RenewLeaseModal = ({ lease, onClose, onConfirm, submitting }) => {
                 <option value="paid">Paid</option>
               </select>
             </div>
-
-            {isHostel && (
-              <div className="rl-field">
-                <label>Room Number</label>
-                <input
-                  type="text"
-                  name="room_number"
-                  value={formData.room_number}
-                  onChange={handleChange}
-                  placeholder="e.g. 101, A4"
-                  disabled={submitting}
-                />
-              </div>
-            )}
-
           </div>
 
           <div className="rl-field rl-notes">
-            <label>Notes <span className="rl-optional">(optional)</span></label>
+            <label>
+              Notes <span className="rl-optional">(optional)</span>
+            </label>
             <textarea
               name="notes"
               value={formData.notes}

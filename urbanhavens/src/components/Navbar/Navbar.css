@@ -21,7 +21,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 12% !important;
+  padding: 0 15% !important;
   transition: background 0.3s ease;
   z-index: 1000;
 }
@@ -144,7 +144,9 @@
     z-index: 999;
     overflow: visible;
 }
-
+.menu-toggle{
+  display: block;
+}
   .nav-links.active {
     opacity: 1;
     transform: translateY(0);
@@ -182,6 +184,12 @@
   .dropdown-menus a:hover,
   .dropdown-menus button:hover {
     background: rgba(255, 255, 255, 0.1);
+  }
+.navbar{
+  padding: 7px 5% !important;
+}
+  .logo{
+    font-size: 15px;
   }
 
 }

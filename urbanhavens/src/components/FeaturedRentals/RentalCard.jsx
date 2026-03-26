@@ -33,95 +33,101 @@ const RentalCard = ({
   price,
   amenities = [],
   onBook,
-  theme = "dark",
   isFavorited = false,
   onFavorite,
   isAvailable = true,
-}) => (
-  <motion.div
-    className={`fr-card fr-card--${theme}`}
-    variants={cardVariant}
-    whileHover={{ y: -6, transition: { duration: 0.22 } }}
-  >
-    <div className="fr-card-img-wrap">
-      {image ? (
-        <img src={image} alt={title} className="fr-card-img" />
-      ) : (
-        <div className="fr-card-img-placeholder">
-          <FaHome />
-        </div>
-      )}
+}) => {
+  const formatPrice = (value) => {
+    if (value === null || value === undefined || value === "") return "—";
+    return Number(value).toLocaleString("en-GH", {
+      style: "currency",
+      currency: "GHS",
+      maximumFractionDigits: 0,
+    });
+  };
 
-      {/* Favorite top-left */}
-      <button
-        type="button"
-        className={`fr-card-fav-btn fr-card-fav-btn--top-left${
-          isFavorited ? " fr-card-fav-btn--active" : ""
-        }`}
-        onClick={(e) => {
-          e.stopPropagation();
-          onFavorite && onFavorite();
-        }}
-        aria-label={isFavorited ? "Remove from favorites" : "Add to favorites"}
-        title={isFavorited ? "Remove from favorites" : "Add to favorites"}
-      >
-        {isFavorited ? <FaHeart /> : <FaRegHeart />}
-      </button>
+  return (
+    <motion.article
+      className="rental-card"
+      variants={cardVariant}
+      whileHover={{ y: -6, transition: { duration: 0.22 } }}
+    >
+      <div className="rental-card-image-wrap">
+        {image ? (
+          <img src={image} alt={title || "Property"} className="rental-card-image" />
+        ) : (
+          <div className="rental-card-image-placeholder">
+            <FaHome />
+          </div>
+        )}
 
-      {/* Availability top-right */}
-      <span
-        className={`fr-card-availability fr-card-availability--${
-          isAvailable ? "available" : "unavailable"
-        }`}
-      >
-        <span className="fr-card-availability-dot" />
-        {isAvailable ? "Available" : "Unavailable"}
-      </span>
-
-      {/* Property type bottom-left */}
-      {category && (
-        <span className="fr-card-badge fr-card-badge--bottom">
-          {category === "hostel" ? (
-            <FaBuilding style={{ marginRight: 5 }} />
-          ) : (
-            <FaHome style={{ marginRight: 5 }} />
-          )}
-          {CATEGORY_LABELS[category] || category}
+        <span className={`rental-card-badge ${isAvailable ? "available" : "unavailable"}`}>
+          {isAvailable ? "● Available" : "● Occupied"}
         </span>
-      )}
-    </div>
 
-    <div className="fr-card-body">
-      <h3 className="fr-card-title">{title}</h3>
-
-      <p className="fr-card-location">
-        <FaMapMarkerAlt className="fr-card-pin" />
-        {[city, region].filter(Boolean).join(", ")}
-      </p>
-
-      {amenities.length > 0 && (
-        <div className="fr-card-amenities">
-          {amenities.map((a, i) => (
-            <span key={i} className="fr-card-amenity">
-              {a}
-            </span>
-          ))}
-        </div>
-      )}
-
-      <div className="fr-card-footer">
-        <div className="fr-card-price">
-          <span className="fr-card-price-amount">
-            GHS {Number(price).toLocaleString()}
+        {category && (
+          <span className="rental-card-category">
+            {category === "hostel" ? <FaBuilding /> : <FaHome />}
+            <span>{CATEGORY_LABELS[category] || category}</span>
           </span>
-          <span className="fr-card-price-period">/mo</span>
-        </div>
-        <button className="fr-card-btn" onClick={onBook}>
-          View <FaArrowRight />
+        )}
+
+        <button
+          type="button"
+          className={`rental-card-fav-btn ${isFavorited ? "favorited" : ""}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onFavorite?.();
+          }}
+          aria-label={isFavorited ? "Remove from favourites" : "Add to favourites"}
+          title={isFavorited ? "Remove from favourites" : "Add to favourites"}
+        >
+          {isFavorited ? <FaHeart /> : <FaRegHeart />}
         </button>
       </div>
-    </div>
-  </motion.div>
-);
+
+      <div className="rental-card-body">
+        <h3 className="rental-card-title">{title || "Untitled Property"}</h3>
+
+        <p className="rental-card-location">
+          <FaMapMarkerAlt />
+          {[city, region].filter(Boolean).join(", ") || "Location TBD"}
+        </p>
+
+        {amenities.length > 0 && (
+          <div className="rental-card-amenities">
+            {amenities.slice(0, 3).map((item, index) => (
+              <span key={index} className="rental-card-amenity">
+                {item}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="rental-card-footer">
+        <div className="rental-card-price">
+          <span className="rental-card-price-amount">{formatPrice(price)}</span>
+          <span className="rental-card-price-label">per month</span>
+        </div>
+
+        <button
+          className="rental-card-book-btn"
+          onClick={isAvailable ? onBook : undefined}
+          disabled={!isAvailable}
+        >
+          {isAvailable ? (
+            <>
+              <span>View</span>
+              <FaArrowRight />
+            </>
+          ) : (
+            "Unavailable"
+          )}
+        </button>
+      </div>
+    </motion.article>
+  );
+};
 
 export default RentalCard;

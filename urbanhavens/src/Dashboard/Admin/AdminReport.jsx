@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { api } from "../Owner/UploadDetails/api/api.js";
 import "./Report.css";
 
 const AdminReport = () => {
@@ -27,35 +28,18 @@ const AdminReport = () => {
       setLoading(true);
       setApiError("");
 
-      const access = localStorage.getItem("access");
-
-      if (!access) {
-        setApiError("No access token found. Please log in again.");
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch("http://127.0.0.1:8000/api/reports/admin/", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${access}`,
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data?.detail || data?.message || "Failed to fetch reports."
-        );
-      }
-
-    const reportList = Array.isArray(data) ? data : data.results || [];
-setReports(reportList);
-setFilteredReports(reportList);
+      const res = await api.get("/reports/admin/");
+      const data = res.data;
+      const reportList = Array.isArray(data) ? data : data.results || [];
+      setReports(reportList);
+      setFilteredReports(reportList);
     } catch (error) {
-      setApiError(error.message || "Something went wrong while fetching reports.");
+      const msg =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.message ||
+        "Something went wrong while fetching reports.";
+      setApiError(msg);
     } finally {
       setLoading(false);
     }
@@ -63,39 +47,25 @@ setFilteredReports(reportList);
 
   const getStatusClass = (status) => {
     switch (status) {
-      case "pending":
-        return "pending";
-      case "reviewing":
-        return "reviewing";
-      case "resolved":
-        return "resolved";
-      case "dismissed":
-        return "dismissed";
-      default:
-        return "";
+      case "pending":    return "pending";
+      case "reviewing":  return "reviewing";
+      case "resolved":   return "resolved";
+      case "dismissed":  return "dismissed";
+      default:           return "";
     }
   };
 
   const getCategoryLabel = (category) => {
     switch (category) {
-      case "fraudulent_listing":
-        return "Fraudulent Listing";
-      case "misleading_info":
-        return "Misleading Info";
-      case "inappropriate_content":
-        return "Inappropriate Content";
-      case "scam":
-        return "Scam";
-      case "wrong_price":
-        return "Wrong Price";
-      case "already_rented":
-        return "Already Rented";
-      case "harassment":
-        return "Harassment";
-      case "other":
-        return "Other";
-      default:
-        return category;
+      case "fraudulent_listing":    return "Fraudulent Listing";
+      case "misleading_info":       return "Misleading Info";
+      case "inappropriate_content": return "Inappropriate Content";
+      case "scam":                  return "Scam";
+      case "wrong_price":           return "Wrong Price";
+      case "already_rented":        return "Already Rented";
+      case "harassment":            return "Harassment";
+      case "other":                 return "Other";
+      default:                      return category;
     }
   };
 
@@ -150,7 +120,6 @@ setFilteredReports(reportList);
                 <th>Date</th>
               </tr>
             </thead>
-
             <tbody>
               {filteredReports.map((report, index) => (
                 <tr key={report.id}>

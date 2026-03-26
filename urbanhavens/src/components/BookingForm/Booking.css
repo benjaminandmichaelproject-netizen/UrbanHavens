@@ -342,4 +342,22 @@ justify-content: center;
   .status-popup-content p {
     font-size: 14px;
   }
+}.booking-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.booking-field-icon {
+  margin-right: 8px;
+  color: #1a7a40;
+  font-size: 0.9rem;
+  vertical-align: middle;
+}
+
+@media (max-width: 768px) {
+  .booking-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
 }

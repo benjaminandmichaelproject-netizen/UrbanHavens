@@ -1,516 +1,348 @@
-/* ── Tokens ───────────────────────────────────────────────────────── */
-.fr-section {
-  --fr-bg: #0a1f12;
-  --fr-bg2: #0f2918;
-  --fr-green: #1a7a40;
-  --fr-green-lt: #22a055;
-  --fr-accent: #2dde72;
-  --fr-border: rgba(255, 255, 255, 0.08);
-  --fr-white: #ffffff;
-  --fr-muted: rgba(255, 255, 255, 0.5);
-  --fr-muted2: rgba(255, 255, 255, 0.3);
+:root {
+  --primary-green: #10b981;
+  --dark-green: #065f46;
+  --light-green: #ecfdf5;
+  --text-main: #1f2937;
+  --text-muted: #6b7280;
+  --card-bg: #ffffff;
+  --border-soft: #edf2f7;
+  --shadow-sm: 0 4px 10px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 14px 30px rgba(0, 0, 0, 0.1);
+  --transition: all 0.3s ease;
 }
 
-/* ── Section ──────────────────────────────────────────────────────── */
-.fr-section {
-  background: var(--fr-bg);
-  position: relative;
-  width: 100%;
-  padding: 100px 15% 80px;
-  box-sizing: border-box;
-  font-family: "DM Sans", "Segoe UI", sans-serif;
-}
-
-.fr-section::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-  background-size: 28px 28px;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.fr-header,
-.fr-grid,
-.fr-cta,
-.fr-state,
-.fr-error,
-.fr-empty {
-  position: relative;
-  z-index: 1;
-}
-
-/* ── Header ───────────────────────────────────────────────────────── */
-.fr-header {
-  text-align: center;
-  margin-bottom: 56px;
-}
-
-.fr-eyebrow {
-  display: inline-block;
-  font-size: 0.6rem;
-  font-weight: 800;
-  letter-spacing: 0.18em;
-  color: var(--fr-accent);
-  text-transform: uppercase;
-  padding: 5px 14px;
-  border: 1px solid rgba(45, 222, 114, 0.25);
-  border-radius: 20px;
-  background: rgba(45, 222, 114, 0.07);
-  margin-bottom: 14px;
-}
-
-.fr-title {
-  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
-  font-weight: 900;
-  color: var(--fr-white);
-  margin: 0 0 12px;
-  letter-spacing: -0.02em;
-}
-
-.fr-accent {
-  color: var(--fr-accent);
-}
-
-.fr-sub {
-  font-size: 0.92rem;
-  color: var(--fr-muted);
+/* section */
+.featured-rentals-section {
   margin: 0 auto;
-  max-width: 500px;
+  padding: 10px 15%;
 }
 
-/* ── States ───────────────────────────────────────────────────────── */
-.fr-state {
+.featured-rentals-header {
+  text-align: center;
+  margin-bottom: 4rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
-  padding: 60px 0;
-  color: var(--fr-muted);
-  font-size: 0.9rem;
 }
 
-.fr-spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid rgba(45, 222, 114, 0.2);
-  border-top-color: var(--fr-accent);
-  border-radius: 50%;
-  animation: fr-spin 0.7s linear infinite;
-}
-
-@keyframes fr-spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.fr-error {
-  text-align: center;
-  color: #f87171;
-  font-size: 0.88rem;
-  padding: 20px 0;
-}
-
-.fr-empty {
-  text-align: center;
-  color: var(--fr-muted);
-  font-size: 0.9rem;
-  padding: 40px 0;
-}
-
-/* ── Grid ─────────────────────────────────────────────────────────── */
-.fr-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 48px;
-}
-
-/* ── CTA ──────────────────────────────────────────────────────────── */
-.fr-cta {
-  display: flex;
-  justify-content: center;
-}
-
-.fr-cta-btn {
-  background: transparent;
-  color: var(--fr-accent);
-  border: 1.5px solid var(--fr-accent);
-  padding: 13px 36px;
-  border-radius: 10px;
-  font-size: 0.9rem;
+.featured-rentals-eyebrow {
+  display: inline-block;
+  padding: 0.6rem 2rem;
+  border: 1px solid #d1fae5;
+  background-color: #f0fdf4;
+  color: #065f46;
+  border-radius: 100px;
+  font-size: 0.85rem;
   font-weight: 700;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
 }
 
-.fr-cta-btn:hover {
-  background: var(--fr-accent);
-  color: #071a10;
+.featured-rentals-title {
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  font-weight: 800;
+  color: #112d1d;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: 1rem;
 }
 
-/* ══════════════════════════════════════════════════════════════════
-   CARD BASE — shared structure
-══════════════════════════════════════════════════════════════════ */
-.fr-card {
-  border-radius: 16px;
+.featured-rentals-title-accent {
+  color: var(--primary-green);
+}
+
+.featured-rentals-subtitle {
+  font-size: 1.1rem;
+  color: #6b7280;
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* grid */
+.featured-rentals-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+  margin: 2rem auto 0;
+  align-items: stretch;
+}
+
+/* rental card */
+.rental-card {
+  background: var(--card-bg);
+  border-radius: 1.25rem;
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: var(--transition);
+  border: 1px solid #f3f4f6;
   display: flex;
   flex-direction: column;
-  cursor: pointer;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  min-height: 100%;
+  height: 100%;
 }
 
-/* ── DARK theme (FeaturedRentals on dark section bg) ─────────────── */
-.fr-card--dark {
-  background: #0f2918;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+.rental-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-md);
 }
 
-.fr-card--dark:hover {
-  border-color: rgba(45, 222, 114, 0.3);
-}
-
-.fr-card--dark .fr-card-title {
-  color: #ffffff;
-}
-
-.fr-card--dark .fr-card-location {
-  color: rgba(255, 255, 255, 0.5);
-}
-
-.fr-card--dark .fr-card-price-amount {
-  color: #ffffff;
-}
-
-.fr-card--dark .fr-card-price-period {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.fr-card--dark .fr-card-amenity {
-  color: #2dde72;
-  background: rgba(45, 222, 114, 0.08);
-  border-color: rgba(45, 222, 114, 0.18);
-}
-
-.fr-card--dark .fr-card-footer {
-  border-top-color: rgba(255, 255, 255, 0.08);
-}
-
-.fr-card--dark .fr-card-btn {
-  background: #1a7a40;
-  color: #fff;
-}
-
-.fr-card--dark .fr-card-btn:hover {
-  background: #22a055;
-}
-
-.fr-card--dark .fr-card-img-placeholder {
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.2);
-}
-
-/* ── LIGHT theme (PropertyListing on light section bg) ───────────── */
-.fr-card--light {
-  background: #ffffff;
-  border: 1px solid rgba(26, 122, 64, 0.14);
-  box-shadow: 0 2px 16px rgba(26, 122, 64, 0.06);
-}
-
-.fr-card--light:hover {
-  border-color: rgba(26, 122, 64, 0.3);
-  box-shadow: 0 6px 28px rgba(26, 122, 64, 0.1);
-}
-
-.fr-card--light .fr-card-title {
-  color: #0f2d1c;
-}
-
-.fr-card--light .fr-card-location {
-  color: #4a7060;
-}
-
-.fr-card--light .fr-card-price-amount {
-  color: #0f2d1c;
-}
-
-.fr-card--light .fr-card-price-period {
-  color: #9ca3af;
-}
-
-.fr-card--light .fr-card-amenity {
-  color: #1a7a40;
-  background: rgba(26, 122, 64, 0.07);
-  border-color: rgba(26, 122, 64, 0.2);
-}
-
-.fr-card--light .fr-card-footer {
-  border-top-color: rgba(26, 122, 64, 0.1);
-}
-
-.fr-card--light .fr-card-btn {
-  background: #1a7a40;
-  color: #fff;
-}
-
-.fr-card--light .fr-card-btn:hover {
-  background: #22a055;
-}
-
-.fr-card--light .fr-card-img-placeholder {
-  background: #f4f7f5;
-  color: #9ca3af;
-}
-
-/* ── Image ────────────────────────────────────────────────────────── */
-.fr-card-img-wrap {
+.rental-card-image-wrap {
   position: relative;
-  height: 180px;
+  height: 160px;
   overflow: hidden;
   flex-shrink: 0;
+  background: #f3f4f6;
 }
 
-.fr-card-img {
+.rental-card-image,
+.rental-card-image-wrap img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.4s ease;
+  display: block;
+  transition: transform 0.6s ease;
 }
 
-.fr-card:hover .fr-card-img {
-  transform: scale(1.05);
+.rental-card:hover .rental-card-image-wrap img,
+.rental-card:hover .rental-card-image {
+  transform: scale(1.06);
 }
 
-.fr-card-img-placeholder {
+.rental-card-image-placeholder {
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: linear-gradient(135deg, #e5e7eb, #f3f4f6);
+  color: #9ca3af;
   font-size: 2rem;
 }
 
-/* Category badge */
-.fr-card-badge {
+.rental-card-badge {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  background: #1a7a40;
-  color: #fff;
-  font-size: 0.6rem;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  padding: 4px 10px;
-  border-radius: 20px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  backdrop-filter: blur(4px);
+  color: white;
+  z-index: 2;
 }
 
-/* ── Body ─────────────────────────────────────────────────────────── */
-.fr-card-body {
-  padding: 18px 16px;
+.rental-card-badge.available {
+  background: rgba(16, 185, 129, 0.92);
+}
+
+.rental-card-badge.unavailable {
+  background: rgba(239, 68, 68, 0.92);
+}
+
+.rental-card-category {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 0.38rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--dark-green);
+  text-transform: uppercase;
+  z-index: 2;
+}
+
+.rental-card-fav-btn {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: white;
+  border: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+  transition: var(--transition);
+  color: var(--text-main);
+  z-index: 2;
+}
+
+.rental-card-fav-btn:hover {
+  transform: scale(1.08);
+}
+
+.rental-card-fav-btn.favorited {
+  color: #ef4444;
+}
+
+.rental-card-body {
+  padding: 1rem 1rem 0.9rem;
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  flex: 1;
 }
 
-.fr-card-title {
-  font-size: 0.95rem;
+.rental-card-title {
+  font-size: 1.05rem;
   font-weight: 700;
-  margin: 0;
+  color: var(--text-main);
+  margin: 0 0 0.55rem;
   line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
-.fr-card-location {
+.rental-card-location {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.76rem;
-  margin: 0;
+  gap: 0.45rem;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  margin: 0 0 1rem;
 }
 
-.fr-card-pin {
-  font-size: 0.72rem;
+.rental-card-location svg {
+  color: var(--primary-green);
   flex-shrink: 0;
 }
 
-/* Amenities */
-.fr-card-amenities {
+.rental-card-amenities {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 0.5rem;
+  margin-top: auto;
 }
 
-.fr-card-amenity {
-  font-size: 0.65rem;
-  border-radius: 20px;
-  padding: 3px 9px;
+.rental-card-amenity {
+  background: var(--light-green);
+  color: var(--dark-green);
+  padding: 0.34rem 0.62rem;
+  border-radius: 0.45rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  border: 1px solid transparent;
 }
 
-/* Footer */
-.fr-card-footer {
+.rental-card-footer {
+  padding: 1rem;
+  border-top: 1px solid #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: auto;
-  padding-top: 10px;
-  border-top: 1px solid transparent;
+  gap: 0.9rem;
 }
 
-.fr-card-price {
-  display: flex;
-  align-items: baseline;
-  gap: 3px;
+.rental-card-price {
+  min-width: 0;
 }
 
-.fr-card-price-amount {
+.rental-card-price-amount {
+  display: block;
   font-size: 1rem;
   font-weight: 800;
+  color: var(--primary-green);
+  line-height: 1.2;
 }
 
-.fr-card-price-period {
-  font-size: 0.7rem;
+.rental-card-price-label {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  margin-top: 0.2rem;
 }
 
-.fr-card-btn {
+.rental-card-book-btn {
+  background: var(--primary-green);
+  color: white;
   border: none;
-  padding: 7px 14px;
-  border-radius: 8px;
-  font-size: 0.75rem;
+  padding: 0.72rem 1rem;
+  border-radius: 0.85rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s;
-  display: flex;
+  transition: var(--transition);
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 0.45rem;
   white-space: nowrap;
 }
 
-/* ── Responsive ───────────────────────────────────────────────────── */
-@media (max-width: 1280px) {
-  .fr-grid {
-    grid-template-columns: repeat(3, 1fr);
+.rental-card-book-btn:hover:not(:disabled) {
+  background: var(--dark-green);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.rental-card-book-btn:disabled {
+  background: #d1d5db;
+  cursor: not-allowed;
+}
+
+.featured-rentals-view-all-button {
+  margin-top: 3rem;
+  display: block;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+  background: transparent;
+  border: 2px solid var(--primary-green);
+  color: var(--primary-green);
+  padding: 0.8rem 2rem;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.featured-rentals-view-all-button:hover {
+  background: var(--primary-green);
+  color: white;
+}
+
+@media (max-width: 1200px) {
+  .featured-rentals-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 1024px) {
-  .fr-section {
-    padding: 80px 8% 60px;
-  }
-
-  .fr-grid {
-    grid-template-columns: repeat(2, 1fr);
+@media (max-width: 900px) {
+  .featured-rentals-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 640px) {
-  .fr-section {
-    padding: 70px 6% 50px;
-  }
-
-  .fr-grid {
+  .featured-rentals-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
-  }
-}
-
-@media (max-width: 480px) {
-  .fr-section {
-    padding: 60px 5% 40px;
+    gap: 1rem;
   }
 
-  .fr-title {
-    font-size: 1.7rem;
+  .featured-rentals-section {
+    padding: 2rem 1rem;
   }
-}.fr-card-availability {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 3;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 12px;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.01em;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
-}
 
-.fr-card-availability-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: currentColor;
-  display: inline-block;
-}
+  .featured-rentals-title {
+    font-size: 2.2rem;
+  }
 
-.fr-card-availability--available {
-  background: rgba(236, 253, 245, 0.96);
-  color: #15803d;
-}
+  .rental-card-image-wrap {
+    height: 210px;
+  }
 
-.fr-card-availability--unavailable {
-  background: rgba(254, 242, 242, 0.96);
-  color: #dc2626;
-}
+  .rental-card-footer {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
 
-.fr-card-fav-btn {
-  position: absolute;
-  top: 52px;
-  right: 12px;
-  width: 40px;
-  height: 40px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.95);
-  color: #dc2626;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 3;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.fr-card-fav-btn:hover {
-  transform: scale(1.06);
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2);
-}
-
-.fr-card-fav-btn--active {
-  background: #fff1f2;
-  color: #e11d48;
-}.fr-card-badge--bottom {
-  top: auto;
-  left: 12px;
-  bottom: 12px;
-  background: rgba(15, 41, 24, 0.92);
-  backdrop-filter: blur(6px);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
-}
-
-.fr-card-fav-btn--top-left {
-  top: 12px;
-  left: 12px;
-  right: auto;
-}
-
-.fr-card-availability {
-  top: 12px;
-  right: 12px;
+  .rental-card-book-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }

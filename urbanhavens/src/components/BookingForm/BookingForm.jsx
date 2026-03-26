@@ -1,8 +1,22 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./Booking.css";
 import { createBooking } from "../../Dashboard/Owner/UploadDetails/api/api";
-import { FaPhoneAlt, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
+import {
+  FaCheckCircle,
+  FaTimesCircle,
+  FaCalendarAlt,
+  FaClock,
+  FaPhoneAlt,
+  FaUsers,
+  FaHome,
+  FaBed,
+} from "react-icons/fa";
+
+const formatMoney = (value) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num.toLocaleString() : value;
+};
 
 const BookingForm = ({ property }) => {
   const navigate = useNavigate();
@@ -15,22 +29,69 @@ const BookingForm = ({ property }) => {
   const [statusPopupType, setStatusPopupType] = useState("success");
   const [statusPopupMessage, setStatusPopupMessage] = useState("");
 
+  const accessToken =
+    localStorage.getItem("access") || localStorage.getItem("token");
+  const storedPhone = localStorage.getItem("phone") || "";
+
+  const isLoggedIn = Boolean(accessToken);
+  const isHostel = property?.category === "hostel";
+
+  const totalAvailableSpaces = useMemo(() => {
+    if (!isHostel) return null;
+
+    if (property?.total_available !== undefined && property?.total_available !== null) {
+      return Number(property.total_available);
+    }
+
+    if (Array.isArray(property?.rooms)) {
+      return property.rooms.reduce(
+        (sum, room) => sum + (Number(room?.available_spaces) || 0),
+        0
+      );
+    }
+
+    return null;
+  }, [isHostel, property]);
+
+  const availableRoomsCount = useMemo(() => {
+    if (!isHostel || !Array.isArray(property?.rooms)) return null;
+    return property.rooms.filter(
+      (room) => room?.is_available && Number(room?.available_spaces) > 0
+    ).length;
+  }, [isHostel, property]);
+
+  const initialMessage = useMemo(() => {
+    if (!property?.property_name) return "";
+
+    if (isHostel) {
+      return `Hello, I would like to schedule a viewing for ${property.property_name}. I am interested in checking the available hostel room spaces.`;
+    }
+
+    return `Hello, I would like to schedule a viewing for ${property.property_name}.`;
+  }, [property, isHostel]);
+
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    message: "",
+    phone: storedPhone,
+    preferred_date: "",
+    preferred_time: "",
+    message: initialMessage,
   });
 
   const [errors, setErrors] = useState({});
 
-  const token = localStorage.getItem("token");
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      message: initialMessage,
+      phone: prev.phone || storedPhone || "",
+    }));
+  }, [initialMessage, storedPhone]);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [e.target.name]: e.target.value,
-    });
+    }));
 
     setErrors((prev) => ({
       ...prev,
@@ -41,18 +102,18 @@ const BookingForm = ({ property }) => {
   const validate = () => {
     const newErrors = {};
 
-    if (!formData.name.trim()) newErrors.name = "Name is required";
-
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Enter a valid email";
-    }
-
     if (!formData.phone.trim()) {
       newErrors.phone = "Phone number is required";
-    } else if (formData.phone.length < 10) {
+    } else if (formData.phone.replace(/\s+/g, "").length < 10) {
       newErrors.phone = "Enter a valid phone number";
+    }
+
+    if (!formData.preferred_date) {
+      newErrors.preferred_date = "Viewing date is required";
+    }
+
+    if (!formData.preferred_time) {
+      newErrors.preferred_time = "Viewing time is required";
     }
 
     if (!formData.message.trim()) {
@@ -92,23 +153,23 @@ const BookingForm = ({ property }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    if (!isLoggedIn) {
+      openLoginPopup();
+      return;
+    }
+
     const validationErrors = validate();
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
 
-    if (!token) {
-      openLoginPopup();
-      return;
-    }
-
     try {
       const payload = {
         property: property.id,
-        name: formData.name,
-        email: formData.email,
         phone: formData.phone,
+        preferred_date: formData.preferred_date,
+        preferred_time: formData.preferred_time,
         message: formData.message,
       };
 
@@ -116,20 +177,25 @@ const BookingForm = ({ property }) => {
 
       openStatusPopup(
         "success",
-        "Your booking request has been sent successfully."
+        isHostel
+          ? "Your hostel viewing request has been sent successfully."
+          : "Your viewing request has been sent successfully."
       );
 
       setFormData({
-        name: "",
-        email: "",
-        phone: "",
-        message: "",
+        phone: storedPhone || "",
+        preferred_date: "",
+        preferred_time: "",
+        message: initialMessage,
       });
+      setErrors({});
     } catch (error) {
       console.error("Booking submission failed:", error);
       openStatusPopup(
         "error",
-        "Failed to send booking request. Please try again."
+        error?.detail ||
+          error?.response?.data?.detail ||
+          "Failed to schedule viewing. Please try again."
       );
     }
   };
@@ -137,48 +203,72 @@ const BookingForm = ({ property }) => {
   const handleLoginRedirect = () => {
     navigate("/login", {
       state: {
-        message: "Please log in to continue with your booking.",
+        message: "Please log in to schedule a viewing.",
         from: location.pathname,
       },
     });
   };
 
-  const landlordPhone = property?.owner_phone || property?.phone;
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split("T")[0];
+  };
 
   return (
     <div className="bookingForm">
       <div className="headings">
-        <h2>Interested in this property?</h2>
-        <p>Get in touch with the landlord</p>
+        <h2>{isHostel ? "Schedule a Hostel Viewing" : "Schedule a Viewing"}</h2>
+        <p>
+          {isHostel
+            ? "Choose your preferred date and time to inspect this hostel and its available room spaces."
+            : "Choose your preferred date and time to inspect this property."}
+        </p>
+
+        {property && (
+          <div className="booking-property-summary">
+            <div className="booking-summary-item">
+              <FaHome className="booking-summary-icon" />
+              <div>
+                <strong>{property.property_name}</strong>
+                <span>
+                  {property.category === "hostel" ? "Hostel" : "House Rent"}
+                </span>
+              </div>
+            </div>
+
+            <div className="booking-summary-item">
+              <FaBed className="booking-summary-icon" />
+              <div>
+                <strong>GHS {formatMoney(property.price)}</strong>
+                <span>Starting monthly rent</span>
+              </div>
+            </div>
+
+            {isHostel && (
+              <div className="booking-summary-item">
+                <FaUsers className="booking-summary-icon" />
+                <div>
+                  <strong>
+                    {totalAvailableSpaces ?? 0} space
+                    {Number(totalAvailableSpaces) === 1 ? "" : "s"} left
+                  </strong>
+                  <span>
+                    {availableRoomsCount ?? 0} room
+                    {Number(availableRoomsCount) === 1 ? "" : "s"} available
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="form-container">
           <form onSubmit={handleSubmit}>
             <div className="input-group">
-              <label>Name</label>
-              <input
-                type="text"
-                name="name"
-                placeholder="Benjamin"
-                value={formData.name}
-                onChange={handleChange}
-              />
-              {errors.name && <small className="error">{errors.name}</small>}
-            </div>
-
-            <div className="input-group">
-              <label>Email</label>
-              <input
-                type="email"
-                name="email"
-                placeholder="benjamin@gmail.com"
-                value={formData.email}
-                onChange={handleChange}
-              />
-              {errors.email && <small className="error">{errors.email}</small>}
-            </div>
-
-            <div className="input-group">
-              <label>Phone Number</label>
+              <label>
+                <FaPhoneAlt className="booking-field-icon" />
+                Phone Number
+              </label>
               <input
                 type="text"
                 name="phone"
@@ -189,14 +279,49 @@ const BookingForm = ({ property }) => {
               {errors.phone && <small className="error">{errors.phone}</small>}
             </div>
 
+            <div className="booking-row">
+              <div className="input-group">
+                <label>
+                  <FaCalendarAlt className="booking-field-icon" />
+                  Viewing Date
+                </label>
+                <input
+                  type="date"
+                  name="preferred_date"
+                  min={getTodayDate()}
+                  value={formData.preferred_date}
+                  onChange={handleChange}
+                />
+                {errors.preferred_date && (
+                  <small className="error">{errors.preferred_date}</small>
+                )}
+              </div>
+
+              <div className="input-group">
+                <label>
+                  <FaClock className="booking-field-icon" />
+                  Viewing Time
+                </label>
+                <input
+                  type="time"
+                  name="preferred_time"
+                  value={formData.preferred_time}
+                  onChange={handleChange}
+                />
+                {errors.preferred_time && (
+                  <small className="error">{errors.preferred_time}</small>
+                )}
+              </div>
+            </div>
+
             <div className="input-group">
-              <label>Message</label>
+              <label>Note</label>
               <textarea
                 name="message"
                 placeholder={
-                  property?.property_name
-                    ? `Hello, I am interested in ${property.property_name}.`
-                    : "Enter your message here"
+                  isHostel
+                    ? "Add any note about the hostel room spaces you want to inspect"
+                    : "Add any extra note for the landlord"
                 }
                 value={formData.message}
                 onChange={handleChange}
@@ -207,21 +332,12 @@ const BookingForm = ({ property }) => {
             </div>
 
             <div className="input-group">
-              <button type="submit">Book Now</button>
+              <button type="submit">
+                {isHostel ? "Schedule Hostel Viewing" : "Schedule Viewing"}
+              </button>
             </div>
           </form>
         </div>
-
-        {/* {landlordPhone && (
-          <div className="landlord-contact">
-            <p>Or call landlord directly:</p>
-
-            <a href={`tel:${landlordPhone}`} className="call-btn">
-              <FaPhoneAlt className="call-icon" />
-              {landlordPhone}
-            </a>
-          </div>
-        )} */}
       </div>
 
       {showLoginPopup && (
@@ -237,8 +353,8 @@ const BookingForm = ({ property }) => {
           >
             <h3 className="log">Login Required</h3>
             <p>
-              You need to log in or create an account before booking this
-              property.
+              You need to log in or create an account before scheduling a
+              property viewing.
             </p>
 
             <div className="login-popup-actions">
@@ -273,7 +389,9 @@ const BookingForm = ({ property }) => {
 
             <div className="status-popup-content">
               <h3>
-                {statusPopupType === "success" ? "Success" : "Something went wrong"}
+                {statusPopupType === "success"
+                  ? "Success"
+                  : "Something went wrong"}
               </h3>
               <p>{statusPopupMessage}</p>
             </div>

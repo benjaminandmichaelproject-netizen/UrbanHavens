@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./ScheduleMeeting.css";
 import { api } from "../UploadDetails/api/api";
 
@@ -10,12 +10,30 @@ const ScheduleMeeting = ({ booking, onClose, onSuccess }) => {
     note: "",
   });
 
-  const [errors, setErrors]     = useState({});
+  const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
 
+  useEffect(() => {
+    if (booking?.meeting) {
+      setFormData({
+        date: booking.meeting.date || "",
+        time: booking.meeting.time ? booking.meeting.time.slice(0, 5) : "",
+        location: booking.meeting.location || "",
+        note: booking.meeting.note || "",
+      });
+    } else {
+      setFormData({
+        date: "",
+        time: "",
+        location: "",
+        note: "",
+      });
+    }
+  }, [booking]);
+
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
     setErrors((prev) => ({ ...prev, [e.target.name]: "" }));
     setServerError("");
   };
@@ -41,24 +59,22 @@ const ScheduleMeeting = ({ booking, onClose, onSuccess }) => {
       setSubmitting(true);
       setServerError("");
 
-      // If a meeting already exists for this booking, update it (PATCH)
-      // Otherwise create a new one (POST)
       const existingMeetingId = booking?.meeting?.id;
 
       if (existingMeetingId) {
         await api.patch(`/meetings/${existingMeetingId}/`, {
-          date:     formData.date,
-          time:     formData.time,
+          date: formData.date,
+          time: formData.time,
           location: formData.location,
-          note:     formData.note,
+          note: formData.note,
         });
       } else {
         await api.post("/meetings/", {
-          booking:  booking.id,
-          date:     formData.date,
-          time:     formData.time,
+          booking: booking.id,
+          date: formData.date,
+          time: formData.time,
           location: formData.location,
-          note:     formData.note,
+          note: formData.note,
         });
       }
 
@@ -67,8 +83,8 @@ const ScheduleMeeting = ({ booking, onClose, onSuccess }) => {
     } catch (err) {
       console.error("Schedule meeting error:", err);
       const data = err.response?.data;
+
       if (data && typeof data === "object") {
-        // Field-level errors from DRF
         const fieldErrors = {};
         Object.entries(data).forEach(([key, val]) => {
           fieldErrors[key] = Array.isArray(val) ? val[0] : val;
@@ -85,7 +101,6 @@ const ScheduleMeeting = ({ booking, onClose, onSuccess }) => {
   return (
     <div className="schedule-overlay" onClick={onClose}>
       <div className="schedule-modal" onClick={(e) => e.stopPropagation()}>
-
         <div className="schedule-modal-header">
           <h2>{booking?.meeting ? "Update Meeting" : "Schedule Meeting"}</h2>
           <button className="schedule-close-btn" onClick={onClose}>✕</button>
@@ -96,9 +111,14 @@ const ScheduleMeeting = ({ booking, onClose, onSuccess }) => {
           <strong>{booking?.property_name}</strong>
         </p>
 
-        {serverError && (
-          <p className="schedule-server-error">{serverError}</p>
-        )}
+        <p className="schedule-subtext">
+          Requested viewing:{" "}
+          <strong>{booking?.preferred_date || "N/A"}</strong>{" "}
+          at{" "}
+          <strong>{booking?.preferred_time || "N/A"}</strong>
+        </p>
+
+        {serverError && <p className="schedule-server-error">{serverError}</p>}
 
         <form onSubmit={handleSubmit}>
           <div className="schedule-form-group">
@@ -139,7 +159,9 @@ const ScheduleMeeting = ({ booking, onClose, onSuccess }) => {
           </div>
 
           <div className="schedule-form-group">
-            <label>Additional Note <span className="schedule-optional">(optional)</span></label>
+            <label>
+              Additional Note <span className="schedule-optional">(optional)</span>
+            </label>
             <textarea
               name="note"
               placeholder="Add meeting instructions or extra details"

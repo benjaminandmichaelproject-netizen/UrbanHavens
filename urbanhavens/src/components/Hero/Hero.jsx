@@ -6,11 +6,42 @@ import city2 from "../../assets/images/city2.jpg";
 
 const images = [city1, city2];
 
+// ── SVG Icons ─────────────────────────────────────────────────────────────────
+
+const IconHome = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" width={22} height={22}>
+    <path d="M3 9.75L12 3l9 6.75V21a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.75z" />
+    <path d="M9 22V12h6v10" />
+  </svg>
+);
+
+const IconPin = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" width={22} height={22}>
+    <path d="M12 21C12 21 5 13.5 5 8.5a7 7 0 0 1 14 0c0 5-7 12.5-7 12.5z" />
+    <circle cx="12" cy="8.5" r="2.5" />
+  </svg>
+);
+
+const IconBolt = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" width={22} height={22}>
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+);
+
+const IconKey = () => (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" width={22} height={22}>
+    <circle cx="7.5" cy="15.5" r="4.5" />
+    <path d="M21 2l-9.6 9.6" />
+    <path d="M15.5 7.5l2 2" />
+    <path d="M18 5l2 2" />
+  </svg>
+);
+
 const features = [
-  { icon: "🏠", title: "Verified Listings",  sub: "Admin approved only"     },
-  { icon: "📍", title: "Accra & Kumasi",     sub: "Greater Accra · Ashanti" },
-  { icon: "⚡", title: "Instant Booking",    sub: "Request in seconds"      },
-  { icon: "🔑", title: "Hostel & Houses",    sub: "All property types"      },
+  { icon: <IconHome />, title: "Verified Listings", sub: "Admin approved only"      },
+  { icon: <IconPin  />, title: "Accra & Kumasi",    sub: "Greater Accra · Ashanti" },
+  { icon: <IconBolt />, title: "Instant Booking",   sub: "Request in seconds"      },
+  { icon: <IconKey  />, title: "Hostel & Houses",   sub: "All property types"      },
 ];
 
 // ── Animation variants ────────────────────────────────────────────────────────
@@ -66,9 +97,9 @@ const Hero = () => {
           animate="show"
         >
           {/* Headline — each line slides in from left */}
-          <motion.h1 className="h3-title"           variants={titleLine}>Find Your</motion.h1>
+          <motion.h1 className="h3-title"            variants={titleLine}>Find Your</motion.h1>
           <motion.h1 className="h3-title h3-accent"  variants={titleLine}>Dream Home</motion.h1>
-          <motion.h1 className="h3-title"           variants={titleLine}>In Ghana</motion.h1>
+          <motion.h1 className="h3-title"            variants={titleLine}>In Ghana</motion.h1>
 
           {/* Tagline fades up */}
           <motion.div className="h3-tagline-row" variants={fadeUp}>
@@ -78,10 +109,7 @@ const Hero = () => {
           </motion.div>
 
           {/* Feature cards — staggered pop-in */}
-          <motion.div
-            className="h3-grid"
-            variants={staggerContainer}
-          >
+          <motion.div className="h3-grid" variants={staggerContainer}>
             {features.map((f, i) => (
               <motion.div
                 className="h3-feat"

@@ -1,0 +1,141 @@
+.hostel-page {
+  width: 100%;
+  background: #f8fafc;
+}
+
+.hostel-banner {
+  position: relative;
+  min-height: 52vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 120px 20px 70px;
+  background: linear-gradient(135deg, rgba(7, 26, 16, 0.9), rgba(26, 122, 64, 0.78)),
+    url("https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=1600&q=80")
+      center/cover no-repeat;
+  overflow: hidden;
+}
+
+.hostel-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.hostel-banner-content {
+  position: relative;
+  z-index: 2;
+  max-width: 900px;
+  text-align: center;
+  color: #fff;
+}
+
+.hostel-badge {
+  display: inline-block;
+  margin-bottom: 16px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.hostel-banner-content h1 {
+  margin: 0 0 16px;
+  font-size: clamp(2rem, 4vw, 3.6rem);
+  line-height: 1.1;
+  font-weight: 800;
+}
+
+.hostel-banner-content p {
+  margin: 0 auto;
+  max-width: 720px;
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.hostel-intro {
+  padding: 60px 20px 20px;
+}
+
+.hostel-intro-text {
+  max-width: 900px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.hostel-intro-text h2 {
+  margin: 0 0 14px;
+  font-size: 2rem;
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.hostel-intro-text p {
+  margin: 0 auto;
+  max-width: 760px;
+  font-size: 1rem;
+  line-height: 1.8;
+  color: #475569;
+}
+
+.hostel-list-section {
+  padding: 30px 15% 70px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.hostel-message {
+  text-align: center;
+  font-size: 1rem;
+  color: #334155;
+  padding: 40px 0;
+}
+
+.hostel-error {
+  color: #dc2626;
+}
+
+.fr-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+}
+
+@media (max-width: 1100px) {
+  .fr-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .hostel-banner {
+    min-height: 46vh;
+    padding: 100px 16px 60px;
+  }
+
+  .hostel-banner-content h1 {
+    font-size: 2.2rem;
+  }
+
+  .hostel-banner-content p {
+    font-size: 0.98rem;
+    line-height: 1.7;
+  }
+
+  .hostel-intro {
+    padding: 45px 16px 15px;
+  }
+
+  .hostel-list-section {
+    padding: 25px 16px 55px;
+  }
+
+  .fr-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}

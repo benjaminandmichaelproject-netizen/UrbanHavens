@@ -1,7 +1,8 @@
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils import timezone
 from properties.models import Property
-
 
 class Booking(models.Model):
     STATUS_CHOICES = [
@@ -27,10 +28,10 @@ class Booking(models.Model):
         related_name="owner_bookings"
     )
 
-    name = models.CharField(max_length=255)
-    email = models.EmailField()
     phone = models.CharField(max_length=20)
-    message = models.TextField()
+    preferred_date = models.DateField()
+    preferred_time = models.TimeField()
+    message = models.TextField(blank=True, default="")
 
     status = models.CharField(
         max_length=20,
@@ -38,15 +39,13 @@ class Booking(models.Model):
         default="pending"
     )
 
+    archived_by_owner = models.BooleanField(default=False)
+    archived_by_tenant = models.BooleanField(default=False)
+
     created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.name} - {self.property.property_name}"
-
-
 class InspectionMeeting(models.Model):
     STATUS_CHOICES = [
-        ("upcoming",  "Upcoming"),
+        ("upcoming", "Upcoming"),
         ("completed", "Completed"),
         ("cancelled", "Cancelled"),
     ]
@@ -57,10 +56,10 @@ class InspectionMeeting(models.Model):
         related_name="meeting"
     )
 
-    date     = models.DateField()
-    time     = models.TimeField()
+    date = models.DateField()
+    time = models.TimeField()
     location = models.CharField(max_length=255)
-    note     = models.TextField(blank=True, default="")
+    note = models.TextField(blank=True, default="")
 
     status = models.CharField(
         max_length=20,

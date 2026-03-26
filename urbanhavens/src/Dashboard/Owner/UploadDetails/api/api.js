@@ -1,23 +1,54 @@
 import axios from "axios";
 
-const API_BASE = `${import.meta.env.VITE_API_BASE_URL}/api`;
+const API_BASE = "http://127.0.0.1:8000/api";
+const REFRESH_URL = `${API_BASE}/users/token/refresh/`;
+
+const clearAuthStorage = () => {
+  localStorage.removeItem("access");
+  localStorage.removeItem("token");
+  localStorage.removeItem("refresh");
+  localStorage.removeItem("username");
+  localStorage.removeItem("role");
+  localStorage.removeItem("userId");
+};
+
+const getStoredAccessToken = () => {
+  const token = localStorage.getItem("access") || localStorage.getItem("token");
+
+  if (
+    !token ||
+    token === "undefined" ||
+    token === "null" ||
+    token === "[object Object]"
+  ) {
+    return null;
+  }
+
+  return token;
+};
+
+const getStoredRefreshToken = () => {
+  const refresh = localStorage.getItem("refresh");
+
+  if (!refresh || refresh === "undefined" || refresh === "null") {
+    return null;
+  }
+
+  return refresh;
+};
+
+const redirectToLogin = () => {
+  window.location.href = "/login";
+};
 
 const api = axios.create({
   baseURL: API_BASE,
 });
 
 api.interceptors.request.use((config) => {
-  const token =
-    localStorage.getItem("access") ||
-    localStorage.getItem("token");
+  const token = getStoredAccessToken();
 
-  const invalidToken =
-    !token ||
-    token === "undefined" ||
-    token === "null" ||
-    token === "[object Object]";
-
-  if (!invalidToken) {
+  if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
@@ -29,39 +60,29 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       originalRequest._retry = true;
 
-      const refresh = localStorage.getItem("refresh");
+      const refresh = getStoredRefreshToken();
 
-      if (!refresh || refresh === "undefined" || refresh === "null") {
-        localStorage.removeItem("access");
-        localStorage.removeItem("token");
-        localStorage.removeItem("refresh");
-        localStorage.removeItem("username");
-        localStorage.removeItem("role");
-        window.location.href = "/login";
+      if (!refresh) {
+        clearAuthStorage();
+        redirectToLogin();
         return Promise.reject(error);
       }
 
       try {
-        const res = await axios.post(
-          `${import.meta.env.VITE_API_BASE_URL}/api/users/token/refresh/`,
-          { refresh }
-        );
-
+        const res = await axios.post(REFRESH_URL, { refresh });
         const newAccess = res.data.access;
+
         localStorage.setItem("access", newAccess);
         localStorage.setItem("token", newAccess);
+
         originalRequest.headers.Authorization = `Bearer ${newAccess}`;
         return api(originalRequest);
       } catch (refreshError) {
-        localStorage.removeItem("access");
-        localStorage.removeItem("token");
-        localStorage.removeItem("refresh");
-        localStorage.removeItem("username");
-        localStorage.removeItem("role");
-        window.location.href = "/login";
+        clearAuthStorage();
+        redirectToLogin();
         return Promise.reject(refreshError);
       }
     }
@@ -70,20 +91,16 @@ api.interceptors.response.use(
   }
 );
 
-// ─── Exported helper ────────────────────────────────────────────────────────
-// Use this before opening a WebSocket so you always connect with a fresh token
+// ─── Exported auth helper ────────────────────────────────────────────────────
 export const refreshAccessToken = async () => {
-  const refresh = localStorage.getItem("refresh");
+  const refresh = getStoredRefreshToken();
 
-  if (!refresh || refresh === "undefined" || refresh === "null") {
+  if (!refresh) {
     return null;
   }
 
   try {
-    const res = await axios.post(
-      `${import.meta.env.VITE_API_BASE_URL}/api/users/token/refresh/`,
-      { refresh }
-    );
+    const res = await axios.post(REFRESH_URL, { refresh });
     const newAccess = res.data.access;
     localStorage.setItem("access", newAccess);
     localStorage.setItem("token", newAccess);
@@ -190,6 +207,59 @@ export const getTenantBookings = async () => {
   }
 };
 
+export const rejectBooking = async (bookingId) => {
+  try {
+    const res = await api.patch(`/bookings/${bookingId}/`, {
+      status: "rejected",
+    });
+    return res.data;
+  } catch (err) {
+    console.error("Reject booking error:", err.response?.data || err.message);
+    throw err.response?.data || err;
+  }
+};
+
+export const clearBooking = async (bookingId) => {
+  try {
+    const res = await api.post(`/bookings/${bookingId}/clear/`);
+    return res.data;
+  } catch (err) {
+    console.error("Clear booking error:", err.response?.data || err.message);
+    throw err.response?.data || err;
+  }
+};
+
+export const clearTenantBooking = async (bookingId) => {
+  try {
+    const res = await api.post(`/bookings/${bookingId}/clear-for-tenant/`);
+    return res.data;
+  } catch (err) {
+    console.error("Clear tenant booking error:", err.response?.data || err.message);
+    throw err.response?.data || err;
+  }
+};
+
+// ─── Meeting APIs ────────────────────────────────────────────────────────────
+export const cancelMeeting = async (meetingId) => {
+  try {
+    const res = await api.post(`/meetings/${meetingId}/cancel/`);
+    return res.data;
+  } catch (err) {
+    console.error("Cancel meeting error:", err.response?.data || err.message);
+    throw err.response?.data || err;
+  }
+};
+
+export const completeMeeting = async (meetingId) => {
+  try {
+    const res = await api.post(`/meetings/${meetingId}/complete/`);
+    return res.data;
+  } catch (err) {
+    console.error("Complete meeting error:", err.response?.data || err.message);
+    throw err.response?.data || err;
+  }
+};
+
 // ─── Notification APIs ───────────────────────────────────────────────────────
 export const getNotifications = async () => {
   try {
@@ -238,6 +308,37 @@ export const createTenantLease = async (leaseData) => {
     return res.data;
   } catch (err) {
     console.error("Create tenant lease error:", err.response?.data || err.message);
+    throw err.response?.data || err;
+  }
+};
+
+export const getLeases = async () => {
+  try {
+    const res = await api.get("/leases/");
+    const data = res.data;
+    return Array.isArray(data) ? data : data.results ?? [];
+  } catch (err) {
+    console.error("Fetch leases error:", err.response?.data || err.message);
+    throw err.response?.data || err;
+  }
+};
+
+export const terminateTenantLease = async (leaseId, payload = {}) => {
+  try {
+    const res = await api.post(`/leases/${leaseId}/terminate/`, payload);
+    return res.data;
+  } catch (err) {
+    console.error("Terminate lease error:", err.response?.data || err.message);
+    throw err.response?.data || err;
+  }
+};
+
+export const renewTenantLease = async (leaseId, payload) => {
+  try {
+    const res = await api.post(`/leases/${leaseId}/renew/`, payload);
+    return res.data;
+  } catch (err) {
+    console.error("Renew lease error:", err.response?.data || err.message);
     throw err.response?.data || err;
   }
 };

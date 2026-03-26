@@ -1,36 +1,47 @@
-.rp-section {
-  --rp-bg:      #071a10;
-  --rp-bg2:     #0c2418;
-  --rp-green:   #1a7a40;
-  --rp-accent:  #2dde72;
+/* ── Variables ───────────────────────────────────────── */
+:root {
+  --rp-green:   #28a86b;   /* premium emerald green */
+  --rp-accent:  #3fe38f;   /* soft glowing accent */
   --rp-border:  rgba(255,255,255,0.08);
   --rp-white:   #ffffff;
-  --rp-muted:   rgba(255,255,255,0.5);
+  --rp-muted:   rgba(255,255,255,0.7);
+  --rp-card-shadow: rgba(0, 0, 0, 0.25);
+  --rp-card-hover-shadow: rgba(0, 0, 0, 0.35);
 }
 
+/* ── Section ─────────────────────────────────────────── */
 .rp-section {
-  background: var(--rp-bg);
   position: relative;
   width: 100%;
-  padding: 100px 15% 100px;
+  padding: 100px 15%;
   box-sizing: border-box;
   font-family: "DM Sans", "Segoe UI", sans-serif;
   overflow: hidden;
+
+  /* Premium gradient background */
+  background:
+    radial-gradient(circle at 20% 20%, rgba(63,227,143,0.08), transparent 40%),
+    radial-gradient(circle at 80% 30%, rgba(63,227,143,0.05), transparent 45%),
+    linear-gradient(180deg, #0f2a1d 0%, #0b1f15 100%);
 }
 
+/* ── Texture ─────────────────────────────────────────── */
 .rp-texture {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
-  background-size: 28px 28px;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.012) 1px, transparent 1px);
+  background-size: 32px 32px;
   pointer-events: none;
   z-index: 0;
 }
 
 .rp-header,
-.rp-cards { position: relative; z-index: 1; }
+.rp-cards {
+  position: relative;
+  z-index: 1;
+}
 
-/* Header */
+/* ── Header ─────────────────────────────────────────── */
 .rp-header {
   text-align: center;
   max-width: 600px;
@@ -39,45 +50,49 @@
 
 .rp-eyebrow {
   display: inline-block;
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   font-weight: 800;
   letter-spacing: 0.18em;
   color: var(--rp-accent);
   text-transform: uppercase;
-  padding: 5px 14px;
-  border: 1px solid rgba(45,222,114,0.25);
+  padding: 6px 14px;
+  border: 1px solid rgba(40,168,107,0.25);
   border-radius: 20px;
-  background: rgba(45,222,114,0.07);
+  background: rgba(40,168,107,0.08);
   margin-bottom: 14px;
 }
 
 .rp-title {
-  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
+  font-size: clamp(2rem, 3.5vw, 2.8rem);
   font-weight: 900;
   color: var(--rp-white);
   margin: 0 0 12px;
   letter-spacing: -0.02em;
 }
 
-.rp-accent { color: var(--rp-accent); }
+.rp-accent {
+  color: var(--rp-accent);
+}
 
 .rp-sub {
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   color: var(--rp-muted);
   margin: 0;
   line-height: 1.7;
 }
 
-/* Cards */
+/* ── Cards ──────────────────────────────────────────── */
 .rp-cards {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 24px;
-  position: relative;
 }
 
+/* Premium glass cards */
 .rp-card {
   background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--rp-border);
   border-radius: 20px;
   padding: 36px 28px 32px;
@@ -86,13 +101,18 @@
   gap: 14px;
   position: relative;
   overflow: hidden;
-  cursor: default;
-  transition: border-color 0.25s;
+  transition: all 0.25s ease;
+  box-shadow: 0 12px 28px var(--rp-card-shadow);
 }
 
-.rp-card:hover { border-color: rgba(45,222,114,0.3); }
+/* Hover effect with soft glow */
+.rp-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(63,227,143,0.35);
+  box-shadow: 0 20px 40px var(--rp-card-hover-shadow), 0 0 20px rgba(63,227,143,0.15);
+}
 
-/* Green bottom accent on hover */
+/* Bottom accent line */
 .rp-card::after {
   content: "";
   position: absolute;
@@ -101,55 +121,76 @@
   right: 0;
   height: 3px;
   background: var(--rp-green);
-  transition: background 0.25s;
+  transition: background 0.25s, transform 0.3s;
 }
 
-.rp-card:hover::after { background: var(--rp-accent); }
+.rp-card:hover::after {
+  background: var(--rp-accent);
+  transform: scaleX(1.05);
+}
 
 /* Step number */
 .rp-card-num {
   position: absolute;
-  top: 20px;
-  right: 24px;
-  font-size: 2.8rem;
+  top: 18px;
+  right: 22px;
+  font-size: 2.6rem;
   font-weight: 900;
-  color: rgba(45,222,114,0.1);
-  line-height: 1;
+  color: rgba(40,168,107,0.14);
   letter-spacing: -0.04em;
-  user-select: none;
 }
 
 /* Icon */
 .rp-card-icon {
   font-size: 2rem;
-  line-height: 1;
+  transition: transform 0.3s ease, color 0.3s ease;
 }
 
+.rp-card:hover .rp-card-icon {
+  transform: scale(1.15);
+  color: var(--rp-accent);
+}
+
+/* Title */
 .rp-card-title {
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--rp-white);
   margin: 0;
 }
 
+/* Description */
 .rp-card-desc {
-  font-size: 0.875rem;
+  font-size: 0.9rem;
   color: var(--rp-muted);
   line-height: 1.75;
   margin: 0;
 }
 
-/* Responsive */
+/* ── Responsive ─────────────────────────────────────── */
 @media (max-width: 1024px) {
-  .rp-section { padding: 80px 8% 80px; }
+  .rp-section {
+    padding: 80px 8%;
+  }
 }
 
 @media (max-width: 768px) {
-  .rp-section { padding: 70px 6% 70px; }
-  .rp-cards   { grid-template-columns: 1fr; gap: 16px; }
+  .rp-section {
+    padding: 70px 6%;
+  }
+
+  .rp-cards {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
 }
 
 @media (max-width: 480px) {
-  .rp-section { padding: 60px 5% 60px; }
-  .rp-title   { font-size: 1.75rem; }
+  .rp-section {
+    padding: 60px 5%;
+  }
+
+  .rp-title {
+    font-size: 1.8rem;
+  }
 }

@@ -2,7 +2,6 @@ from rest_framework import serializers
 from .models import Booking, InspectionMeeting
 from notifications.utils import send_notification
 from django.contrib.auth import get_user_model
-from leases.models import TenantLease
 
 User = get_user_model()
 
@@ -19,65 +18,98 @@ def _notify_admins(message, notification_type, property_id=None):
 
 
 class BookingSerializer(serializers.ModelSerializer):
-    # Property
-    property_name    = serializers.CharField(source="property.property_name", read_only=True)
-    property_city    = serializers.CharField(source="property.city",          read_only=True)
-    property_region  = serializers.CharField(source="property.region",        read_only=True)
-    property_price   = serializers.DecimalField(source="property.price", max_digits=12, decimal_places=2, read_only=True)
-    property_type    = serializers.CharField(source="property.property_type", read_only=True)
-    property_images  = serializers.SerializerMethodField()
+    property_name = serializers.CharField(source="property.property_name", read_only=True)
+    property_city = serializers.CharField(source="property.city", read_only=True)
+    property_region = serializers.CharField(source="property.region", read_only=True)
+    property_price = serializers.DecimalField(
+        source="property.price",
+        max_digits=12,
+        decimal_places=2,
+        read_only=True,
+    )
+    property_type = serializers.CharField(source="property.property_type", read_only=True)
+    property_images = serializers.SerializerMethodField()
 
-    # Tenant
-    tenant_name  = serializers.SerializerMethodField()
+    tenant_name = serializers.SerializerMethodField()
     tenant_email = serializers.EmailField(source="tenant.email", read_only=True)
-    tenant_phone = serializers.CharField(source="tenant.phone",  read_only=True)
+    tenant_phone = serializers.CharField(source="tenant.phone", read_only=True)
 
-    # Owner
-    owner_name  = serializers.SerializerMethodField()
+    owner_name = serializers.SerializerMethodField()
     owner_email = serializers.EmailField(source="owner.email", read_only=True)
-    owner_phone = serializers.CharField(source="owner.phone",  read_only=True)
+    owner_phone = serializers.CharField(source="owner.phone", read_only=True)
 
-    # Nested
     meeting = serializers.SerializerMethodField()
-    lease   = serializers.SerializerMethodField()
+    lease = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
         fields = [
             "id",
-            "property", "property_name", "property_city", "property_region",
-            "property_price", "property_type", "property_images",
-            "tenant", "tenant_name", "tenant_email", "tenant_phone",
-            "owner",  "owner_name",  "owner_email",  "owner_phone",
-            "name", "email", "phone", "message",
-            "status", "meeting", "lease", "created_at",
+            "property",
+            "property_name",
+            "property_city",
+            "property_region",
+            "property_price",
+            "property_type",
+            "property_images",
+            "tenant",
+            "tenant_name",
+            "tenant_email",
+            "tenant_phone",
+            "owner",
+            "owner_name",
+            "owner_email",
+            "owner_phone",
+            "phone",
+            "preferred_date",
+            "preferred_time",
+            "message",
+            "status",
+            "archived_by_owner",
+            "archived_by_tenant",
+            "meeting",
+            "lease",
+            "created_at",
         ]
         read_only_fields = [
-            "tenant", "tenant_name", "tenant_email", "tenant_phone",
-            "owner",  "owner_name",  "owner_email",  "owner_phone",
-            "property_name", "property_city", "property_region",
-            "property_price", "property_type", "property_images",
-            "status", "meeting", "lease", "created_at",
+            "tenant",
+            "tenant_name",
+            "tenant_email",
+            "tenant_phone",
+            "owner",
+            "owner_name",
+            "owner_email",
+            "owner_phone",
+            "property_name",
+            "property_city",
+            "property_region",
+            "property_price",
+            "property_type",
+            "property_images",
+            "status",
+            "archived_by_owner",
+            "archived_by_tenant",
+            "meeting",
+            "lease",
+            "created_at",
         ]
 
     def get_property_images(self, obj):
         request = self.context.get("request")
         result = []
+
         for img in obj.property.images.all():
             if img.image:
                 url = request.build_absolute_uri(img.image.url) if request else img.image.url
                 result.append(url)
+
         return result
 
     def get_tenant_name(self, obj):
-        if not obj.tenant:
-            return "Unknown"
         full = f"{obj.tenant.first_name} {obj.tenant.last_name}".strip()
         return full or obj.tenant.username
 
     def get_owner_name(self, obj):
-        if not obj.owner:
-            return "Unknown"
         full = f"{obj.owner.first_name} {obj.owner.last_name}".strip()
         return full or obj.owner.username
 
@@ -88,29 +120,38 @@ class BookingSerializer(serializers.ModelSerializer):
         return InspectionMeetingSerializer(meeting, context=self.context).data
 
     def get_lease(self, obj):
-     try:
-         lease = obj.tenant_lease  # uses OneToOneField related_name directly
-     except Exception:
-        return None
-     return {
-        "id": lease.id,
-        "status": lease.status,
-        "lease_end_date": str(lease.lease_end_date) if lease.lease_end_date else None,
-    }
+        lease = getattr(obj, "tenant_lease", None)
+        if lease is None:
+            return None
+
+        return {
+            "id": lease.id,
+            "status": lease.status,
+            "lease_end_date": str(lease.lease_end_date) if lease.lease_end_date else None,
+        }
 
     def validate_property(self, property_obj):
         if not property_obj.is_available:
             raise serializers.ValidationError("This property is not available for booking.")
-        if property_obj.approval_status != "approved":
+
+        if getattr(property_obj, "approval_status", None) != "approved":
             raise serializers.ValidationError("Only approved properties can be booked.")
+
         if property_obj.owner is None:
             raise serializers.ValidationError(
-                "This property cannot be booked because the owner does not have a registered account yet."
+                "This property cannot be booked because it is not linked to a registered landlord account."
             )
+
         return property_obj
 
+    def validate_preferred_date(self, value):
+        from django.utils import timezone
+        if value < timezone.localdate():
+            raise serializers.ValidationError("Preferred viewing date cannot be in the past.")
+        return value
+
     def create(self, validated_data):
-        request      = self.context.get("request")
+        request = self.context.get("request")
         property_obj = validated_data["property"]
 
         booking = Booking.objects.create(
@@ -126,13 +167,21 @@ class BookingSerializer(serializers.ModelSerializer):
 
         send_notification(
             user=property_obj.owner,
-            message=f"{booking.name} submitted a booking request for inspection of {property_obj.property_name}.",
+            message=(
+                f"{tenant_full_name} requested a viewing for "
+                f"{property_obj.property_name} on {booking.preferred_date} "
+                f"at {booking.preferred_time}."
+            ),
             notification_type="inspection_request",
             property_id=property_obj.id,
         )
 
         _notify_admins(
-            message=f"New booking: {tenant_full_name} requested {property_obj.property_name}.",
+            message=(
+                f"New booking: {tenant_full_name} requested a viewing for "
+                f"{property_obj.property_name} on {booking.preferred_date} "
+                f"at {booking.preferred_time}."
+            ),
             notification_type="new_booking",
             property_id=property_obj.id,
         )
@@ -141,60 +190,94 @@ class BookingSerializer(serializers.ModelSerializer):
 
 
 class InspectionMeetingSerializer(serializers.ModelSerializer):
-    property_name   = serializers.CharField(source="booking.property.property_name", read_only=True)
-    property_city   = serializers.CharField(source="booking.property.city",          read_only=True)
-    property_region = serializers.CharField(source="booking.property.region",        read_only=True)
-    property_type   = serializers.CharField(source="booking.property.property_type", read_only=True)
+    property_name = serializers.CharField(source="booking.property.property_name", read_only=True)
+    property_city = serializers.CharField(source="booking.property.city", read_only=True)
+    property_region = serializers.CharField(source="booking.property.region", read_only=True)
+    property_type = serializers.CharField(source="booking.property.property_type", read_only=True)
     property_images = serializers.SerializerMethodField()
-    tenant_name     = serializers.SerializerMethodField()
-    owner_name      = serializers.SerializerMethodField()
-    owner_email     = serializers.EmailField(source="booking.owner.email", read_only=True)
-    owner_phone     = serializers.CharField(source="booking.owner.phone",  read_only=True)
-    scheduled_at    = serializers.DateTimeField(source="created_at",       read_only=True)
+
+    tenant_name = serializers.SerializerMethodField()
+    tenant_email = serializers.EmailField(source="booking.tenant.email", read_only=True)
+    tenant_phone = serializers.CharField(source="booking.phone", read_only=True)
+
+    owner_name = serializers.SerializerMethodField()
+    owner_email = serializers.EmailField(source="booking.owner.email", read_only=True)
+    owner_phone = serializers.CharField(source="booking.owner.phone", read_only=True)
+
+    preferred_date = serializers.DateField(source="booking.preferred_date", read_only=True)
+    preferred_time = serializers.TimeField(source="booking.preferred_time", read_only=True)
+
+    scheduled_at = serializers.DateTimeField(source="created_at", read_only=True)
 
     class Meta:
         model = InspectionMeeting
         fields = [
-            "id", "booking",
-            "property_name", "property_city", "property_region",
-            "property_type", "property_images",
-            "tenant_name", "owner_name", "owner_email", "owner_phone",
-            "date", "time", "location", "note",
-            "status", "scheduled_at", "updated_at",
+            "id",
+            "booking",
+            "property_name",
+            "property_city",
+            "property_region",
+            "property_type",
+            "property_images",
+            "tenant_name",
+            "tenant_email",
+            "tenant_phone",
+            "owner_name",
+            "owner_email",
+            "owner_phone",
+            "preferred_date",
+            "preferred_time",
+            "date",
+            "time",
+            "location",
+            "note",
+            "status",
+            "scheduled_at",
+            "updated_at",
         ]
         read_only_fields = [
-            "status", "scheduled_at", "updated_at",
-            "property_name", "property_city", "property_region",
-            "property_type", "property_images",
-            "tenant_name", "owner_name", "owner_email", "owner_phone",
+            "status",
+            "scheduled_at",
+            "updated_at",
+            "property_name",
+            "property_city",
+            "property_region",
+            "property_type",
+            "property_images",
+            "tenant_name",
+            "tenant_email",
+            "tenant_phone",
+            "owner_name",
+            "owner_email",
+            "owner_phone",
+            "preferred_date",
+            "preferred_time",
         ]
 
     def get_property_images(self, obj):
         request = self.context.get("request")
         result = []
+
         for img in obj.booking.property.images.all():
             if img.image:
                 url = request.build_absolute_uri(img.image.url) if request else img.image.url
                 result.append(url)
+
         return result
 
     def get_tenant_name(self, obj):
         tenant = obj.booking.tenant
-        if not tenant:
-            return "Unknown"
         full = f"{tenant.first_name} {tenant.last_name}".strip()
         return full or tenant.username
 
     def get_owner_name(self, obj):
         owner = obj.booking.owner
-        if not owner:
-            return "Unknown"
         full = f"{owner.first_name} {owner.last_name}".strip()
         return full or owner.username
 
     def validate(self, attrs):
         request = self.context.get("request")
-        user    = request.user if request else None
+        user = request.user if request else None
         booking = attrs.get("booking") or (self.instance.booking if self.instance else None)
 
         if not booking:
@@ -232,8 +315,10 @@ class InspectionMeetingSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         validated_data.pop("booking", None)
+
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
+
         instance.save()
 
         send_notification(

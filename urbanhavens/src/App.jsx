@@ -6,7 +6,7 @@ import ForgotPassword from "./components/Login/ForgotPassword";
 import ConfirmResetCode from "./components/Login/ConfirmResetCode";
 import ResetPassword from "./components/Login/ResetPassword";
 import Home from "./Pages/Home/index";
-import Contact from "./Pages/Contact";
+import Contact from "./Pages/Contact/Contact";
 import About from "./Pages/About/About";
 import Login from "./Pages/Login";
 import Registration from "./Pages/Registration/Registration";
@@ -52,8 +52,12 @@ import TenantNotification from "./Dashboard/Tenant/TenantNotification/TenantNoti
 import Report from "./Dashboard/Tenant/Report/Report";
 import AdminReport from "./Dashboard/Admin/AdminReport";
 import FlaggedProperty from "./Dashboard/Owner/FlaggedProperty/FlaggedProperty";
+import Addmin from "./Dashboard/Admin/Addmin/Addmin";
+import Footer from "./components/Footer/Footer";
+import Hostel from "./Pages/PropertyListing/hostelForRent/Hostel";
+import HouseForRent from "./Pages/PropertyListing/houseForRent/HouseForRent";
 // ── AI Assistant ─────────────────────────────────────────────────
-//  import { AIAssistantButton } from "./components/AIAssistant/AIAssistant";
+  import { AIAssistantButton } from "./components/AIAssistant/AIAssistant";
 
 const AppContent = () => {
   const location = useLocation();
@@ -76,18 +80,18 @@ const AppContent = () => {
   ];
 
   // Hide AI button on auth pages where it makes no sense
-  // const hideAIRoutes = [
-  //   "/login",
-  //   "/forgot-password",
-  //   "/confirm-reset-code",
-  //   "/reset-password",
-  //   "/registration",
-  //   "/register-form",
-  // ];
+  const hideAIRoutes = [
+    "/login",
+    "/forgot-password",
+    "/confirm-reset-code",
+    "/reset-password",
+    "/registration",
+    "/register-form",
+  ];
 
   const shouldHideNavbar   = hideNavbarRoutes.includes(location.pathname);
   const shouldHideBottomNav = hideBottomNavRoutes.includes(location.pathname);
-  // const shouldShowAI = !hideAIRoutes.includes(location.pathname);
+  const shouldShowAI = !hideAIRoutes.includes(location.pathname);
 
   return (
     <>
@@ -109,6 +113,8 @@ const AppContent = () => {
         <Route path="/landlord/:type/:id" element={<Landlord />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/favorites" element={<FavoritePage />} />
+        <Route path="/hostel" element={<Hostel/>}/>
+        <Route path="/houseforrent" element={<HouseForRent/>}/>
         <Route
           path="/dashboard"
           element={
@@ -146,6 +152,7 @@ const AppContent = () => {
           <Route path="admin/users" element={<Users />} />
           <Route path="/dashboard/admin/add-property" element={<AdminAddProperty />} />
           <Route path="admin/properties" element={<Allproperties />} />
+          <Route path="admin/Addmin/Addmin" element={<Addmin />} />
           <Route path="admin/pending" element={<Pending />} />
           <Route path="admin/FlaggedProperty/FlaggedProperty" element={<FlaggedProperty />} />
           <Route path="admin/bookings" element={<AdminBookings />} />
@@ -160,7 +167,7 @@ const AppContent = () => {
       {/* ── Global overlays ──────────────────────────────────────── */}
       <NotificationToastContainer />
 
-      {/* {shouldShowAI && <AIAssistantButton />}  */}
+ {shouldShowAI && <AIAssistantButton />}  
    
 
       {!isDashboard && !shouldHideBottomNav && <MobileBottomNav />}

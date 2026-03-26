@@ -522,3 +522,35 @@
 @media (max-width: 1024px) { .pl-nearby-section { padding: 32px 8% 0; } }
 @media (max-width: 768px)  { .pl-nearby-section { padding: 24px 6% 0; } }
 @media (max-width: 480px)  { .pl-nearby-section { padding: 20px 5% 0; } }
+
+.pl-cards-grid {
+  align-items: stretch;
+}
+
+.pl-card-shell {
+  min-width: 0;
+  height: 100%;
+}
+
+.pl-card-shell .rental-card,
+.pl-card-shell .featured-rental-card {
+  width: 100%;
+  height: 100%;
+}
+
+.pl-cards-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+.pl-card-shell-list .rental-card,
+.pl-card-shell-list .featured-rental-card {
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .pl-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}

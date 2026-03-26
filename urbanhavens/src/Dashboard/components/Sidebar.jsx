@@ -55,10 +55,11 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               <SectionLabel label="Management" />
               <NavItem to="/dashboard/admin/users" icon={<FaUsers />} label="Manage Users" onClick={handleClick} />
               <NavItem to="/dashboard/admin/properties" icon={<FaHome />} label="All Properties" onClick={handleClick} />
-              <NavItem to="/dashboard/admin/AddProperty/add-property" icon={<FaUpload />} label="Add Property" onClick={handleClick} />
+              <NavItem to="/dashboard/admin/add-property" icon={<FaUpload />} label="Add Property" onClick={handleClick} />
               <NavItem to="/dashboard/admin/pending" icon={<FaClipboardCheck />} label="Pending Approvals" onClick={handleClick} />
               <NavItem to="/dashboard/admin/bookings" icon={<FaCalendarCheck />} label="Bookings" onClick={handleClick} />
               <NavItem to="/dashboard/admin/FlaggedProperty/FlaggedProperty" icon={<FaCalendarCheck />} label="FlaggedProperty" onClick={handleClick} />
+              <NavItem to="/dashboard/admin/Addmin/Addmin" icon={<FaCalendarCheck />} label="Addmin" onClick={handleClick} />
            
 
               <SectionLabel label="Insights" />

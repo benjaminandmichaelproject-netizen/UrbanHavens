@@ -7,11 +7,11 @@
 }
 
 .cta-section {
-
+background-color: var(--cta-bg);
   position: relative;
-  margin: 0 15%;
+  margin: 3% 15%;
   border-radius: 24px;
-  padding: 72px 48px;
+  padding: 10px 48px;
   text-align: center;
   overflow: hidden;
   box-sizing: border-box;

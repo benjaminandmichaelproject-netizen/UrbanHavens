@@ -16,7 +16,7 @@
 .ll-page {
   width: 100%;
   min-height: 100vh;
-  background: var(--ll-light);
+
   font-family: "DM Sans", "Segoe UI", sans-serif;
 }
 

@@ -1,0 +1,231 @@
+:root {
+  /* Your Brand Greens (Used for text, borders, and accents on a light UI) */
+  --h3-bg: #071a10; /* Deep forest green for main text */
+  --h3-green: #1a7a40; /* Primary brand green */
+  --h3-green-lt: #22a055; /* Secondary brand green */
+  --h3-accent: #159a4c; /* Darker green for text readability on white */
+  --h3-bg-light: #f4faf6; /* Super light mint-white for sections */
+  
+  --text-dark: #1e293b; /* Dark slate for regular text */
+  --text-muted: #64748b; /* Gray for descriptions */
+  --border-light: #e2e8f0; /* Soft borders */
+}
+
+/* --- Global Settings --- */
+.contact-page {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: #ffffff;
+  color: var(--text-dark);
+}
+
+/* --- Hero Section --- */
+.contact-hero {
+  position: relative;
+  height: 380px;
+ 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #ffffff;
+}
+
+.contact-hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(7, 26, 16, 0.8), rgba(7, 26, 16, 0.8)), 
+              url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=2070') center/cover;
+}
+
+.contact-hero-content {
+  position: relative;
+  z-index: 1;
+}
+
+.contact-hero-tag {
+  color: var(--h3-green-lt);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.contact-hero h1 {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+/* --- Main Section --- */
+.contact-main {
+  max-width: 1140px;
+  margin: -70px auto 60px;
+  padding: 0 20px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Fixes the washed-out text from the screenshot */
+.contact-intro {
+  background: #ffffff;
+  padding: 45px;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border-light);
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.contact-badge {
+  background: var(--h3-bg-light);
+  color: var(--h3-accent);
+  padding: 6px 16px;
+  border-radius: 50px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid rgba(22, 163, 74, 0.2);
+}
+
+.contact-intro h2 {
+  color: var(--h3-bg); /* Deep emerald text over white background */
+  font-size: 2.2rem;
+  margin: 20px 0 15px;
+  font-weight: 800;
+}
+
+.contact-intro p {
+  color: var(--text-muted); /* Darker gray for clear reading */
+  max-width: 700px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* --- Contact Cards --- */
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 25px;
+}
+
+.contact-card {
+  background: #ffffff;
+  padding: 35px 30px;
+  border-radius: 16px;
+  border: 1px solid var(--border-light);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.contact-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.06);
+  border-color: var(--h3-green-lt);
+}
+
+.contact-card-icon {
+  font-size: 1.8rem;
+  color: var(--h3-green);
+  margin-bottom: 20px;
+}
+
+.contact-card h3 {
+  color: var(--h3-bg);
+  font-size: 1.25rem;
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
+.contact-card p {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.contact-link {
+  color: var(--h3-green);
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.contact-link:hover {
+  color: var(--h3-green-lt);
+  text-decoration: underline;
+}
+
+/* Focus / Primary WhatsApp Card (Uses the Light Green BG) */
+.contact-card-primary {
+  background-color: var(--h3-bg-light);
+  border: 1px solid rgba(22, 163, 74, 0.3);
+}
+
+.whatsapp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--h3-green);
+  color: #ffffff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  margin-bottom: 15px;
+  transition: background 0.2s;
+}
+
+.whatsapp-btn:hover {
+  background: var(--h3-green-lt);
+}
+
+.contact-card-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* --- Lower Info Section --- */
+.contact-extra {
+  max-width: 1140px;
+  margin: 50px auto 100px;
+  padding: 0 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+}
+
+.contact-extra-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+  min-width: 300px;
+  background: #f8fafc;
+  padding: 25px;
+  border-radius: 12px;
+}
+
+.contact-extra-icon {
+  font-size: 1.5rem;
+  color: var(--h3-green);
+}
+
+.contact-extra-card h4 {
+  color: var(--h3-bg);
+  margin: 0 0 5px 0;
+  font-size: 1.1rem;
+}
+
+.contact-extra-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .contact-hero h1 { font-size: 2.5rem; }
+  .contact-main { margin-top: -40px; }
+}
