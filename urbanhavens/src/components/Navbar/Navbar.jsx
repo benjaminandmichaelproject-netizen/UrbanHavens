@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import "./Navbar.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUserCircle, faTachometerAlt, faSignOutAlt } from "@fortawesome/free-solid-svg-icons";
-
+import { clearAuthStorage } from "../../Dashboard/Owner/UploadDetails/api/api";
 const Navbar = () => {
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -13,15 +13,12 @@ const Navbar = () => {
 
   const role = localStorage.getItem("role");
   const dashboardPath = role ? `/dashboard/${role}` : null;
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("role");
-
-    navigate("/");
-    window.location.reload();
-  };
-
+const handleLogout = () => {
+  clearAuthStorage();
+  setDropdownOpen(false);
+  setMenuOpen(false);
+  navigate("/", { replace: true });
+};
   return (
     <nav className="navbar">
 

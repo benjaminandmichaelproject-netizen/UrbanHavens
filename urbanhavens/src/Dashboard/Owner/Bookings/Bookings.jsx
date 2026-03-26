@@ -159,19 +159,32 @@ const handleConvertSubmit = async (leaseData) => {
     setSubmittingLease(false);
   }
 };
-  const handleRejectBooking = async (booking) => {
-    try {
-      setActionLoadingId(`reject-${booking.id}`);
-      await rejectBooking(booking.id);
-      await fetchBookings();
-      openPopup("success", "Booking request rejected successfully.");
-    } catch (error) {
-      console.error("Failed to reject booking:", error);
-      openPopup("error", "Failed to reject booking request.");
-    } finally {
-      setActionLoadingId(null);
-    }
-  };
+const handleRejectBooking = async (booking) => {
+  if (!booking?.id) return;
+
+  setActionLoadingId(`reject-${booking.id}`);
+
+  try {
+    await rejectBooking(booking.id);
+    await fetchBookings();
+    openPopup("success", "Booking rejected successfully.");
+  } catch (error) {
+    console.error(
+      "Failed to reject booking:",
+      error?.response?.data || error?.detail || error?.message || error
+    );
+
+    const backendError =
+      error?.response?.data?.detail ||
+      error?.detail ||
+      error?.message ||
+      "Failed to reject booking request.";
+
+    openPopup("error", backendError);
+  } finally {
+    setActionLoadingId(null);
+  }
+};
 
   const handleCancelMeeting = async (meetingId) => {
     try {

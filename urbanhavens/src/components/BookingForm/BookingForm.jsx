@@ -25,6 +25,7 @@ const BookingForm = ({ property }) => {
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [closingPopup, setClosingPopup] = useState(false);
 const [bookingError, setBookingError] = useState("");
+const [bookingRequestKey, setBookingRequestKey] = useState("");
   const [showStatusPopup, setShowStatusPopup] = useState(false);
   const [statusPopupType, setStatusPopupType] = useState("success");
   const [statusPopupMessage, setStatusPopupMessage] = useState("");
@@ -165,6 +166,9 @@ const handleSubmit = async (e) => {
     return;
   }
 
+  const requestKey = bookingRequestKey || crypto.randomUUID();
+  setBookingRequestKey(requestKey);
+
   try {
     const payload = {
       property: property.id,
@@ -174,7 +178,7 @@ const handleSubmit = async (e) => {
       message: formData.message,
     };
 
-    await createBooking(payload);
+    await createBooking(payload, requestKey);
 
     openStatusPopup(
       "success",
@@ -190,19 +194,20 @@ const handleSubmit = async (e) => {
       message: initialMessage,
     });
     setErrors({});
+    setBookingRequestKey("");
   } catch (error) {
-  console.error("Booking submission failed:", error);
+    console.error("Booking submission failed:", error);
 
-  const backendError =
-    error?.response?.data?.detail ||
-    error?.response?.data?.non_field_errors?.[0] ||
-    error?.response?.data?.property?.[0] ||
-    error?.response?.data?.message ||
-    "Failed to schedule viewing. Please try again.";
+    const backendError =
+      error?.response?.data?.detail ||
+      error?.response?.data?.non_field_errors?.[0] ||
+      error?.response?.data?.property?.[0] ||
+      error?.response?.data?.message ||
+      "Failed to schedule viewing. Please try again.";
 
-  openStatusPopup("error", backendError);
-  setBookingError(backendError);
-}
+    openStatusPopup("error", backendError);
+    setBookingError(backendError);
+  }
 };
   const handleLoginRedirect = () => {
     navigate("/login", {
@@ -336,7 +341,10 @@ const handleSubmit = async (e) => {
             </div>
 {bookingError && (
   <p className="booking-error-message">{bookingError}</p>
-)}
+  
+) }
+
+
             <div className="input-group">
               <button type="submit">
                 {isHostel ? "Schedule Hostel Viewing" : "Schedule Viewing"}

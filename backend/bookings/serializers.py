@@ -129,6 +129,8 @@ class BookingSerializer(serializers.ModelSerializer):
             "status": lease.status,
             "lease_end_date": str(lease.lease_end_date) if lease.lease_end_date else None,
         }
+        
+        
 
     def validate_property(self, property_obj):
         if not property_obj.is_available:
@@ -150,6 +152,8 @@ class BookingSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Preferred viewing date cannot be in the past.")
         return value
     
+    
+    
     def validate(self, attrs):
       attrs = super().validate(attrs)
 
@@ -159,19 +163,28 @@ class BookingSerializer(serializers.ModelSerializer):
 
       if not user or not user.is_authenticated:
         raise serializers.ValidationError("Authentication required.")
-
       if property_obj:
-        has_active_lease_for_same_property = TenantLease.objects.filter(
-            tenant=user,
-            property=property_obj,
-            status="active",
+        existing_open_booking = Booking.objects.filter(
+        tenant=user,
+        property=property_obj,
+        status__in=["pending", "approved"],
+        ).exists()
+ 
+      if existing_open_booking:
+        raise serializers.ValidationError({
+            "detail": "You already have an active booking request for this property."
+        })
+
+      has_active_lease_for_same_property = TenantLease.objects.filter(
+        tenant=user,
+        property=property_obj,
+        status="active",
         ).exists()
 
-        if has_active_lease_for_same_property:
-            raise serializers.ValidationError({
-                "detail": "You already have an active lease for this property and cannot book it again until the lease ends."
-            })
-
+      if has_active_lease_for_same_property:
+        raise serializers.ValidationError({
+            "detail": "You already have an active lease for this property and cannot book it again until the lease ends."
+        })
       return attrs
     
     
@@ -188,6 +201,13 @@ class BookingSerializer(serializers.ModelSerializer):
             owner=property_obj.owner,
             **validated_data
         )
+        try:
+            send_booking_created_sms(booking)
+        except Exception as exc:
+             print("SMS sending failed:", exc)
+        
+        
+        
 
         tenant_full_name = (
             f"{request.user.first_name} {request.user.last_name}".strip()

@@ -14,7 +14,7 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
-
+from corsheaders.defaults import default_headers
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / ".env")
@@ -133,11 +133,13 @@ STORAGES = {
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
+   "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://urbanhavenss.netlify.app",
 ]
-
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "idempotency-key",
+]
 CSRF_TRUSTED_ORIGINS = [
     "https://urbanhavenss.netlify.app",
 ]

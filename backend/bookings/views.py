@@ -2,229 +2,365 @@ from django.db.models import Q
 from rest_framework import permissions, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+import hashlib
+import json
+from django.db import transaction
 
-from .models import Booking, InspectionMeeting
+from .models import Booking, InspectionMeeting, BookingIdempotencyKey
 from .serializers import BookingSerializer, InspectionMeetingSerializer
 
 
+def build_request_hash(data):
+	normalized = json.dumps(data, sort_keys=True, default=str)
+	return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
 class BookingViewSet(viewsets.ModelViewSet):
-    serializer_class = BookingSerializer
-    permission_classes = [permissions.IsAuthenticated]
+	serializer_class = BookingSerializer
+	permission_classes = [permissions.IsAuthenticated]
 
-    def get_queryset(self):
-        user = self.request.user
-        role = getattr(user, "role", None)
+	def get_queryset(self):
+		user = self.request.user
+		role = getattr(user, "role", None)
 
-        queryset = Booking.objects.select_related(
-            "property",
-            "tenant",
-            "owner",
-        ).prefetch_related("property__images")
+		queryset = Booking.objects.select_related(
+			"property",
+			"tenant",
+			"owner",
+		).prefetch_related("property__images")
 
-        if user.is_superuser or role == "admin":
-            return queryset.order_by("-id")
+		if user.is_superuser or role == "admin":
+			return queryset.order_by("-id")
 
-        if self.action == "my_owner_bookings":
-            return queryset.filter(owner=user, archived_by_owner=False).order_by("-id")
+		if self.action == "my_owner_bookings":
+			return queryset.filter(owner=user, archived_by_owner=False).order_by("-id")
 
-        if self.action == "my_tenant_bookings":
-            return queryset.filter(tenant=user, archived_by_tenant=False).order_by("-id")
+		if self.action == "my_tenant_bookings":
+			return queryset.filter(tenant=user, archived_by_tenant=False).order_by(
+				"-id"
+			)
 
-        if self.action == "list":
-            return queryset.filter(tenant=user, archived_by_tenant=False).order_by("-id")
+		if self.action == "list":
+			return queryset.filter(tenant=user, archived_by_tenant=False).order_by(
+				"-id"
+			)
 
-        if self.action in [
-            "retrieve",
-            "update",
-            "partial_update",
-            "destroy",
-            "clear",
-            "clear_for_tenant",
-        ]:
-            return queryset.filter(Q(tenant=user) | Q(owner=user)).order_by("-id")
+		if self.action in [
+    "retrieve",
+    "update",
+    "partial_update",
+    "destroy",
+    "clear",
+    "clear_for_tenant",
+    "reject",
+]:
+			return queryset.filter(Q(tenant=user) | Q(owner=user)).order_by("-id")
 
-        return queryset.none()
+		return queryset.none()
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["request"] = self.request
-        return context
+	def get_serializer_context(self):
+		context = super().get_serializer_context()
+		context["request"] = self.request
+		return context
 
-    def perform_create(self, serializer):
-        serializer.save()
+	def create(self, request, *args, **kwargs):
+		idempotency_key = request.headers.get("Idempotency-Key")
 
-    @action(detail=False, methods=["get"])
-    def my_owner_bookings(self, request):
-        user = request.user
-        role = getattr(user, "role", None)
+		if not idempotency_key:
+			return Response(
+				{"detail": "Idempotency-Key header is required."},
+				status=status.HTTP_400_BAD_REQUEST,
+			)
 
-        if not (user.is_superuser or role in ["admin", "owner"]):
-            return Response(
-                {"detail": "Only property owners can view owner bookings."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+		request_hash = build_request_hash(request.data)
 
-        bookings = (
-            Booking.objects.select_related("property", "tenant", "owner")
-            .prefetch_related("property__images")
-            .filter(owner=user, archived_by_owner=False)
-            .order_by("-id")
-        )
-        serializer = self.get_serializer(bookings, many=True)
-        return Response(serializer.data)
+		existing_key = BookingIdempotencyKey.objects.filter(
+			user=request.user,
+			key=idempotency_key,
+			endpoint="/api/bookings/",
+		).first()
 
-    @action(detail=False, methods=["get"])
-    def my_tenant_bookings(self, request):
-        bookings = (
-            Booking.objects.select_related("property", "tenant", "owner")
-            .prefetch_related("property__images")
-            .filter(tenant=request.user, archived_by_tenant=False)
-            .order_by("-id")
-        )
-        serializer = self.get_serializer(bookings, many=True)
-        return Response(serializer.data)
+		if existing_key:
+			if existing_key.request_hash != request_hash:
+				return Response(
+					{
+						"detail": "This Idempotency-Key was already used with a different booking request."
+					},
+					status=status.HTTP_400_BAD_REQUEST,
+				)
 
-    @action(detail=True, methods=["post"], url_path="clear")
-    def clear(self, request, pk=None):
-        booking = self.get_object()
-        user = request.user
-        role = getattr(user, "role", None)
+			if (
+				existing_key.response_body is not None
+				and existing_key.response_status is not None
+			):
+				return Response(
+					existing_key.response_body, status=existing_key.response_status
+				)
 
-        if user.id != booking.owner_id and not (user.is_superuser or role == "admin"):
-            return Response(
-                {"detail": "Only the property owner can clear this booking."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+		serializer = self.get_serializer(data=request.data)
+		serializer.is_valid(raise_exception=True)
 
-        if booking.status != "converted":
-            return Response(
-                {"detail": "Only converted bookings can be cleared."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+		with transaction.atomic():
+			key_record, created = BookingIdempotencyKey.objects.get_or_create(
+				key=idempotency_key,
+				defaults={
+					"user": request.user,
+					"endpoint": "/api/bookings/",
+					"request_hash": request_hash,
+				},
+			)
 
-        booking.archived_by_owner = True
-        booking.save(update_fields=["archived_by_owner"])
+			if not created:
+				if key_record.user_id != request.user.id:
+					return Response(
+						{"detail": "This Idempotency-Key belongs to another user."},
+						status=status.HTTP_400_BAD_REQUEST,
+					)
 
-        return Response(
-            {"detail": "Booking cleared from active owner view."},
-            status=status.HTTP_200_OK,
-        )
+				if key_record.request_hash != request_hash:
+					return Response(
+						{
+							"detail": "This Idempotency-Key was already used with a different booking request."
+						},
+						status=status.HTTP_400_BAD_REQUEST,
+					)
 
-    @action(detail=True, methods=["post"], url_path="clear-for-tenant")
-    def clear_for_tenant(self, request, pk=None):
-        booking = self.get_object()
+				if (
+					key_record.response_body is not None
+					and key_record.response_status is not None
+				):
+					return Response(
+						key_record.response_body, status=key_record.response_status
+					)
 
-        if request.user.id != booking.tenant_id:
-            return Response(
-                {"detail": "Only the tenant can clear this booking from their list."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+			booking = serializer.save()
 
-        if booking.status != "converted":
-            return Response(
-                {"detail": "Only converted bookings can be cleared."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+			response_serializer = self.get_serializer(booking)
+			response_body = response_serializer.data
 
-        booking.archived_by_tenant = True
-        booking.save(update_fields=["archived_by_tenant"])
+			key_record.response_status = status.HTTP_201_CREATED
+			key_record.response_body = response_body
+			key_record.save(update_fields=["response_status", "response_body"])
 
-        return Response(
-            {"detail": "Booking cleared from active tenant view."},
-            status=status.HTTP_200_OK,
-        )
+		headers = self.get_success_headers(response_body)
+		return Response(response_body, status=status.HTTP_201_CREATED, headers=headers)
+
+	@action(detail=False, methods=["get"])
+	def my_owner_bookings(self, request):
+		user = request.user
+		role = getattr(user, "role", None)
+
+		if not (user.is_superuser or role in ["admin", "owner"]):
+			return Response(
+				{"detail": "Only property owners can view owner bookings."},
+				status=status.HTTP_403_FORBIDDEN,
+			)
+
+		bookings = (
+			Booking.objects.select_related("property", "tenant", "owner")
+			.prefetch_related("property__images")
+			.filter(owner=user, archived_by_owner=False)
+			.order_by("-id")
+		)
+		serializer = self.get_serializer(bookings, many=True)
+		return Response(serializer.data)
+
+	@action(detail=False, methods=["get"])
+	def my_tenant_bookings(self, request):
+		bookings = (
+			Booking.objects.select_related("property", "tenant", "owner")
+			.prefetch_related("property__images")
+			.filter(tenant=request.user, archived_by_tenant=False)
+			.order_by("-id")
+		)
+		serializer = self.get_serializer(bookings, many=True)
+		return Response(serializer.data)
+
+	@action(detail=True, methods=["post"], url_path="reject")
+	def reject(self, request, pk=None):
+		booking = self.get_object()
+		user = request.user
+		role = getattr(user, "role", None)
+
+		if user.id != booking.owner_id and not (user.is_superuser or role == "admin"):
+			return Response(
+				{"detail": "Only the property owner can reject this booking."},
+				status=status.HTTP_403_FORBIDDEN,
+			)
+
+		if booking.status == "rejected":
+			return Response(
+				{"detail": "This booking is already rejected."},
+				status=status.HTTP_400_BAD_REQUEST,
+			)
+
+		if booking.status == "converted":
+			return Response(
+				{"detail": "Converted bookings cannot be rejected."},
+				status=status.HTTP_400_BAD_REQUEST,
+			)
+
+		booking.status = "rejected"
+		booking.save(update_fields=["status"])
+
+		from notifications.utils import send_notification
+
+		send_notification(
+			user=booking.tenant,
+			message=(
+				f"Your booking request for {booking.property.property_name} "
+				f"has been rejected."
+			),
+			notification_type="booking_rejected",
+			property_id=booking.property.id,
+		)
+
+		serializer = self.get_serializer(booking)
+		return Response(serializer.data, status=status.HTTP_200_OK)
+		
+		
+
+		@action(detail=True, methods=["post"], url_path="clear")
+		def clear(self, request, pk=None):
+			booking = self.get_object()
+			user = request.user
+			role = getattr(user, "role", None)
+
+			if user.id != booking.owner_id and not (user.is_superuser or role == "admin"):
+				return Response(
+					{"detail": "Only the property owner can clear this booking."},
+					status=status.HTTP_403_FORBIDDEN,
+				)
+
+			if booking.status != "converted":
+				return Response(
+					{"detail": "Only converted bookings can be cleared."},
+					status=status.HTTP_400_BAD_REQUEST,
+				)
+
+			booking.archived_by_owner = True
+			booking.save(update_fields=["archived_by_owner"])
+
+			return Response(
+				{"detail": "Booking cleared from active owner view."},
+				status=status.HTTP_200_OK,
+			)
+
+		@action(detail=True, methods=["post"], url_path="clear-for-tenant")
+		def clear_for_tenant(self, request, pk=None):
+			booking = self.get_object()
+
+			if request.user.id != booking.tenant_id:
+				return Response(
+					{"detail": "Only the tenant can clear this booking from their list."},
+					status=status.HTTP_403_FORBIDDEN,
+				)
+
+			if booking.status != "converted":
+				return Response(
+					{"detail": "Only converted bookings can be cleared."},
+					status=status.HTTP_400_BAD_REQUEST,
+				)
+
+			booking.archived_by_tenant = True
+			booking.save(update_fields=["archived_by_tenant"])
+
+			return Response(
+				{"detail": "Booking cleared from active tenant view."},
+				status=status.HTTP_200_OK,
+			)
 
 
 class InspectionMeetingViewSet(viewsets.ModelViewSet):
-    serializer_class = InspectionMeetingSerializer
-    permission_classes = [permissions.IsAuthenticated]
+	serializer_class = InspectionMeetingSerializer
+	permission_classes = [permissions.IsAuthenticated]
 
-    def get_queryset(self):
-        user = self.request.user
-        role = getattr(user, "role", None)
+	def get_queryset(self):
+		user = self.request.user
+		role = getattr(user, "role", None)
 
-        queryset = InspectionMeeting.objects.select_related(
-            "booking__property",
-            "booking__tenant",
-            "booking__owner"
-        ).prefetch_related("booking__property__images")
+		queryset = InspectionMeeting.objects.select_related(
+			"booking__property", "booking__tenant", "booking__owner"
+		).prefetch_related("booking__property__images")
 
-        if user.is_superuser or role == "admin":
-            return queryset.order_by("-id")
+		if user.is_superuser or role == "admin":
+			return queryset.order_by("-id")
 
-        if role == "owner":
-            return queryset.filter(booking__owner=user).order_by("-id")
+		if role == "owner":
+			return queryset.filter(booking__owner=user).order_by("-id")
 
-        return queryset.filter(booking__tenant=user).order_by("-id")
+		return queryset.filter(booking__tenant=user).order_by("-id")
 
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context["request"] = self.request
-        return context
+	def get_serializer_context(self):
+		context = super().get_serializer_context()
+		context["request"] = self.request
+		return context
 
-    def perform_create(self, serializer):
-        serializer.save()
+	def perform_create(self, serializer):
+		serializer.save()
 
-    @action(detail=True, methods=["post"], url_path="cancel")
-    def cancel(self, request, pk=None):
-        meeting = self.get_object()
-        user = request.user
-        role = getattr(user, "role", None)
+	@action(detail=True, methods=["post"], url_path="cancel")
+	def cancel(self, request, pk=None):
+		meeting = self.get_object()
+		user = request.user
+		role = getattr(user, "role", None)
 
-        if user.id != meeting.booking.owner_id and not (
-            user.is_superuser or role == "admin"
-        ):
-            return Response(
-                {"detail": "Only the property owner can cancel this meeting."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+		if user.id != meeting.booking.owner_id and not (
+			user.is_superuser or role == "admin"
+		):
+			return Response(
+				{"detail": "Only the property owner can cancel this meeting."},
+				status=status.HTTP_403_FORBIDDEN,
+			)
 
-        if meeting.status == "cancelled":
-            return Response(
-                {"detail": "This meeting is already cancelled."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+		if meeting.status == "cancelled":
+			return Response(
+				{"detail": "This meeting is already cancelled."},
+				status=status.HTTP_400_BAD_REQUEST,
+			)
 
-        meeting.status = "cancelled"
-        meeting.save()
+		meeting.status = "cancelled"
+		meeting.save()
 
-        from notifications.utils import send_notification
+		from notifications.utils import send_notification
 
-        send_notification(
-            user=meeting.booking.tenant,
-            message=(
-                f"Your inspection meeting for "
-                f"{meeting.booking.property.property_name} has been cancelled."
-            ),
-            notification_type="meeting_cancelled",
-            property_id=meeting.booking.property.id,
-        )
+		send_notification(
+			user=meeting.booking.tenant,
+			message=(
+				f"Your inspection meeting for "
+				f"{meeting.booking.property.property_name} has been cancelled."
+			),
+			notification_type="meeting_cancelled",
+			property_id=meeting.booking.property.id,
+		)
 
-        serializer = self.get_serializer(meeting)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+		serializer = self.get_serializer(meeting)
+		return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @action(detail=True, methods=["post"], url_path="complete")
-    def complete(self, request, pk=None):
-        meeting = self.get_object()
-        user = request.user
-        role = getattr(user, "role", None)
+	@action(detail=True, methods=["post"], url_path="complete")
+	def complete(self, request, pk=None):
+		meeting = self.get_object()
+		user = request.user
+		role = getattr(user, "role", None)
 
-        if user.id != meeting.booking.owner_id and not (
-            user.is_superuser or role == "admin"
-        ):
-            return Response(
-                {"detail": "Only the property owner can mark this meeting as completed."},
-                status=status.HTTP_403_FORBIDDEN,
-            )
+		if user.id != meeting.booking.owner_id and not (
+			user.is_superuser or role == "admin"
+		):
+			return Response(
+				{
+					"detail": "Only the property owner can mark this meeting as completed."
+				},
+				status=status.HTTP_403_FORBIDDEN,
+			)
 
-        if meeting.status != "upcoming":
-            return Response(
-                {"detail": "Only upcoming meetings can be marked as completed."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+		if meeting.status != "upcoming":
+			return Response(
+				{"detail": "Only upcoming meetings can be marked as completed."},
+				status=status.HTTP_400_BAD_REQUEST,
+			)
 
-        meeting.status = "completed"
-        meeting.save()
+		meeting.status = "completed"
+		meeting.save()
 
-        serializer = self.get_serializer(meeting)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+		serializer = self.get_serializer(meeting)
+		return Response(serializer.data, status=status.HTTP_200_OK)

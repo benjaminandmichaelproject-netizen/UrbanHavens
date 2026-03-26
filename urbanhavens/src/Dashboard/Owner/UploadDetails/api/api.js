@@ -3,13 +3,15 @@ import axios from "axios";
 const API_BASE = "http://127.0.0.1:8000/api";
 const REFRESH_URL = `${API_BASE}/users/token/refresh/`;
 
-const clearAuthStorage = () => {
+export const clearAuthStorage = () => {
   localStorage.removeItem("access");
   localStorage.removeItem("token");
   localStorage.removeItem("refresh");
   localStorage.removeItem("username");
   localStorage.removeItem("role");
   localStorage.removeItem("userId");
+  localStorage.removeItem("phone");
+  window.dispatchEvent(new Event("auth-changed"));
 };
 
 const getStoredAccessToken = () => {
@@ -177,15 +179,32 @@ export const deleteProperty = async (id) => {
 };
 
 // ─── Booking APIs ────────────────────────────────────────────────────────────
-export const createBooking = async (bookingData) => {
+export const createBooking = async (bookingData, idempotencyKey) => {
   try {
-    const res = await api.post("/bookings/", bookingData);
+    const config = {
+      headers: {
+        "Idempotency-Key": idempotencyKey,
+      },
+    };
+
+    console.log("BOOKING CONFIG:", config);
+
+    const res = await api({
+      method: "post",
+      url: "/bookings/",
+      data: bookingData,
+      ...config,
+    });
+
     return res.data;
   } catch (err) {
     console.error("Create booking error:", err.response?.data || err.message);
     throw err;
   }
 };
+
+
+
 
 export const getOwnerBookings = async () => {
   try {
@@ -209,15 +228,13 @@ export const getTenantBookings = async () => {
 
 export const rejectBooking = async (bookingId) => {
   try {
-    const res = await api.patch(`/bookings/${bookingId}/`, {
-      status: "rejected",
-    });
+    const res = await api.post(`/bookings/${bookingId}/reject/`);
     return res.data;
   } catch (err) {
     console.error("Reject booking error:", err.response?.data || err.message);
     throw err.response?.data || err;
   }
-};
+};;
 
 export const clearBooking = async (bookingId) => {
   try {

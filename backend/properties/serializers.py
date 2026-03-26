@@ -8,7 +8,7 @@ from rest_framework import serializers
 from .models import ExternalLandlord, Favorite, Property, PropertyImage, PropertyDuplicateMatch, Room
 from .security import check_duplicate_property
 from users.models import User
-
+from notifications.sms import send_booking_created_sms
 logger = logging.getLogger(__name__)
 
 

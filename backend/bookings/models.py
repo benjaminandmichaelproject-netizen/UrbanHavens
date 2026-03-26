@@ -72,3 +72,27 @@ class InspectionMeeting(models.Model):
 
     def __str__(self):
         return f"Meeting for Booking #{self.booking.id} on {self.date} at {self.time}"
+
+
+from django.conf import settings
+from django.db import models
+
+
+class BookingIdempotencyKey(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="booking_idempotency_keys",
+    )
+    key = models.CharField(max_length=255, unique=True)
+    endpoint = models.CharField(max_length=100, default="/api/bookings/")
+    request_hash = models.CharField(max_length=64)
+    response_status = models.PositiveIntegerField(null=True, blank=True)
+    response_body = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.user} - {self.key}"
