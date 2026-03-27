@@ -3,6 +3,7 @@ from .models import Booking, InspectionMeeting
 from notifications.utils import send_notification
 from django.contrib.auth import get_user_model
 from leases.models import TenantLease
+from notifications.sms import send_booking_created_sms
 User = get_user_model()
 
 

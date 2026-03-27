@@ -1,33 +1,38 @@
 import json
+
 from channels.generic.websocket import AsyncWebsocketConsumer
-from django.contrib.auth.models import AnonymousUser
 
 
 class NotificationConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         user = self.scope.get("user")
 
-        # Reject if no user, anonymous, or not authenticated
-        if not user or isinstance(user, AnonymousUser) or not user.is_authenticated:
+        if not user or not getattr(user, "is_authenticated", False):
             await self.close(code=4001)
             return
 
-        self.group_name = f"user_{user.id}"
+        self.user = user
+        self.group_name = f"user_{self.user.id}"
 
-        await self.channel_layer.group_add(
-            self.group_name,
-            self.channel_name,
-        )
-
-        await self.accept()
-
-    async def disconnect(self, close_code):
-        # Guard in case connect() rejected before group_name was set
-        if hasattr(self, "group_name"):
-            await self.channel_layer.group_discard(
+        try:
+            await self.channel_layer.group_add(
                 self.group_name,
                 self.channel_name,
             )
+            await self.accept()
+        except Exception:
+            await self.close(code=4500)
+
+    async def disconnect(self, close_code):
+        if hasattr(self, "group_name"):
+            try:
+                await self.channel_layer.group_discard(
+                    self.group_name,
+                    self.channel_name,
+                )
+            except Exception:
+                pass
 
     async def send_notification(self, event):
-        await self.send(text_data=json.dumps(event["data"]))
+        data = event.get("data", {})
+        await self.send(text_data=json.dumps(data))

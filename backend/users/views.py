@@ -175,7 +175,7 @@ class UserViewSet(viewsets.ViewSet):
 
         return Response(data, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post"], url_path="forgot-password")
     def forgot_password(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
         if not serializer.is_valid():
@@ -208,7 +208,7 @@ class UserViewSet(viewsets.ViewSet):
             status=status.HTTP_200_OK,
         )
 
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post"], url_path="confirm-code")
     def confirm_code(self, request):
         serializer = ConfirmResetCodeSerializer(data=request.data)
         if not serializer.is_valid():
@@ -227,7 +227,7 @@ class UserViewSet(viewsets.ViewSet):
 
         return Response({"detail": "Code confirmed."}, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post"], url_path="reset-password")
     def reset_password(self, request):
         serializer = ResetPasswordSerializer(data=request.data)
         if not serializer.is_valid():
