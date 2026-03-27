@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import "./FeaturedRentals.css";
 import FavAlert from "../Modals/FavAlert";
+import { api, refreshAccessToken } from "../../Dashboard/Owner/UploadDetails/api/api";
 
 /* ─── Animation Variants ──────────────────────────────────────────── */
 const stagger = {
@@ -51,7 +52,6 @@ const RentalCard = ({
 
   return (
     <motion.article className="rental-card" variants={cardVariant}>
-      {/* ── Image ── */}
       <div className="rental-card-image-wrap">
         {image ? (
           <img src={image} alt={title} loading="lazy" />
@@ -67,18 +67,18 @@ const RentalCard = ({
           </div>
         )}
 
-        {/* Availability badge */}
         <span className={`rental-card-badge ${isAvailable ? "available" : "unavailable"}`}>
           {isAvailable ? "● Available" : "● Occupied"}
         </span>
 
-        {/* Category */}
         {category && <span className="rental-card-category">{category}</span>}
 
-        {/* Favourite */}
         <button
           className={`rental-card-fav-btn ${isFavorited ? "favorited" : ""}`}
-          onClick={(e) => { e.stopPropagation(); onFavorite?.(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onFavorite?.();
+          }}
           aria-label={isFavorited ? "Remove from favourites" : "Add to favourites"}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" strokeWidth="2">
@@ -87,7 +87,6 @@ const RentalCard = ({
         </button>
       </div>
 
-      {/* ── Body ── */}
       <div className="rental-card-body">
         <h3 className="rental-card-title">{title || "Untitled Property"}</h3>
 
@@ -102,24 +101,21 @@ const RentalCard = ({
         {amenities.length > 0 && (
           <div className="rental-card-amenities">
             {amenities.map((a, i) => (
-              <span key={i} className="rental-card-amenity">{a}</span>
+              <span key={i} className="rental-card-amenity">
+                {a}
+              </span>
             ))}
           </div>
         )}
       </div>
 
-      {/* ── Footer ── */}
       <div className="rental-card-footer">
         <div className="rental-card-price">
           <span className="rental-card-price-amount">{formatPrice(price)}</span>
           <span className="rental-card-price-label">per month</span>
         </div>
 
-        <button
-          className="rental-card-book-btn"
-          onClick={onBook}
-          disabled={!isAvailable}
-        >
+        <button className="rental-card-book-btn" onClick={onBook} disabled={!isAvailable}>
           {isAvailable ? "Book Now" : "Unavailable"}
         </button>
       </div>
@@ -130,7 +126,9 @@ const RentalCard = ({
 /* ─── Helpers ─────────────────────────────────────────────────────── */
 const getAvailability = (property) => {
   if (typeof property?.is_available === "boolean") return property.is_available;
-  const status = String(property?.status || "").toLowerCase().trim();
+  const status = String(property?.status || "")
+    .toLowerCase()
+    .trim();
   return !["unavailable", "not available", "occupied", "booked", "rented"].includes(status);
 };
 
@@ -139,10 +137,18 @@ const getImageUrl = (property) => property?.images?.[0]?.image || "";
 const getAmenitiesPreview = (amenities) => {
   if (!amenities) return [];
   let parsed = amenities;
+
   if (typeof amenities === "string") {
-    try { parsed = JSON.parse(amenities); }
-    catch { parsed = amenities.split(",").map((s) => s.trim()).filter(Boolean); }
+    try {
+      parsed = JSON.parse(amenities);
+    } catch {
+      parsed = amenities
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
   }
+
   return Array.isArray(parsed) ? parsed.slice(0, 3) : [];
 };
 
@@ -157,96 +163,101 @@ const FeaturedRentals = () => {
   const [favAlertMessage, setFavAlertMessage] = useState("");
   const [favAlertType, setFavAlertType] = useState("success");
 
-  const refreshAccessToken = async () => {
-    const refresh = localStorage.getItem("refresh");
-    if (!refresh) return null;
-    try {
-      const res = await fetch("/api/users/token/refresh/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh }),
-      });
-      if (!res.ok) return null;
-      const data = await res.json();
-      localStorage.setItem("access", data.access);
-      return data.access;
-    } catch { return null; }
-  };
-
   useEffect(() => {
-    (async () => {
+    const loadFeaturedProperties = async () => {
       try {
         setLoading(true);
         setError("");
-        const res = await fetch("/api/properties/featured/");
-        if (!res.ok) throw new Error("Failed to fetch featured properties.");
-        const data = await res.json();
+
+        const res = await api.get("/properties/featured/");
+        const data = res.data;
+
         setProperties(Array.isArray(data) ? data : []);
-        if (!Array.isArray(data)) setError("Invalid response from server.");
+        if (!Array.isArray(data)) {
+          setError("Invalid response from server.");
+        }
       } catch (err) {
+        console.error("Featured properties fetch error:", err);
         setProperties([]);
-        setError(err.message || "Error fetching featured properties.");
+        setError("Error fetching featured properties.");
       } finally {
         setLoading(false);
       }
-    })();
+    };
+
+    loadFeaturedProperties();
   }, []);
 
   const fetchFavorites = useCallback(async () => {
     const token = localStorage.getItem("access");
-    if (!token) { setFavoriteIds([]); return; }
+    if (!token) {
+      setFavoriteIds([]);
+      return;
+    }
+
     try {
-      const res = await fetch("/api/favorites/", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.status === 401 || !res.ok) { setFavoriteIds([]); return; }
-      const data = await res.json();
+      const res = await api.get("/favorites/");
+      const data = res.data;
+
       const ids = Array.isArray(data)
         ? data.map((item) => item.property?.id).filter(Boolean)
         : [];
+
       setFavoriteIds(ids);
-    } catch { setFavoriteIds([]); }
+    } catch (err) {
+      console.error("Fetch favorites error:", err);
+      setFavoriteIds([]);
+    }
   }, []);
 
-  useEffect(() => { fetchFavorites(); }, [fetchFavorites]);
+  useEffect(() => {
+    fetchFavorites();
+  }, [fetchFavorites]);
 
   const toggleFavorite = async (propertyId) => {
     const token = localStorage.getItem("access");
-    if (!token) { navigate("/login"); return; }
+    if (!token) {
+      navigate("/login");
+      return;
+    }
 
     const isAlreadyFavorited = favoriteIds.includes(propertyId);
-    const url = isAlreadyFavorited
-      ? `/api/favorites/remove/${propertyId}/`
-      : "/api/favorites/add/";
 
     try {
-      const res = await fetch(url, {
-        method: isAlreadyFavorited ? "DELETE" : "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        ...(isAlreadyFavorited ? {} : { body: JSON.stringify({ property_id: propertyId }) }),
-      });
-
-      if (res.status === 401) {
-        const newToken = await refreshAccessToken();
-        if (!newToken) {
-          localStorage.removeItem("access");
-          localStorage.removeItem("refresh");
-          navigate("/login");
-          return;
-        }
-        await toggleFavorite(propertyId);
-        return;
+      if (isAlreadyFavorited) {
+        await api.delete(`/favorites/remove/${propertyId}/`);
+      } else {
+        await api.post("/favorites/add/", { property_id: propertyId });
       }
 
-      if (!res.ok) throw new Error("Failed to update favorite.");
-
       setFavoriteIds((prev) =>
-        isAlreadyFavorited ? prev.filter((id) => id !== propertyId) : [...prev, propertyId]
+        isAlreadyFavorited
+          ? prev.filter((id) => id !== propertyId)
+          : [...prev, propertyId]
       );
-      setFavAlertMessage(isAlreadyFavorited ? "Removed from favorites." : "Added to favorites.");
+
+      setFavAlertMessage(
+        isAlreadyFavorited ? "Removed from favorites." : "Added to favorites."
+      );
       setFavAlertType(isAlreadyFavorited ? "error" : "success");
       setShowFavAlert(true);
     } catch (err) {
+      if (err?.response?.status === 401) {
+        const newToken = await refreshAccessToken();
+
+        if (!newToken) {
+          localStorage.removeItem("access");
+          localStorage.removeItem("refresh");
+          localStorage.removeItem("username");
+          localStorage.removeItem("role");
+          localStorage.removeItem("userId");
+          navigate("/login");
+          return;
+        }
+
+        return toggleFavorite(propertyId);
+      }
+
       console.error("toggleFavorite error:", err);
     }
   };
@@ -257,7 +268,6 @@ const FeaturedRentals = () => {
 
   return (
     <section className="featured-rentals-section">
-      {/* ── Header ── */}
       <motion.div
         className="featured-rentals-header"
         variants={stagger}
@@ -270,8 +280,7 @@ const FeaturedRentals = () => {
         </motion.span>
 
         <motion.h2 className="featured-rentals-title" variants={fadeUp}>
-          Featured{" "}
-          <span className="featured-rentals-title-accent">Properties</span>
+          Featured <span className="featured-rentals-title-accent">Properties</span>
         </motion.h2>
 
         <motion.p className="featured-rentals-subtitle" variants={fadeUp}>
@@ -279,7 +288,6 @@ const FeaturedRentals = () => {
         </motion.p>
       </motion.div>
 
-      {/* ── Loading ── */}
       {loading && (
         <div className="featured-rentals-loading-state">
           <div className="featured-rentals-spinner" />
@@ -287,19 +295,14 @@ const FeaturedRentals = () => {
         </div>
       )}
 
-      {/* ── Error ── */}
-      {error && !loading && (
-        <p className="featured-rentals-error-message">{error}</p>
-      )}
+      {error && !loading && <p className="featured-rentals-error-message">{error}</p>}
 
-      {/* ── Empty ── */}
       {!loading && !error && properties.length === 0 && (
         <p className="featured-rentals-empty-message">
           No featured properties available at the moment.
         </p>
       )}
 
-      {/* ── Grid ── */}
       {!loading && !error && properties.length > 0 && (
         <motion.div
           className="featured-rentals-grid"
@@ -328,7 +331,6 @@ const FeaturedRentals = () => {
         </motion.div>
       )}
 
-      {/* ── CTA ── */}
       <motion.div
         className="featured-rentals-call-to-action"
         initial={{ opacity: 0, y: 24 }}
