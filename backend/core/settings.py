@@ -29,18 +29,21 @@ def env_list(name: str, default: str = ""):
 
 ALLOWED_HOSTS = env_list(
     "ALLOWED_HOSTS",
-    "127.0.0.1,localhost,.onrender.com"
+    "127.0.0.1,localhost,.onrender.com,172.20.10.3"
+    
 )
 
 CSRF_TRUSTED_ORIGINS = env_list(
     "CSRF_TRUSTED_ORIGINS",
-    "http://127.0.0.1:5173,http://localhost:5173"
+    "http://127.0.0.1:5173,http://localhost:5173,http://172.20.10.3:5173"
 )
 
 CORS_ALLOWED_ORIGINS = env_list(
     "CORS_ALLOWED_ORIGINS",
-    "http://127.0.0.1:5173,http://localhost:5173"
+    "http://127.0.0.1:5173,http://localhost:5173,http://172.20.10.3:5173"
 )
+
+
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
     "idempotency-key",

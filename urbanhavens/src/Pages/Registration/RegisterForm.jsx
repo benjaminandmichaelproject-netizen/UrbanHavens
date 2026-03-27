@@ -1,10 +1,10 @@
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import axios from "axios";
+// import axios from "axios";
 import { FaArrowRight, FaHome, FaBuilding } from "react-icons/fa";
 import "./Registration.css";
-
+import { api } from "../../Dashboard/Owner/UploadDetails/api/api";
 const fadeUp  = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
 
@@ -71,12 +71,9 @@ const RegisterForm = () => {
 
     try {
       setLoading(true);
-      const res = await axios.post(
-        "http://127.0.0.1:8000/api/users/register/",
-        data,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-
+   const res = await api.post("/users/register/", data, {
+  headers: { "Content-Type": "multipart/form-data" },
+});
       const user = res.data.user;
       localStorage.removeItem("token");
       localStorage.setItem("username", user.username || "");
