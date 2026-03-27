@@ -1,14 +1,11 @@
 import axios from "axios";
 
-const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, "") ||
-  "http://127.0.0.1:8000";
-
-const API_BASE = `${BASE_URL}/api`;
+const API_BASE = "http://127.0.0.1:8000/api";
 const REFRESH_URL = `${API_BASE}/users/token/refresh/`;
 
 export const clearAuthStorage = () => {
   localStorage.removeItem("access");
+  localStorage.removeItem("token");
   localStorage.removeItem("refresh");
   localStorage.removeItem("username");
   localStorage.removeItem("role");
@@ -18,7 +15,7 @@ export const clearAuthStorage = () => {
 };
 
 const getStoredAccessToken = () => {
-  const token = localStorage.getItem("access");
+  const token = localStorage.getItem("access") || localStorage.getItem("token");
 
   if (
     !token ||
@@ -65,11 +62,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (
-      error.response?.status === 401 &&
-      originalRequest &&
-      !originalRequest._retry
-    ) {
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       originalRequest._retry = true;
 
       const refresh = getStoredRefreshToken();
@@ -85,6 +78,7 @@ api.interceptors.response.use(
         const newAccess = res.data.access;
 
         localStorage.setItem("access", newAccess);
+        localStorage.setItem("token", newAccess);
 
         originalRequest.headers.Authorization = `Bearer ${newAccess}`;
         return api(originalRequest);
@@ -99,6 +93,7 @@ api.interceptors.response.use(
   }
 );
 
+// ─── Exported auth helper ────────────────────────────────────────────────────
 export const refreshAccessToken = async () => {
   const refresh = getStoredRefreshToken();
 
@@ -110,9 +105,9 @@ export const refreshAccessToken = async () => {
     const res = await axios.post(REFRESH_URL, { refresh });
     const newAccess = res.data.access;
     localStorage.setItem("access", newAccess);
+    localStorage.setItem("token", newAccess);
     return newAccess;
   } catch {
-    clearAuthStorage();
     return null;
   }
 };
@@ -192,6 +187,8 @@ export const createBooking = async (bookingData, idempotencyKey) => {
       },
     };
 
+    console.log("BOOKING CONFIG:", config);
+
     const res = await api({
       method: "post",
       url: "/bookings/",
@@ -205,6 +202,9 @@ export const createBooking = async (bookingData, idempotencyKey) => {
     throw err;
   }
 };
+
+
+
 
 export const getOwnerBookings = async () => {
   try {
@@ -234,7 +234,7 @@ export const rejectBooking = async (bookingId) => {
     console.error("Reject booking error:", err.response?.data || err.message);
     throw err.response?.data || err;
   }
-};
+};;
 
 export const clearBooking = async (bookingId) => {
   try {
@@ -385,7 +385,6 @@ export const forgotPassword = async (email) => {
     throw err;
   }
 };
-
 export const confirmResetCode = async (email, code) => {
   try {
     const res = await api.post("/users/confirm-code/", { email, code });
@@ -395,7 +394,6 @@ export const confirmResetCode = async (email, code) => {
     throw err;
   }
 };
-
 export const resetPassword = async (email, code, password, confirmPassword) => {
   try {
     const res = await api.post("/users/reset-password/", {
