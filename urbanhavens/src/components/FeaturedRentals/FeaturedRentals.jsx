@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import "./FeaturedRentals.css";
 import FavAlert from "../Modals/FavAlert";
+// ✅ FIX 1: Import api instance and refreshAccessToken from central api.js
+// instead of duplicating raw fetch logic with inconsistent token handling
+import { api } from "../../Dashboard/Owner/UploadDetails/api/api";
 
 /* ─── Animation Variants ──────────────────────────────────────────── */
 const stagger = {
@@ -157,35 +160,26 @@ const FeaturedRentals = () => {
   const [favAlertMessage, setFavAlertMessage] = useState("");
   const [favAlertType, setFavAlertType] = useState("success");
 
-  const refreshAccessToken = async () => {
-    const refresh = localStorage.getItem("refresh");
-    if (!refresh) return null;
-    try {
-      const res = await fetch("/api/users/token/refresh/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refresh }),
-      });
-      if (!res.ok) return null;
-      const data = await res.json();
-      localStorage.setItem("access", data.access);
-      return data.access;
-    } catch { return null; }
-  };
+  // ✅ FIX 2: Removed the duplicate inline refreshAccessToken function.
+  // The imported `api` axios instance already handles 401s automatically
+  // via its interceptor in api.js (clears storage + redirects to /login).
+  // Having a second inconsistent version here was causing split behaviour.
 
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
         setError("");
-        const res = await fetch("/api/properties/featured/");
-        if (!res.ok) throw new Error("Failed to fetch featured properties.");
-        const data = await res.json();
+        // ✅ FIX 3: Use api axios instance instead of raw fetch.
+        // This ensures auth headers, token refresh, and error handling
+        // all go through the single consistent interceptor in api.js.
+        const res = await api.get("/properties/featured/");
+        const data = res.data;
         setProperties(Array.isArray(data) ? data : []);
         if (!Array.isArray(data)) setError("Invalid response from server.");
       } catch (err) {
         setProperties([]);
-        setError(err.message || "Error fetching featured properties.");
+        setError(err?.message || "Error fetching featured properties.");
       } finally {
         setLoading(false);
       }
@@ -196,16 +190,17 @@ const FeaturedRentals = () => {
     const token = localStorage.getItem("access");
     if (!token) { setFavoriteIds([]); return; }
     try {
-      const res = await fetch("/api/favorites/", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.status === 401 || !res.ok) { setFavoriteIds([]); return; }
-      const data = await res.json();
+      // ✅ FIX 4: Use api axios instance — auth header injected automatically
+      // by the request interceptor, no need to pass it manually.
+      const res = await api.get("/favorites/");
+      const data = res.data;
       const ids = Array.isArray(data)
         ? data.map((item) => item.property?.id).filter(Boolean)
         : [];
       setFavoriteIds(ids);
-    } catch { setFavoriteIds([]); }
+    } catch {
+      setFavoriteIds([]);
+    }
   }, []);
 
   useEffect(() => { fetchFavorites(); }, [fetchFavorites]);
@@ -215,30 +210,17 @@ const FeaturedRentals = () => {
     if (!token) { navigate("/login"); return; }
 
     const isAlreadyFavorited = favoriteIds.includes(propertyId);
-    const url = isAlreadyFavorited
-      ? `/api/favorites/remove/${propertyId}/`
-      : "/api/favorites/add/";
 
     try {
-      const res = await fetch(url, {
-        method: isAlreadyFavorited ? "DELETE" : "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        ...(isAlreadyFavorited ? {} : { body: JSON.stringify({ property_id: propertyId }) }),
-      });
-
-      if (res.status === 401) {
-        const newToken = await refreshAccessToken();
-        if (!newToken) {
-          localStorage.removeItem("access");
-          localStorage.removeItem("refresh");
-          navigate("/login");
-          return;
-        }
-        await toggleFavorite(propertyId);
-        return;
+      // ✅ FIX 5: Use api axios instance for favorite toggle calls.
+      // The interceptor automatically retries with a refreshed token on 401,
+      // then clears storage and redirects if refresh also fails —
+      // all without needing manual token refresh logic here.
+      if (isAlreadyFavorited) {
+        await api.delete(`/favorites/remove/${propertyId}/`);
+      } else {
+        await api.post("/favorites/add/", { property_id: propertyId });
       }
-
-      if (!res.ok) throw new Error("Failed to update favorite.");
 
       setFavoriteIds((prev) =>
         isAlreadyFavorited ? prev.filter((id) => id !== propertyId) : [...prev, propertyId]

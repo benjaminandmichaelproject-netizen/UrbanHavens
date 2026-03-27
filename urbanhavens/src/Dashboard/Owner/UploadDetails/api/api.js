@@ -1,12 +1,21 @@
 import axios from "axios";
 
+// const API_BASE = import.meta.env.VITE_API_BASE_URL
+//   ? `${import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "")}/api`
+//   : "/api";                          // ← relative URL, goes through Vite proxy ✓
+
+// const REFRESH_URL = import.meta.env.VITE_API_BASE_URL
+//   ? `${import.meta.env.VITE_API_BASE_URL.replace(/\/+$/, "")}/api/users/token/refresh/`
+//   : "http://127.0.0.1:8000/api/users/token/refresh/";  // ← absolute only for refresh ✓
 const BASE_URL =
   import.meta.env.VITE_API_BASE_URL?.replace(/\/+$/, "") ||
   "http://127.0.0.1:8000";
-
+ 
 const API_BASE = `${BASE_URL}/api`;
 const REFRESH_URL = `${API_BASE}/users/token/refresh/`;
-export const clearAuthStorage = () => {
+
+
+  export const clearAuthStorage = () => {
   localStorage.removeItem("access");
   localStorage.removeItem("token");
   localStorage.removeItem("refresh");

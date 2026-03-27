@@ -7,6 +7,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import RentalCard from "../FeaturedRentals/RentalCard";
 import "./NearbyProperties.css";
+import { api } from "../../Dashboard/Owner/UploadDetails/api/api";
 
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
 
@@ -32,13 +33,12 @@ const NearbyProperties = () => {
   const fetchNearby = useCallback(async (lat, lng, km = radius) => {
     setState("loading");
     try {
-      const res = await fetch(
-       // ✅ correct
-`http://127.0.0.1:8000/api/nearby-properties/?lat=${lat}&lng=${lng}&radius=${km}&limit=12`
-      );
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      setProps(data.properties || []);
+// inside fetchNearby:
+const res = await api.get(
+  `/nearby-properties/?lat=${lat}&lng=${lng}&radius=${km}&limit=12`
+);
+const data = res.data;
+setProps(data.properties || []);
       setState("success");
     } catch (err) {
       console.error("Nearby fetch error:", err);

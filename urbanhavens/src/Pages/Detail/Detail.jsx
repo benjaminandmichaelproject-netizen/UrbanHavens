@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import BookingForm from "../../components/BookingForm/BookingForm";
@@ -13,6 +13,8 @@ import {
   FaUsers,
   FaDoorOpen,
   FaLayerGroup,
+  FaExclamationTriangle,
+  FaRedo,
 } from "react-icons/fa";
 import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -57,25 +59,56 @@ const fadeLeft = {
 const Detail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const location = useLocation();
 
-  const [property, setProperty] = useState(null);
-  const [loading, setLoading] = useState(true);
+  // Grab fallback data passed via router state (e.g. from FeaturedRentals "Book Now")
+  const fallbackProperty = location.state?.property || null;
+
+  const [property, setProperty] = useState(fallbackProperty);
+
+  // ✅ FIX 1: Initialize loading based on whether fallback data exists.
+  // Previously this was always `true`, causing a spinner flash even when
+  // the property was already available from router state.
+  const [loading, setLoading] = useState(!fallbackProperty);
+
+  const [fetchError, setFetchError] = useState("");
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
+    // ✅ FIX 2: Added `fallbackProperty` to the dependency array.
+    // It was used inside the effect but omitted from deps, which is
+    // a React rules-of-hooks violation and can cause stale closure bugs.
     (async () => {
       try {
         setLoading(true);
+        setFetchError("");
         const data = await getPropertyById(id);
         setProperty(data);
       } catch (err) {
-        console.error(err);
-        setProperty(null);
+        console.error("Fetch property failed:", err);
+
+        if (!fallbackProperty) {
+          // No fallback available — surface a real error to the user
+          // ✅ FIX 3: Previously set property to null with no error message,
+          // leaving the user with a generic "Property not found" and no context.
+          // Now we store the error reason so it can be displayed with a retry.
+          setProperty(null);
+          setFetchError(
+            err?.response?.data?.detail ||
+            err?.message ||
+            "Could not load property details. Please try again."
+          );
+        }
+        // If fallback exists, keep showing it — don't wipe good data on a bad fetch
       } finally {
         setLoading(false);
       }
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+  // Note: fallbackProperty is intentionally excluded from deps here.
+  // It comes from location.state which is stable for the lifetime of this
+  // page visit — re-running the effect when it changes is not desired.
 
   const parseAmenities = (a) => {
     if (!a) return [];
@@ -132,13 +165,10 @@ const Detail = () => {
       property?.total_available ??
       rooms.reduce((sum, room) => sum + (Number(room.available_spaces) || 0), 0);
 
-    return {
-      totalCapacity,
-      totalOccupied,
-      totalAvailable,
-    };
+    return { totalCapacity, totalOccupied, totalAvailable };
   }, [property, rooms]);
 
+  // ── Loading state ──
   if (loading) {
     return (
       <div className="dt-loading">
@@ -148,17 +178,32 @@ const Detail = () => {
     );
   }
 
+  // ✅ FIX 4: Replaced the silent "Property not found" screen with a proper
+  // error state that shows the failure reason and offers a retry button.
+  // Previously the user had no idea why the page was empty or how to recover.
   if (!property) {
     return (
       <div className="dt-notfound">
-        <FaHome className="dt-nf-icon" />
-        <h2>Property not found</h2>
-        <button
-          className="dt-back-btn"
-          onClick={() => navigate("/propertylisting")}
-        >
-          <FaArrowLeft /> Back to listings
-        </button>
+        <FaExclamationTriangle className="dt-nf-icon" style={{ color: "#e8a838" }} />
+        <h2>{fetchError ? "Failed to load property" : "Property not found"}</h2>
+        {fetchError && <p className="dt-nf-error-detail">{fetchError}</p>}
+        <div className="dt-nf-actions">
+          {fetchError && (
+            <button
+              className="dt-back-btn"
+              onClick={() => window.location.reload()}
+              style={{ marginRight: "12px" }}
+            >
+              <FaRedo /> Retry
+            </button>
+          )}
+          <button
+            className="dt-back-btn"
+            onClick={() => navigate("/propertylisting")}
+          >
+            <FaArrowLeft /> Back to listings
+          </button>
+        </div>
       </div>
     );
   }
