@@ -57,7 +57,7 @@ import Footer from "./components/Footer/Footer";
 import Hostel from "./Pages/PropertyListing/hostelForRent/Hostel";
 import HouseForRent from "./Pages/PropertyListing/houseForRent/HouseForRent";
 // ── AI Assistant ─────────────────────────────────────────────────
-import { AIAssistantButton } from "./components/AIAssistant/AIAssistant";
+// import { AIAssistantButton } from "./components/AIAssistant/AIAssistant";
 
 const AppContent = () => {
   const location = useLocation();
@@ -419,7 +419,7 @@ const AppContent = () => {
       {/* ── Global overlays ──────────────────────────────────────── */}
       <NotificationToastContainer />
 
-      {shouldShowAI && <AIAssistantButton />}
+      {/* {shouldShowAI && <AIAssistantButton />} */}
 
 
       {!isDashboard && !shouldHideBottomNav && <MobileBottomNav />}
