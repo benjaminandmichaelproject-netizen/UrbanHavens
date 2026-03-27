@@ -57,7 +57,7 @@ import Footer from "./components/Footer/Footer";
 import Hostel from "./Pages/PropertyListing/hostelForRent/Hostel";
 import HouseForRent from "./Pages/PropertyListing/houseForRent/HouseForRent";
 // ── AI Assistant ─────────────────────────────────────────────────
-  import { AIAssistantButton } from "./components/AIAssistant/AIAssistant";
+import { AIAssistantButton } from "./components/AIAssistant/AIAssistant";
 
 const AppContent = () => {
   const location = useLocation();
@@ -89,7 +89,7 @@ const AppContent = () => {
     "/register-form",
   ];
 
-  const shouldHideNavbar   = hideNavbarRoutes.includes(location.pathname);
+  const shouldHideNavbar = hideNavbarRoutes.includes(location.pathname);
   const shouldHideBottomNav = hideBottomNavRoutes.includes(location.pathname);
   const shouldShowAI = !hideAIRoutes.includes(location.pathname);
 
@@ -113,62 +113,314 @@ const AppContent = () => {
         <Route path="/landlord/:type/:id" element={<Landlord />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/favorites" element={<FavoritePage />} />
-        <Route path="/hostel" element={<Hostel/>}/>
-        <Route path="/houseforrent" element={<HouseForRent/>}/>
+        <Route path="/hostel" element={<Hostel />} />
+        <Route path="/houseforrent" element={<HouseForRent />} />
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["owner", "tenant", "admin"]}>
               <DashboardLayout />
             </ProtectedRoute>
           }
         >
-          <Route path="owner" element={<OwnerDashboard />} />
-          <Route path="owner/upload" element={<Upload />} />
-          <Route path="owner/UploadDetails/uploadpage" element={<Uploadpage />} />
-          <Route path="owner/my-properties" element={<MyProperties />} />
-          <Route path="owner/bookings" element={<Bookings />} />
-          <Route path="owner/settings" element={<div>Owner Settings</div>} />
-          <Route path="owner/OwnerLeases/OwnerLeases" element={<OwnerLeases />} />
-          <Route path="owner/contracts" element={<div>Contracts</div>} />
-          <Route path="owner/documents" element={<div>Documents</div>} />
-          <Route path="owner/help" element={<div>Help & Support</div>} />
+          <Route
+            path="owner"
+            element={
+              <ProtectedRoute allowedRoles={["owner"]}>
+                <OwnerDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="owner/upload"
+            element={
+              <ProtectedRoute allowedRoles={["owner"]}>
+                <Upload />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="owner/UploadDetails/uploadpage"
+            element={
+              <ProtectedRoute allowedRoles={["owner"]}>
+                <Uploadpage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="owner/my-properties"
+            element={
+              <ProtectedRoute allowedRoles={["owner"]}>
+                <MyProperties />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="owner/bookings"
+            element={
+              <ProtectedRoute allowedRoles={["owner"]}>
+                <Bookings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="owner/settings"
+            element={
+              <ProtectedRoute allowedRoles={["owner"]}>
+                <div>Owner Settings</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="owner/OwnerLeases/OwnerLeases"
+            element={
+              <ProtectedRoute allowedRoles={["owner"]}>
+                <OwnerLeases />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="owner/contracts"
+            element={
+              <ProtectedRoute allowedRoles={["owner"]}>
+                <div>Contracts</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="owner/documents"
+            element={
+              <ProtectedRoute allowedRoles={["owner"]}>
+                <div>Documents</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="owner/help"
+            element={
+              <ProtectedRoute allowedRoles={["owner"]}>
+                <div>Help & Support</div>
+              </ProtectedRoute>
+            }
+          />
 
-          <Route path="tenant" element={<TenantDashboard />} />
-          <Route path="tenant/scheduled-viewings" element={<ScheduledViewings />} />
-          <Route path="tenant/TenantBooking/TenantBooking" element={<TenantBooking />} />
-          <Route path="tenant/favorites" element={<Favorites />} />
-          <Route path="tenant/Lease/Lease" element={<Lease />} />
-          <Route path="tenant/TenantNotification/TenantNotification" element={<TenantNotification />} />
-          <Route path="tenant/Report/Report" element={<Report />} />
-          <Route path="tenant/payments" element={<Payments />} />
-          <Route path="tenant/help" element={<HelpCenter />} />
-          <Route path="tenant/settings" element={<AccountSettings />} />
-          <Route path="tenant/bookings" element={<MyBookings />} />
-          <Route path="tenant/profile" element={<Profile />} />
-          <Route path="logout" element={<Logout />} />
+          <Route
+            path="tenant"
+            element={
+              <ProtectedRoute allowedRoles={["tenant"]}>
+                <TenantDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="tenant/scheduled-viewings"
+            element={
+              <ProtectedRoute allowedRoles={["tenant"]}>
+                <ScheduledViewings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="tenant/TenantBooking/TenantBooking"
+            element={
+              <ProtectedRoute allowedRoles={["tenant"]}>
+                <TenantBooking />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="tenant/favorites"
+            element={
+              <ProtectedRoute allowedRoles={["tenant"]}>
+                <Favorites />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="tenant/Lease/Lease"
+            element={
+              <ProtectedRoute allowedRoles={["tenant"]}>
+                <Lease />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="tenant/TenantNotification/TenantNotification"
+            element={
+              <ProtectedRoute allowedRoles={["tenant"]}>
+                <TenantNotification />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="tenant/Report/Report"
+            element={
+              <ProtectedRoute allowedRoles={["tenant"]}>
+                <Report />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="tenant/payments"
+            element={
+              <ProtectedRoute allowedRoles={["tenant"]}>
+                <Payments />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="tenant/help"
+            element={
+              <ProtectedRoute allowedRoles={["tenant"]}>
+                <HelpCenter />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="tenant/settings"
+            element={
+              <ProtectedRoute allowedRoles={["tenant"]}>
+                <AccountSettings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="tenant/bookings"
+            element={
+              <ProtectedRoute allowedRoles={["tenant"]}>
+                <MyBookings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="tenant/profile"
+            element={
+              <ProtectedRoute allowedRoles={["tenant"]}>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="logout"
+            element={
+              <ProtectedRoute allowedRoles={["owner", "tenant", "admin"]}>
+                <Logout />
+              </ProtectedRoute>
+            }
+          />
 
-          <Route path="admin" element={<AdminDashboard />} />
-          <Route path="admin/users" element={<Users />} />
-          <Route path="/dashboard/admin/add-property" element={<AdminAddProperty />} />
-          <Route path="admin/properties" element={<Allproperties />} />
-          <Route path="admin/Addmin/Addmin" element={<Addmin />} />
-          <Route path="admin/pending" element={<Pending />} />
-          <Route path="admin/FlaggedProperty/FlaggedProperty" element={<FlaggedProperty />} />
-          <Route path="admin/bookings" element={<AdminBookings />} />
-          <Route path="admin/reports" element={<AdminReport/>} />
-          <Route path="admin/documents" element={<div>Documents</div>} />
-          <Route path="admin/notifications" element={<div>Notifications</div>} />
-          <Route path="admin/settings" element={<div>Admin Settings</div>} />
-          <Route path="admin/profile" element={<div>Admin Profile</div>} />
+          <Route
+            path="admin"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/users"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Users />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/add-property"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminAddProperty />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/properties"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Allproperties />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/Addmin/Addmin"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Addmin />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/pending"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Pending />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/FlaggedProperty/FlaggedProperty"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <FlaggedProperty />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/bookings"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminBookings />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/reports"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminReport />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/documents"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <div>Documents</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/notifications"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <div>Notifications</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/settings"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <div>Admin Settings</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/profile"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <div>Admin Profile</div>
+              </ProtectedRoute>
+            }
+          />
         </Route>
       </Routes>
 
       {/* ── Global overlays ──────────────────────────────────────── */}
       <NotificationToastContainer />
 
- {shouldShowAI && <AIAssistantButton />}  
-   
+      {shouldShowAI && <AIAssistantButton />}
+
 
       {!isDashboard && !shouldHideBottomNav && <MobileBottomNav />}
     </>

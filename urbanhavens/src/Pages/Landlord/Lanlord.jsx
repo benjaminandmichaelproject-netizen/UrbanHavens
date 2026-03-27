@@ -259,17 +259,18 @@ const Landlord = () => {
           >
             {listings.length > 0 ? listings.map(p => (
               <RentalCard
-                key={p.id}
-                image={getImageUrl(p)}
-                title={p.property_name || "Untitled"}
-                city={p.city}
-                region={p.region}
-                category={p.category}
-                price={p.price}
-                amenities={parseAmenities(p.amenities).slice(0, 3)}
-                onBook={() => navigate(`/detail/${p.id}`)}
-                theme="light"
-              />
+  key={p.id}
+  image={getImageUrl(p)}
+  title={p.property_name || "Untitled"}
+  city={p.city}
+  region={p.region}
+  category={p.category}
+  price={p.price}
+  amenities={parseAmenities(p.amenities).slice(0, 3)}
+  onBook={() => navigate(`/detail/${p.id}`)}
+  theme="light"
+  isAvailable={p.is_available}
+/>
             )) : (
               <div className="ll-empty">
                 <FaHome className="ll-empty-icon" />

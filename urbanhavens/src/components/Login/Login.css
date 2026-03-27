@@ -299,4 +299,51 @@
   .lg-hero-title {
     font-size: 2rem;
   }
+}.reset-password-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  background: #f8faf9;
+  position: relative;
+  overflow: hidden;
+}
+
+.reset-password-container::before,
+.reset-password-container::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.15;
+  pointer-events: none;
+}
+.reset-password-container::before {
+  width: 340px; height: 340px;
+  background: #1D9E75;
+  top: -80px; right: -60px;
+}
+.reset-password-container::after {
+  width: 260px; height: 260px;
+  background: #0F6E56;
+  bottom: -60px; left: -60px;
+}
+
+.reset-password-card {
+  position: relative;
+  background: #fff;
+  border: 0.5px solid rgba(0,0,0,0.08);
+  border-radius: 20px;
+  padding: 2.5rem 2rem;
+  width: 100%;
+  max-width: 420px;
+  z-index: 1;
+}
+
+.reset-password-card h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #111;
+  margin: 0 0 1.5rem;
 }

@@ -5,7 +5,7 @@ import { useNotifications } from "./NotificationContext";
 import { FaBell, FaTimes } from "react-icons/fa";
 import "./NotificationToast.css";
 
-const AUTO_DISMISS_MS = 3000;
+const AUTO_DISMISS_MS = 7000;
 
 const NotificationToastContainer = () => {
   const navigate = useNavigate();

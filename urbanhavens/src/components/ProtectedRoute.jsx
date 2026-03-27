@@ -1,16 +1,20 @@
-// src/components/ProtectedRoute.jsx
 import React from "react";
 import { Navigate } from "react-router-dom";
 
-const ProtectedRoute = ({ children }) => {
-  const role = localStorage.getItem("role"); // get role from storage
+const ProtectedRoute = ({ children, allowedRoles = [] }) => {
+  const accessToken =
+    localStorage.getItem("access") || localStorage.getItem("token");
+  const role = localStorage.getItem("role");
 
-  if (!role) {
-    // If user is not logged in, redirect to login page
+  if (!accessToken || !role) {
     return <Navigate to="/login" replace />;
   }
 
-  return children; // else show the dashboard
+  if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
+    return <Navigate to={`/dashboard/${role}`} replace />;
+  }
+
+  return children;
 };
 
 export default ProtectedRoute;
