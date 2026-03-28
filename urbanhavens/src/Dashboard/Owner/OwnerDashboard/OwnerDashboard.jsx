@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import "./OwnerDashboard.css";
 import MyProperties from "../MyProperties/MyProperties";
 import { useNavigate } from "react-router-dom";
@@ -6,16 +6,32 @@ import { api } from "../UploadDetails/api/api";
 import { motion } from "framer-motion";
 import AdminInviteModal from "../../../components/Modals/AdminInviteModal";
 import {
-  FaHome, FaCalendarCheck, FaFileContract, FaMoneyBillWave,
-  FaBed, FaDoorOpen, FaDoorClosed, FaPlus, FaArrowRight,
-  FaChartLine, FaClipboardList, FaUserShield,
-  FaClock
+  FaHome,
+  FaCalendarCheck,
+  FaFileContract,
+  FaMoneyBillWave,
+  FaBed,
+  FaDoorOpen,
+  FaDoorClosed,
+  FaPlus,
+  FaArrowRight,
+  FaChartLine,
+  FaClipboardList,
+  FaUserShield,
+  FaClock,
 } from "react-icons/fa";
 
 const username = localStorage.getItem("username") || "Owner";
 
-const fadeUp = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } };
-const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+};
+
+const stagger = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.1 } },
+};
 
 const OwnerDashboard = () => {
   const navigate = useNavigate();
@@ -24,25 +40,61 @@ const OwnerDashboard = () => {
   const [propCount, setPropCount] = useState(0);
   const [bookingCount, setBookingCount] = useState(0);
   const [loading, setLoading] = useState(true);
+
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [inviteLoading, setInviteLoading] = useState(false);
+  const [admins, setAdmins] = useState([]);
+
   const [supportSession, setSupportSession] = useState(null);
   const [timeLeft, setTimeLeft] = useState("");
-  const [admins, setAdmins] = useState([]);
+
+  // ── Ref so the countdown interval always reads the latest expiresAt
+  //    without being in the dependency array (avoids interval restart every tick)
+  const expiresAtRef = useRef(null);
+
+  const normalizeSupportSession = useCallback((data) => {
+    if (!data) return null;
+    return {
+      id: data.id,
+      adminId: data.admin,
+      adminName: data.admin_name,
+      adminEmail: data.admin_email,
+      reason: data.reason,
+      status: data.status?.toLowerCase?.() || data.status || null,
+      startedAt: data.started_at ? new Date(data.started_at).getTime() : null,
+      expiresAt: data.expires_at ? new Date(data.expires_at).getTime() : null,
+      endedAt: data.ended_at ? new Date(data.ended_at).getTime() : null,
+    };
+  }, []);
+
+  const fetchCurrentSupportSession = useCallback(async () => {
+    try {
+      const res = await api.get("/support/owner/current/");
+      const normalized = normalizeSupportSession(res.data);
+      setSupportSession(normalized);
+      // Keep ref in sync so the countdown always has the latest value
+      expiresAtRef.current = normalized?.expiresAt ?? null;
+    } catch (err) {
+      console.error("Failed to fetch support session", err);
+      setSupportSession(null);
+      expiresAtRef.current = null;
+    }
+  }, [normalizeSupportSession]);
+
+  // ── Fetch admins list
   useEffect(() => {
     const fetchAdmins = async () => {
       try {
         const res = await api.get("/support/active-admins/");
-        setAdmins(res.data);
+        setAdmins(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
         console.error("Failed to fetch admins", err);
       }
     };
-
     fetchAdmins();
   }, []);
 
-
+  // ── Fetch stats
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -70,29 +122,48 @@ const OwnerDashboard = () => {
     };
     fetchStats();
   }, []);
-  
-  
-  
-  useEffect(() => {
-    if (!supportSession?.expiresAt || supportSession.status !== "active") {
-      setTimeLeft("");
-      return;
-    }
 
+  // ── Initial support session fetch
+  useEffect(() => {
+    fetchCurrentSupportSession();
+  }, [fetchCurrentSupportSession]);
+
+  // ── Listen for WebSocket support events dispatched by NotificationContext
+  useEffect(() => {
+    const handleSupportEvent = async (e) => {
+      const data = e.detail;
+      if (!data?.event) return;
+      if (typeof data.event === "string" && data.event.startsWith("support_")) {
+        await fetchCurrentSupportSession();
+      }
+    };
+
+    window.addEventListener("support_event", handleSupportEvent);
+    return () => window.removeEventListener("support_event", handleSupportEvent);
+  }, [fetchCurrentSupportSession]);
+
+  // ── Countdown timer — runs once, reads expiresAt from ref to stay stable.
+  //    No supportSession in dep array → interval never restarts on each tick.
+  useEffect(() => {
     const tick = () => {
-      const diff = supportSession.expiresAt - Date.now();
+      const expiresAt = expiresAtRef.current;
+
+      if (!expiresAt) {
+        setTimeLeft("");
+        return;
+      }
+
+      const diff = expiresAt - Date.now();
 
       if (diff <= 0) {
-        setSupportSession((prev) =>
-          prev
-            ? {
-              ...prev,
-              status: "expired",
-              endedAt: Date.now(),
-            }
-            : null
-        );
         setTimeLeft("00:00");
+        expiresAtRef.current = null;
+        // Mark session as expired locally; server is the source of truth
+        setSupportSession((prev) =>
+          prev && prev.status === "active"
+            ? { ...prev, status: "expired", endedAt: Date.now() }
+            : prev
+        );
         return;
       }
 
@@ -104,9 +175,61 @@ const OwnerDashboard = () => {
 
     tick();
     const timer = setInterval(tick, 1000);
-
     return () => clearInterval(timer);
+  }, []); // ← intentionally empty: interval lives for the component's lifetime
+
+  // ── Keep expiresAtRef in sync whenever the session changes
+  //    (e.g. after fetchCurrentSupportSession or handleSendInvite)
+  useEffect(() => {
+    expiresAtRef.current =
+      supportSession?.status === "active" ? supportSession.expiresAt ?? null : null;
+
+    // If session is no longer active, clear the displayed timer
+    if (supportSession?.status !== "active") {
+      setTimeLeft("");
+    }
   }, [supportSession]);
+
+  const handleSendInvite = async ({ admin, reason }) => {
+    try {
+      setInviteLoading(true);
+      const res = await api.post("/support/owner/invite/", {
+        admin: admin.id,
+        reason,
+      });
+      const normalized = normalizeSupportSession(res.data);
+      setSupportSession(normalized);
+      expiresAtRef.current = normalized?.expiresAt ?? null;
+      setInviteModalOpen(false);
+    } catch (error) {
+      console.error("Invite failed:", error);
+      alert(error.response?.data?.detail || "Failed to send invite");
+    } finally {
+      setInviteLoading(false);
+    }
+  };
+
+  const handleTerminateSession = async () => {
+    if (!supportSession?.id) return;
+    try {
+      const res = await api.post(`/support/owner/terminate/${supportSession.id}/`);
+      const data = res.data;
+      setSupportSession((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: data.status?.toLowerCase?.() || "terminated",
+              endedAt: data.ended_at ? new Date(data.ended_at).getTime() : Date.now(),
+            }
+          : null
+      );
+      expiresAtRef.current = null;
+    } catch (err) {
+      console.error("Terminate failed", err);
+      alert(err.response?.data?.detail || "Failed to terminate session");
+    }
+  };
+
   const topCards = [
     {
       label: "My Properties",
@@ -165,93 +288,9 @@ const OwnerDashboard = () => {
       color: "#f59e0b",
     },
   ];
-  const handleSendInvite = async ({ admin, reason }) => {
-  try {
-    setInviteLoading(true);
 
-    const res = await api.post("/support/owner/invite/", {
-      admin: admin.id,
-      reason,
-    });
-
-    const data = res.data;
-
-    setSupportSession({
-      id: data.id,
-      adminId: data.admin,
-      adminName: data.admin_name,
-      adminEmail: data.admin_email,
-      reason: data.reason,
-      status: data.status,
-      startedAt: data.started_at ? new Date(data.started_at).getTime() : null,
-      expiresAt: data.expires_at ? new Date(data.expires_at).getTime() : null,
-      endedAt: data.ended_at ? new Date(data.ended_at).getTime() : null,
-    });
-
-    setInviteModalOpen(false);
-  } catch (error) {
-    console.error("Invite failed:", error);
-    alert(error.response?.data?.detail || "Failed to send invite");
-  } finally {
-    setInviteLoading(false);
-  }
-};
-   
-const handleTerminateSession = async () => {
-  if (!supportSession?.id) return;
-
-  try {
-    const res = await api.post(`/support/owner/terminate/${supportSession.id}/`);
-    const data = res.data;
-
-    setSupportSession({
-      ...supportSession,
-      status: data.status,
-      endedAt: data.ended_at ? new Date(data.ended_at).getTime() : Date.now(),
-    });
-  } catch (err) {
-    console.error("Terminate failed", err);
-    alert(err.response?.data?.detail || "Failed to terminate session");
-  }
-};
-
-
-  const handleClearSession = () => {
-    setSupportSession(null);
-  };
-
-
-
-useEffect(() => {
-  const fetchSession = async () => {
-    try {
-      const res = await api.get("/support/owner/current/");
-      if (res.data) {
-        setSupportSession({
-          id: res.data.id,
-          adminId: res.data.admin,
-          adminName: res.data.admin_name,
-          adminEmail: res.data.admin_email,
-          reason: res.data.reason,
-          status: res.data.status,
-          startedAt: res.data.started_at ? new Date(res.data.started_at).getTime() : null,
-          expiresAt: res.data.expires_at ? new Date(res.data.expires_at).getTime() : null,
-          endedAt: res.data.ended_at ? new Date(res.data.ended_at).getTime() : null,
-        });
-      } else {
-        setSupportSession(null);
-      }
-    } catch (err) {
-      console.error("Failed to fetch support session", err);
-    }
-  };
-
-  fetchSession();
-}, []);
   return (
     <div className="od-page">
-
-      {/* ── Welcome banner ──────────────────────────────────── */}
       <motion.div
         className="od-banner"
         initial={{ opacity: 0, y: -10 }}
@@ -263,65 +302,31 @@ useEffect(() => {
           <div>
             <p className="od-banner-eyebrow">Property Owner Dashboard</p>
             <h2 className="od-banner-title">Welcome back, {username}!</h2>
-            <p className="od-banner-sub">Manage your properties and track everything in one place.</p>
+            <p className="od-banner-sub">
+              Manage your properties and track everything in one place.
+            </p>
           </div>
+
           <div className="od-banner-support-card">
             <div className="od-banner-support-card-top">
               <div className="od-banner-support-icon">
                 <FaUserShield />
               </div>
 
-   <div className="od-banner-support-meta">
-  {!supportSession && (
-    <p className="od-banner-support-note">
-      Invite an admin when you need help posting a property.
-    </p>
-  )}
-
-  {supportSession?.status === "active" && (
-    <>
-      <p className="od-banner-support-note">
-        {supportSession.adminEmail}
-      </p>
-
-      <p className="od-banner-support-timer">
-        <FaClock /> {timeLeft} remaining
-      </p>
-
-      <button
-        className="od-banner-support-end-btn"
-        onClick={handleTerminateSession}
-      >
-        End Session
-      </button>
-    </>
-  )}
-
-  {supportSession?.status === "terminated" && (
-    <p className="od-banner-support-note">
-      This session was ended manually.
-    </p>
-  )}
-
-  {supportSession?.status === "expired" && (
-    <p className="od-banner-support-note">
-      The 30-minute support window has expired.
-    </p>
-  )}
-</div>
-
               <span
-                className={`od-banner-support-badge ${supportSession?.status === "active"
+                className={`od-banner-support-badge ${
+                  supportSession?.status === "active"
                     ? "od-banner-support-badge--active"
                     : supportSession?.status === "terminated"
-                      ? "od-banner-support-badge--terminated"
-                      : supportSession?.status === "expired"
-                        ? "od-banner-support-badge--expired"
-                        : "od-banner-support-badge--idle"
-                  }`}
+                    ? "od-banner-support-badge--terminated"
+                    : supportSession?.status === "expired"
+                    ? "od-banner-support-badge--expired"
+                    : "od-banner-support-badge--idle"
+                }`}
               >
                 {!supportSession && "Idle"}
                 {supportSession?.status === "active" && "Live"}
+                {supportSession?.status === "pending" && "Pending"}
                 {supportSession?.status === "terminated" && "Ended"}
                 {supportSession?.status === "expired" && "Expired"}
               </span>
@@ -334,14 +339,29 @@ useEffect(() => {
                 </p>
               )}
 
+              {supportSession?.status === "pending" && (
+                <p className="od-banner-support-note">
+                  Waiting for admin to accept…
+                </p>
+              )}
+
               {supportSession?.status === "active" && (
                 <>
                   <p className="od-banner-support-note">
-                    {supportSession.adminEmail}
+                    {supportSession.adminName}
+                    {supportSession.adminEmail
+                      ? ` — ${supportSession.adminEmail}`
+                      : ""}
                   </p>
                   <p className="od-banner-support-timer">
                     <FaClock /> {timeLeft} remaining
                   </p>
+                  <button
+                    className="od-banner-support-end-btn"
+                    onClick={handleTerminateSession}
+                  >
+                    End Session
+                  </button>
                 </>
               )}
 
@@ -358,12 +378,16 @@ useEffect(() => {
               )}
             </div>
           </div>
+
           <button
             className="od-banner-btn"
-            onClick={() => navigate("/dashboard/owner/UploadDetails/uploadpage")}
+            onClick={() =>
+              navigate("/dashboard/owner/UploadDetails/uploadpage")
+            }
           >
             <FaPlus /> Add Property
           </button>
+
           <button
             className="od-banner-btn od-banner-btn--alt"
             onClick={() => setInviteModalOpen(true)}
@@ -373,7 +397,6 @@ useEffect(() => {
         </div>
       </motion.div>
 
-      {/* ── Stat cards ──────────────────────────────────────── */}
       <motion.div
         className="od-stats-grid"
         variants={stagger}
@@ -388,7 +411,10 @@ useEffect(() => {
             onClick={c.onClick || undefined}
             whileHover={c.onClick ? { y: -3, transition: { duration: 0.18 } } : {}}
           >
-            <div className="od-stat-icon" style={{ background: c.bg, color: c.color }}>
+            <div
+              className="od-stat-icon"
+              style={{ background: c.bg, color: c.color }}
+            >
               {c.icon}
             </div>
             <div className="od-stat-body">
@@ -398,13 +424,15 @@ useEffect(() => {
               <span className="od-stat-label">{c.label}</span>
             </div>
             {c.onClick && (
-              <FaArrowRight className="od-stat-arrow" style={{ color: c.color }} />
+              <FaArrowRight
+                className="od-stat-arrow"
+                style={{ color: c.color }}
+              />
             )}
           </motion.div>
         ))}
       </motion.div>
 
-      {/* ── Hostel occupancy ────────────────────────────────── */}
       {!loading && stats?.hostel_stats?.length > 0 && (
         <motion.div
           className="od-section"
@@ -419,9 +447,11 @@ useEffect(() => {
 
           <div className="od-hostel-grid">
             {stats.hostel_stats.map((h) => (
-              <div key={h.id} className={`od-hostel-card ${h.full ? "od-hostel-card--full" : ""}`}>
+              <div
+                key={h.id}
+                className={`od-hostel-card ${h.full ? "od-hostel-card--full" : ""}`}
+              >
                 {h.full && <span className="od-full-badge">Full</span>}
-
                 <p className="od-hostel-name">{h.property_name}</p>
 
                 <div className="od-hostel-stats">
@@ -447,12 +477,17 @@ useEffect(() => {
                     <div
                       className="od-occ-fill"
                       style={{
-                        width: `${Math.round((h.occupied_rooms / h.total_rooms) * 100)}%`,
+                        width: `${Math.round(
+                          (h.occupied_rooms / h.total_rooms) * 100
+                        )}%`,
                         background: h.full ? "#ef4444" : "#1a7a40",
                       }}
                     />
                   </div>
-                  <span>{Math.round((h.occupied_rooms / h.total_rooms) * 100)}% occupied</span>
+                  <span>
+                    {Math.round((h.occupied_rooms / h.total_rooms) * 100)}%
+                    occupied
+                  </span>
                 </div>
 
                 <p className="od-hostel-revenue">
@@ -465,7 +500,6 @@ useEffect(() => {
         </motion.div>
       )}
 
-      {/* ── Quick actions ────────────────────────────────────── */}
       <motion.div
         className="od-section"
         variants={stagger}
@@ -486,20 +520,25 @@ useEffect(() => {
               onClick={a.onClick}
               whileHover={{ y: -4, transition: { duration: 0.18 } }}
             >
-              <div className="od-action-icon" style={{ background: a.color + "18", color: a.color }}>
+              <div
+                className="od-action-icon"
+                style={{ background: `${a.color}18`, color: a.color }}
+              >
                 {a.icon}
               </div>
               <div>
                 <p className="od-action-title">{a.title}</p>
                 <p className="od-action-desc">{a.desc}</p>
               </div>
-              <FaArrowRight className="od-action-arrow" style={{ color: a.color }} />
+              <FaArrowRight
+                className="od-action-arrow"
+                style={{ color: a.color }}
+              />
             </motion.div>
           ))}
         </div>
       </motion.div>
 
-      {/* ── Properties table ─────────────────────────────────── */}
       <motion.div
         className="od-section od-section--table"
         initial={{ opacity: 0, y: 20 }}
@@ -512,15 +551,15 @@ useEffect(() => {
         </div>
         <MyProperties />
       </motion.div>
-      <AdminInviteModal
-  open={inviteModalOpen}
-  onClose={() => setInviteModalOpen(false)}
-  onSendInvite={handleSendInvite}
-  admins={admins}
-  loading={inviteLoading}
-/>
-    </div>
 
+      <AdminInviteModal
+        open={inviteModalOpen}
+        onClose={() => setInviteModalOpen(false)}
+        onSendInvite={handleSendInvite}
+        admins={admins}
+        loading={inviteLoading}
+      />
+    </div>
   );
 };
 

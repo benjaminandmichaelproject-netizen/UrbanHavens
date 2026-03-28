@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   FaUsers,
   FaHome,
@@ -30,9 +30,11 @@ const AdminDashboard = () => {
   });
 
   const [loading, setLoading] = useState(true);
-const [supportInvites, setSupportInvites] = useState([]);
-const [supportLoading, setSupportLoading] = useState(true);
-const [supportActionLoading, setSupportActionLoading] = useState(null);
+  const [supportInvites, setSupportInvites] = useState([]);
+  const [supportLoading, setSupportLoading] = useState(true);
+  const [supportActionLoading, setSupportActionLoading] = useState(null);
+  const [activeSupportSession, setActiveSupportSession] = useState(null);
+
   const clearNotifications = () => {
     setNotifications([]);
     setUnreadCount(0);
@@ -59,86 +61,124 @@ const [supportActionLoading, setSupportActionLoading] = useState(null);
 
   const activities = notifications.slice(0, 5).map(formatActivity);
 
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      const [usersRes, propertiesRes, bookingsRes] = await Promise.allSettled([
+        api.get("/users/all-users/"),
+        api.get("/properties/admin-list/"),
+        api.get("/bookings/"),
+      ]);
+
+      const totalUsers =
+        usersRes.status === "fulfilled"
+          ? Array.isArray(usersRes.value.data)
+            ? usersRes.value.data.length
+            : usersRes.value.data.results?.length ?? 0
+          : 0;
+
+      let totalProperties = 0;
+      let pendingProperties = 0;
+
+      if (propertiesRes.status === "fulfilled") {
+        const propData = propertiesRes.value.data;
+        const propList = Array.isArray(propData) ? propData : propData.results ?? [];
+
+        totalProperties = propList.length;
+        pendingProperties = propList.filter(
+          (p) => p.approval_status === "pending"
+        ).length;
+      }
+
+      const totalBookings =
+        bookingsRes.status === "fulfilled"
+          ? Array.isArray(bookingsRes.value.data)
+            ? bookingsRes.value.data.length
+            : bookingsRes.value.data.results?.length ?? 0
+          : 0;
+
+      setStats({
+        totalUsers,
+        totalProperties,
+        pendingProperties,
+        totalBookings,
+      });
+    } catch (err) {
+      console.error("Dashboard fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchSupportInvites = useCallback(async () => {
+    try {
+      setSupportLoading(true);
+      const res = await api.get("/support/admin/pending/");
+      setSupportInvites(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error("Failed to fetch support invites", err);
+    } finally {
+      setSupportLoading(false);
+    }
+  }, []);
+
+  const fetchCurrentSupportSession = useCallback(async () => {
+    try {
+      const res = await api.get("/support/admin/current/");
+      setActiveSupportSession(res.data || null);
+    } catch (err) {
+      console.error("Failed to fetch current support session", err);
+      setActiveSupportSession(null);
+    }
+  }, []);
+
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        setLoading(true);
+    fetchDashboardData();
+    fetchSupportInvites();
+    fetchCurrentSupportSession();
+  }, [fetchDashboardData, fetchSupportInvites, fetchCurrentSupportSession]);
 
-        const [usersRes, propertiesRes, bookingsRes] =
-          await Promise.allSettled([
-            api.get("/users/all-users/"),
-            api.get("/properties/admin-list/"),
-            api.get("/bookings/"),
-          ]);
+  useEffect(() => {
+    const handleSupportEvent = async (e) => {
+      const data = e.detail;
 
-        const totalUsers =
-          usersRes.status === "fulfilled"
-            ? Array.isArray(usersRes.value.data)
-              ? usersRes.value.data.length
-              : usersRes.value.data.results?.length ?? 0
-            : 0;
+      if (!data || !data.event) return;
 
-        let totalProperties = 0;
-        let pendingProperties = 0;
-
-        if (propertiesRes.status === "fulfilled") {
-          const propData = propertiesRes.value.data;
-          const propList = Array.isArray(propData)
-            ? propData
-            : propData.results ?? [];
-
-          totalProperties = propList.length;
-          pendingProperties = propList.filter(
-            (p) => p.approval_status === "pending"
-          ).length;
-        }
-
-        const totalBookings =
-          bookingsRes.status === "fulfilled"
-            ? Array.isArray(bookingsRes.value.data)
-              ? bookingsRes.value.data.length
-              : bookingsRes.value.data.results?.length ?? 0
-            : 0;
-
-        setStats({
-          totalUsers,
-          totalProperties,
-          pendingProperties,
-          totalBookings,
-        });
-      } catch (err) {
-        console.error("Dashboard fetch error:", err);
-      } finally {
-        setLoading(false);
+      if (typeof data.event === "string" && data.event.startsWith("support_")) {
+        await Promise.all([
+          fetchSupportInvites(),
+          fetchCurrentSupportSession(),
+        ]);
       }
     };
 
-    fetchDashboardData();
-  }, []);
-useEffect(() => {
-  fetchSupportInvites();
-}, []);
+    window.addEventListener("support_event", handleSupportEvent);
 
-const handleRespondToInvite = async (sessionId, action) => {
-  try {
-    setSupportActionLoading(`${sessionId}-${action}`);
+    return () => {
+      window.removeEventListener("support_event", handleSupportEvent);
+    };
+  }, [fetchSupportInvites, fetchCurrentSupportSession]);
 
-    await api.post(`/support/admin/respond/${sessionId}/`, {
-      action,
-    });
+  const handleRespondToInvite = async (sessionId, action) => {
+    try {
+      setSupportActionLoading(`${sessionId}-${action}`);
 
-    setSupportInvites((prev) =>
-      prev.filter((item) => item.id !== sessionId)
-    );
-  } catch (err) {
-    console.error(`Failed to ${action} invite`, err);
-    alert(err.response?.data?.detail || `Failed to ${action}`);
-  } finally {
-    setSupportActionLoading(null);
-  }
-};
+      await api.post(`/support/admin/respond/${sessionId}/`, {
+        action,
+      });
 
-
+      await Promise.all([
+        fetchSupportInvites(),
+        fetchCurrentSupportSession(),
+      ]);
+    } catch (err) {
+      console.error(`Failed to ${action} invite`, err);
+      alert(err.response?.data?.detail || `Failed to ${action}`);
+    } finally {
+      setSupportActionLoading(null);
+    }
+  };
 
   const statCards = [
     {
@@ -166,17 +206,7 @@ const handleRespondToInvite = async (sessionId, action) => {
       note: "Needs review",
     },
   ];
-const fetchSupportInvites = async () => {
-  try {
-    setSupportLoading(true);
-    const res = await api.get("/support/admin/pending/");
-    setSupportInvites(Array.isArray(res.data) ? res.data : []);
-  } catch (err) {
-    console.error("Failed to fetch support invites", err);
-  } finally {
-    setSupportLoading(false);
-  }
-};
+
   return (
     <div className="admin-dashboard">
       <div className="admin-header">
@@ -190,6 +220,7 @@ const fetchSupportInvites = async () => {
             <FaArrowUp />
             <span>Generate Report</span>
           </button>
+
           <button
             className="admin-action-btn"
             onClick={() => navigate("/dashboard/admin/add-property")}
@@ -200,7 +231,6 @@ const fetchSupportInvites = async () => {
         </div>
       </div>
 
-      {/* ── Stats Grid ─────────────────────────────────────────────────── */}
       <div className="admin-stats-grid">
         {statCards.map((item, index) => (
           <div className="admin-stat-card" key={index}>
@@ -213,85 +243,92 @@ const fetchSupportInvites = async () => {
           </div>
         ))}
       </div>
-<div className="ad-support-section">
-  <div className="ad-support-head">
-    <div className="ad-support-head-left">
-      <FaUserShield className="ad-support-head-icon" />
-      <div>
-        <h3 className="ad-support-title">Owner Assistance Invites</h3>
-        <p className="ad-support-subtitle">
-          Accept or decline temporary assistance requests.
-        </p>
-      </div>
-    </div>
-  </div>
 
-  {supportLoading ? (
-    <div className="ad-support-empty">
-      Loading support invites...
-    </div>
-  ) : supportInvites.length === 0 ? (
-    <div className="ad-support-empty">
-      <FaEnvelopeOpenText className="ad-support-empty-icon" />
-      <p>No pending assistance invites.</p>
-    </div>
-  ) : (
-    <div className="ad-support-grid">
-      {supportInvites.map((invite) => (
-        <div key={invite.id} className="ad-support-card">
-          <div className="ad-support-card-top">
+      <div className="ad-support-section">
+        <div className="ad-support-head">
+          <div className="ad-support-head-left">
+            <FaUserShield className="ad-support-head-icon" />
             <div>
-              <p className="ad-support-owner">{invite.owner_name}</p>
-              <p className="ad-support-owner-email">{invite.owner_email}</p>
+              <h3 className="ad-support-title">Owner Assistance Invites</h3>
+              <p className="ad-support-subtitle">
+                Accept or decline temporary assistance requests.
+              </p>
             </div>
-
-            <span className="ad-support-badge">
-              {invite.status}
-            </span>
-          </div>
-
-          <p className="ad-support-reason">
-            {invite.reason || "Help me post a property"}
-          </p>
-
-          <div className="ad-support-meta">
-            <span>
-              <FaClock /> {invite.duration_minutes || 30} mins
-            </span>
-          </div>
-
-          <div className="ad-support-actions">
-            <button
-              className="ad-support-btn ad-support-btn--accept"
-              onClick={() => handleRespondToInvite(invite.id, "accept")}
-              disabled={supportActionLoading === `${invite.id}-accept`}
-            >
-              <FaCheckCircle />
-              {supportActionLoading === `${invite.id}-accept`
-                ? "Accepting..."
-                : "Accept"}
-            </button>
-
-            <button
-              className="ad-support-btn ad-support-btn--decline"
-              onClick={() => handleRespondToInvite(invite.id, "decline")}
-              disabled={supportActionLoading === `${invite.id}-decline`}
-            >
-              <FaTimesCircle />
-              {supportActionLoading === `${invite.id}-decline`
-                ? "Declining..."
-                : "Decline"}
-            </button>
           </div>
         </div>
-      ))}
-    </div>
-  )}
-</div>
-      {/* ── Bottom Panels ──────────────────────────────────────────────── */}
-      <div className="admin-dashboard-bottom">
 
-        {/* Recent Activity */}
+        {activeSupportSession && (
+          <div className="ad-support-empty" style={{ marginBottom: "16px" }}>
+            <p>
+              <strong>Active session:</strong>{" "}
+              {activeSupportSession.owner_name || "Owner linked"}{" "}
+              {activeSupportSession.owner_email
+                ? `— ${activeSupportSession.owner_email}`
+                : ""}
+            </p>
+          </div>
+        )}
+
+        {supportLoading ? (
+          <div className="ad-support-empty">Loading support invites...</div>
+        ) : supportInvites.length === 0 ? (
+          <div className="ad-support-empty">
+            <FaEnvelopeOpenText className="ad-support-empty-icon" />
+            <p>No pending assistance invites.</p>
+          </div>
+        ) : (
+          <div className="ad-support-grid">
+            {supportInvites.map((invite) => (
+              <div key={invite.id} className="ad-support-card">
+                <div className="ad-support-card-top">
+                  <div>
+                    <p className="ad-support-owner">{invite.owner_name}</p>
+                    <p className="ad-support-owner-email">{invite.owner_email}</p>
+                  </div>
+
+                  <span className="ad-support-badge">{invite.status}</span>
+                </div>
+
+                <p className="ad-support-reason">
+                  {invite.reason || "Help me post a property"}
+                </p>
+
+                <div className="ad-support-meta">
+                  <span>
+                    <FaClock /> {invite.duration_minutes || 30} mins
+                  </span>
+                </div>
+
+                <div className="ad-support-actions">
+                  <button
+                    className="ad-support-btn ad-support-btn--accept"
+                    onClick={() => handleRespondToInvite(invite.id, "accept")}
+                    disabled={supportActionLoading === `${invite.id}-accept`}
+                  >
+                    <FaCheckCircle />
+                    {supportActionLoading === `${invite.id}-accept`
+                      ? "Accepting..."
+                      : "Accept"}
+                  </button>
+
+                  <button
+                    className="ad-support-btn ad-support-btn--decline"
+                    onClick={() => handleRespondToInvite(invite.id, "decline")}
+                    disabled={supportActionLoading === `${invite.id}-decline`}
+                  >
+                    <FaTimesCircle />
+                    {supportActionLoading === `${invite.id}-decline`
+                      ? "Declining..."
+                      : "Decline"}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="admin-dashboard-bottom">
         <div className="admin-panel admin-activity-panel">
           <div className="activity-panel-header">
             <h3>Recent Activity</h3>
@@ -319,9 +356,7 @@ const fetchSupportInvites = async () => {
                     <p>{activity.message}</p>
                     <span className="activity-date">{activity.date}</span>
                   </div>
-                  {!activity.is_read && (
-                    <span className="activity-dot" />
-                  )}
+                  {!activity.is_read && <span className="activity-dot" />}
                 </li>
               ))}
             </ul>
@@ -330,7 +365,6 @@ const fetchSupportInvites = async () => {
           )}
         </div>
 
-        {/* Quick Actions */}
         <div className="admin-panel admin-actions-panel">
           <h3>Quick Actions</h3>
           <div className="admin-quick-actions">
@@ -348,7 +382,6 @@ const fetchSupportInvites = async () => {
             </button>
           </div>
         </div>
-
       </div>
     </div>
   );

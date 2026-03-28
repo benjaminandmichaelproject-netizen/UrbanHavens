@@ -1,11 +1,13 @@
 from django.shortcuts import render
 
-# Create your views here.
 from django.utils import timezone
 from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
+
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 from .models import AdminSupportSession
 from .serializers import (
@@ -21,6 +23,21 @@ def expire_session_if_needed(session):
         and timezone.now() >= session.expires_at
     ):
         session.mark_expired()
+
+
+def push_support_event(user_id, payload: dict):
+    """
+    Send a support_event WebSocket message to a specific user's channel group.
+    'payload' must include at least an 'event' key.
+    """
+    channel_layer = get_channel_layer()
+    async_to_sync(channel_layer.group_send)(
+        f"user_{user_id}",
+        {
+            "type": "support.event",   # → calls support_event() in consumer
+            **payload,
+        },
+    )
 
 
 class ActiveAdminsListView(APIView):
@@ -55,6 +72,20 @@ class OwnerCreateSupportSessionView(APIView):
         )
         serializer.is_valid(raise_exception=True)
         session = serializer.save()
+
+        # ── Notify the admin live so they see the invite without refreshing
+        push_support_event(
+            session.admin.id,
+            {
+                "event": "support_invite_received",
+                "session_id": str(session.id),
+                "status": session.status,
+                "owner_name": session.owner.username,
+                "owner_email": session.owner.email,
+                "reason": session.reason,
+                "duration_minutes": session.duration_minutes,
+            },
+        )
 
         return Response(
             AdminSupportSessionSerializer(session).data,
@@ -143,8 +174,32 @@ class AdminRespondSupportSessionView(APIView):
                 )
 
             session.activate()
+
+            # ── Notify the owner live: invite was accepted, session is now active
+            push_support_event(
+                session.owner.id,
+                {
+                    "event": "support_invite_accepted",
+                    "session_id": str(session.id),
+                    "status": session.status,
+                    "admin_name": session.admin.username,
+                    "admin_email": session.admin.email,
+                    "expires_at": session.expires_at.isoformat() if session.expires_at else None,
+                },
+            )
+
         else:
             session.mark_declined()
+
+            # ── Notify the owner live: invite was declined
+            push_support_event(
+                session.owner.id,
+                {
+                    "event": "support_invite_declined",
+                    "session_id": str(session.id),
+                    "status": session.status,
+                },
+            )
 
         return Response(AdminSupportSessionSerializer(session).data)
 
@@ -173,7 +228,19 @@ class OwnerTerminateSupportSessionView(APIView):
             )
 
         session.mark_terminated(ended_by=request.user)
+
+        # ── Notify the admin live: session was terminated by the owner
+        push_support_event(
+            session.admin.id,
+            {
+                "event": "support_session_terminated",
+                "session_id": str(session.id),
+                "status": session.status,
+            },
+        )
+
         return Response(AdminSupportSessionSerializer(session).data)
+
 
 class AdminCurrentSupportSessionView(APIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -202,4 +269,4 @@ class AdminCurrentSupportSessionView(APIView):
         if session.status != AdminSupportSession.STATUS_ACTIVE:
             return Response(None, status=status.HTTP_200_OK)
 
-        return Response(AdminSupportSessionSerializer(session).data)   
+        return Response(AdminSupportSessionSerializer(session).data)
