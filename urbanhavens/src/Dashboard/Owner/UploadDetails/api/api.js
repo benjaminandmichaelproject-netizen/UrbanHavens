@@ -215,7 +215,18 @@ export const createBooking = async (bookingData, idempotencyKey) => {
   }
 };
 
+export const createReport = async (payload) => {
+  const token =
+    localStorage.getItem("access") || localStorage.getItem("token");
 
+  const response = await axios.post(`${API_BASE}/reports/`, payload, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  return response.data;
+};
 
 
 export const getOwnerBookings = async () => {

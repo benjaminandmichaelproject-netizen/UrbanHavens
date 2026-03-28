@@ -347,3 +347,30 @@
     font-size: 14px;
   }
 }
+
+.report-property-cell,
+.report-owner-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 180px;
+}
+
+.report-property-cell strong,
+.report-owner-cell strong {
+  font-size: 0.95rem;
+  color: #14213d;
+  font-weight: 700;
+}
+
+.report-property-cell span,
+.report-owner-cell span {
+  font-size: 0.86rem;
+  color: #4b5563;
+}
+
+.report-property-cell small,
+.report-owner-cell small {
+  font-size: 0.78rem;
+  color: #6b7280;
+}

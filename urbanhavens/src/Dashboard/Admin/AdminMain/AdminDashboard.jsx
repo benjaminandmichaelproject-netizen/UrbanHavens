@@ -18,6 +18,14 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../../Owner/UploadDetails/api/api";
 import { useNotifications } from "../../../context/NotificationContext";
 
+const SUPPORT_EVENT_MESSAGES = {
+  support_invite_received:    "An owner has requested your assistance.",
+  support_invite_accepted:    "Support session is now live.",
+  support_invite_declined:    "You declined a support invite.",
+  support_session_terminated: "A support session was ended.",
+  support_session_expired:    "A support session has expired.",
+};
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { notifications, setNotifications, setUnreadCount } = useNotifications();
@@ -35,9 +43,13 @@ const AdminDashboard = () => {
   const [supportActionLoading, setSupportActionLoading] = useState(null);
   const [activeSupportSession, setActiveSupportSession] = useState(null);
 
+  // Local support activity entries — merged into the activity feed
+  const [supportActivities, setSupportActivities] = useState([]);
+
   const clearNotifications = () => {
     setNotifications([]);
     setUnreadCount(0);
+    setSupportActivities([]);
   };
 
   const formatActivity = (notification) => {
@@ -59,7 +71,13 @@ const AdminDashboard = () => {
     };
   };
 
-  const activities = notifications.slice(0, 5).map(formatActivity);
+  // Merge real notifications + local support activities, newest first, max 5
+  const activities = [
+    ...supportActivities,
+    ...notifications.slice(0, 5).map(formatActivity),
+  ]
+    .sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0))
+    .slice(0, 5);
 
   const fetchDashboardData = useCallback(async () => {
     try {
@@ -84,7 +102,6 @@ const AdminDashboard = () => {
       if (propertiesRes.status === "fulfilled") {
         const propData = propertiesRes.value.data;
         const propList = Array.isArray(propData) ? propData : propData.results ?? [];
-
         totalProperties = propList.length;
         pendingProperties = propList.filter(
           (p) => p.approval_status === "pending"
@@ -98,12 +115,7 @@ const AdminDashboard = () => {
             : bookingsRes.value.data.results?.length ?? 0
           : 0;
 
-      setStats({
-        totalUsers,
-        totalProperties,
-        pendingProperties,
-        totalBookings,
-      });
+      setStats({ totalUsers, totalProperties, pendingProperties, totalBookings });
     } catch (err) {
       console.error("Dashboard fetch error:", err);
     } finally {
@@ -139,39 +151,55 @@ const AdminDashboard = () => {
     fetchCurrentSupportSession();
   }, [fetchDashboardData, fetchSupportInvites, fetchCurrentSupportSession]);
 
+  // ── Listen for support WebSocket events
   useEffect(() => {
     const handleSupportEvent = async (e) => {
       const data = e.detail;
-
-      if (!data || !data.event) return;
+      if (!data?.event) return;
 
       if (typeof data.event === "string" && data.event.startsWith("support_")) {
+        // Refresh invites & session
         await Promise.all([
           fetchSupportInvites(),
           fetchCurrentSupportSession(),
         ]);
+
+        // Add to local activity feed
+        const message =
+          SUPPORT_EVENT_MESSAGES[data.event] || "Support session updated.";
+
+        const now = Date.now();
+        const activityEntry = {
+          id: `support_${data.event}_${data.session_id || now}`,
+          message,
+          type: "support",
+          is_read: true,
+          timestamp: now,
+          date: new Date(now).toLocaleDateString([], {
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          }),
+        };
+
+        setSupportActivities((prev) => {
+          // Deduplicate
+          if (prev.some((a) => a.id === activityEntry.id)) return prev;
+          return [activityEntry, ...prev].slice(0, 5);
+        });
       }
     };
 
     window.addEventListener("support_event", handleSupportEvent);
-
-    return () => {
-      window.removeEventListener("support_event", handleSupportEvent);
-    };
+    return () => window.removeEventListener("support_event", handleSupportEvent);
   }, [fetchSupportInvites, fetchCurrentSupportSession]);
 
   const handleRespondToInvite = async (sessionId, action) => {
     try {
       setSupportActionLoading(`${sessionId}-${action}`);
-
-      await api.post(`/support/admin/respond/${sessionId}/`, {
-        action,
-      });
-
-      await Promise.all([
-        fetchSupportInvites(),
-        fetchCurrentSupportSession(),
-      ]);
+      await api.post(`/support/admin/respond/${sessionId}/`, { action });
+      await Promise.all([fetchSupportInvites(), fetchCurrentSupportSession()]);
     } catch (err) {
       console.error(`Failed to ${action} invite`, err);
       alert(err.response?.data?.detail || `Failed to ${action}`);
@@ -181,30 +209,10 @@ const AdminDashboard = () => {
   };
 
   const statCards = [
-    {
-      title: "Total Users",
-      value: stats.totalUsers,
-      icon: <FaUsers />,
-      note: "All registered users",
-    },
-    {
-      title: "Total Properties",
-      value: stats.totalProperties,
-      icon: <FaHome />,
-      note: "All listings on platform",
-    },
-    {
-      title: "Bookings",
-      value: stats.totalBookings,
-      icon: <FaCalendarCheck />,
-      note: "All booking requests",
-    },
-    {
-      title: "Pending Approvals",
-      value: stats.pendingProperties,
-      icon: <FaClipboardCheck />,
-      note: "Needs review",
-    },
+    { title: "Total Users",       value: stats.totalUsers,        icon: <FaUsers />,         note: "All registered users" },
+    { title: "Total Properties",  value: stats.totalProperties,   icon: <FaHome />,           note: "All listings on platform" },
+    { title: "Bookings",          value: stats.totalBookings,     icon: <FaCalendarCheck />,  note: "All booking requests" },
+    { title: "Pending Approvals", value: stats.pendingProperties, icon: <FaClipboardCheck />, note: "Needs review" },
   ];
 
   return (
@@ -285,7 +293,6 @@ const AdminDashboard = () => {
                     <p className="ad-support-owner">{invite.owner_name}</p>
                     <p className="ad-support-owner-email">{invite.owner_email}</p>
                   </div>
-
                   <span className="ad-support-badge">{invite.status}</span>
                 </div>
 
@@ -350,7 +357,11 @@ const AdminDashboard = () => {
                   className={`activity-item ${activity.is_read ? "read" : "unread"}`}
                 >
                   <div className="activity-icon">
-                    <FaBell />
+                    {activity.type === "support" ? (
+                      <FaUserShield style={{ color: "#1a7a40" }} />
+                    ) : (
+                      <FaBell />
+                    )}
                   </div>
                   <div className="activity-body">
                     <p>{activity.message}</p>

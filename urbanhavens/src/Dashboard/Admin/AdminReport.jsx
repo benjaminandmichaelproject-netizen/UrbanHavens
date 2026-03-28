@@ -47,26 +47,73 @@ const AdminReport = () => {
 
   const getStatusClass = (status) => {
     switch (status) {
-      case "pending":    return "pending";
-      case "reviewing":  return "reviewing";
-      case "resolved":   return "resolved";
-      case "dismissed":  return "dismissed";
-      default:           return "";
+      case "pending":
+        return "pending";
+      case "reviewing":
+        return "reviewing";
+      case "resolved":
+        return "resolved";
+      case "dismissed":
+        return "dismissed";
+      default:
+        return "";
+    }
+  };
+
+  const getStatusLabel = (status) => {
+    switch (status) {
+      case "pending":
+        return "Pending";
+      case "reviewing":
+        return "Under Review";
+      case "resolved":
+        return "Resolved";
+      case "dismissed":
+        return "Dismissed";
+      default:
+        return status || "N/A";
     }
   };
 
   const getCategoryLabel = (category) => {
     switch (category) {
-      case "fraudulent_listing":    return "Fraudulent Listing";
-      case "misleading_info":       return "Misleading Info";
-      case "inappropriate_content": return "Inappropriate Content";
-      case "scam":                  return "Scam";
-      case "wrong_price":           return "Wrong Price";
-      case "already_rented":        return "Already Rented";
-      case "harassment":            return "Harassment";
-      case "other":                 return "Other";
-      default:                      return category;
+      case "fraudulent_listing":
+        return "Fraudulent Listing";
+      case "misleading_info":
+        return "Misleading Info";
+      case "inappropriate_content":
+        return "Inappropriate Content";
+      case "scam":
+        return "Scam";
+      case "wrong_price":
+        return "Wrong Price";
+      case "already_rented":
+        return "Already Rented";
+      case "harassment":
+        return "Harassment";
+      case "other":
+        return "Other";
+      default:
+        return category || "N/A";
     }
+  };
+
+  const formatDate = (value) => {
+    if (!value) return "N/A";
+    return new Date(value).toLocaleDateString();
+  };
+
+  const getPropertyDisplayName = (report) => {
+    if (report.property_name) return report.property_name;
+    if (report.reported_property) return `Property #${report.reported_property}`;
+    return "N/A";
+  };
+
+  const getPropertyLocation = (report) => {
+    const location = [report.property_city, report.property_region]
+      .filter(Boolean)
+      .join(", ");
+    return location || "Location not available";
   };
 
   return (
@@ -114,38 +161,69 @@ const AdminReport = () => {
                 <th>Reported By</th>
                 <th>Contact Email</th>
                 <th>Property</th>
+                <th>Owner Details</th>
                 <th>User</th>
                 <th>Booking</th>
                 <th>Status</th>
                 <th>Date</th>
               </tr>
             </thead>
+
             <tbody>
               {filteredReports.map((report, index) => (
                 <tr key={report.id}>
                   <td>{index + 1}</td>
+
                   <td>
                     <div className="report-subject-cell">
                       <strong>{report.subject}</strong>
                       <span>{report.description}</span>
                     </div>
                   </td>
+
                   <td>{getCategoryLabel(report.category)}</td>
+
                   <td>{report.reported_by_username || "Unknown"}</td>
+
                   <td>{report.contact_email || "N/A"}</td>
-                  <td>{report.reported_property || "N/A"}</td>
-                  <td>{report.reported_user || "N/A"}</td>
-                  <td>{report.reported_booking || "N/A"}</td>
+
                   <td>
-                    <span className={`report-status ${getStatusClass(report.status)}`}>
-                      {report.status}
+                    {report.reported_property ? (
+                      <div className="report-property-cell">
+                        <strong>{getPropertyDisplayName(report)}</strong>
+                        <span>{getPropertyLocation(report)}</span>
+                        <small>ID: {report.reported_property}</small>
+                      </div>
+                    ) : (
+                      "N/A"
+                    )}
+                  </td>
+
+                  <td>
+                    {report.reported_property ? (
+                      <div className="report-owner-cell">
+                        <strong>{report.owner_name || "N/A"}</strong>
+                        <span>{report.owner_phone || "No phone"}</span>
+                        <small>{report.owner_email || "No email"}</small>
+                      </div>
+                    ) : (
+                      "N/A"
+                    )}
+                  </td>
+
+                  <td>{report.reported_user || "N/A"}</td>
+
+                  <td>{report.reported_booking || "N/A"}</td>
+
+                  <td>
+                    <span
+                      className={`report-status ${getStatusClass(report.status)}`}
+                    >
+                      {getStatusLabel(report.status)}
                     </span>
                   </td>
-                  <td>
-                    {report.created_at
-                      ? new Date(report.created_at).toLocaleDateString()
-                      : "N/A"}
-                  </td>
+
+                  <td>{formatDate(report.created_at)}</td>
                 </tr>
               ))}
             </tbody>

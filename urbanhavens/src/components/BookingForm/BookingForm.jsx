@@ -1,7 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./Booking.css";
-import { createBooking } from "../../Dashboard/Owner/UploadDetails/api/api";
+import {
+  createBooking,
+  createReport,
+} from "../../Dashboard/Owner/UploadDetails/api/api";
 import {
   FaCheckCircle,
   FaTimesCircle,
@@ -11,6 +14,7 @@ import {
   FaUsers,
   FaHome,
   FaBed,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 
 const formatMoney = (value) => {
@@ -24,12 +28,15 @@ const BookingForm = ({ property }) => {
 
   const [showLoginPopup, setShowLoginPopup] = useState(false);
   const [closingPopup, setClosingPopup] = useState(false);
-const [bookingError, setBookingError] = useState("");
-const [bookingRequestKey, setBookingRequestKey] = useState("");
+  const [bookingError, setBookingError] = useState("");
+  const [bookingRequestKey, setBookingRequestKey] = useState("");
   const [showStatusPopup, setShowStatusPopup] = useState(false);
   const [statusPopupType, setStatusPopupType] = useState("success");
   const [statusPopupMessage, setStatusPopupMessage] = useState("");
-
+  const [showReportBox, setShowReportBox] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportDetails, setReportDetails] = useState("");
+  const [reportSuccess, setReportSuccess] = useState("");
   const accessToken =
     localStorage.getItem("access") || localStorage.getItem("token");
   const storedPhone = localStorage.getItem("phone") || "";
@@ -40,7 +47,10 @@ const [bookingRequestKey, setBookingRequestKey] = useState("");
   const totalAvailableSpaces = useMemo(() => {
     if (!isHostel) return null;
 
-    if (property?.total_available !== undefined && property?.total_available !== null) {
+    if (
+      property?.total_available !== undefined &&
+      property?.total_available !== null
+    ) {
       return Number(property.total_available);
     }
 
@@ -144,71 +154,135 @@ const [bookingRequestKey, setBookingRequestKey] = useState("");
 
     setTimeout(() => {
       setShowStatusPopup(false);
-    }, 3000);
+    }, 3500);
   };
 
   const closeStatusPopup = () => {
     setShowStatusPopup(false);
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setBookingError("");
+  const toggleReportBox = () => {
+    setShowReportBox((prev) => !prev);
+    setReportSuccess("");
+  };
 
-  if (!isLoggedIn) {
-    openLoginPopup();
-    return;
-  }
+  const handleReportSubmit = async (e) => {
+    e.preventDefault();
+    setReportSuccess("");
 
-  const validationErrors = validate();
-  if (Object.keys(validationErrors).length > 0) {
-    setErrors(validationErrors);
-    return;
-  }
+    if (!isLoggedIn) {
+      openLoginPopup();
+      return;
+    }
 
-  const requestKey = bookingRequestKey || crypto.randomUUID();
-  setBookingRequestKey(requestKey);
+    if (!reportReason.trim()) {
+      setReportSuccess("Please select a reason.");
+      return;
+    }
 
-  try {
-    const payload = {
-      property: property.id,
-      phone: formData.phone,
-      preferred_date: formData.preferred_date,
-      preferred_time: formData.preferred_time,
-      message: formData.message,
-    };
+    if (!reportDetails.trim()) {
+      setReportSuccess("Please provide extra details.");
+      return;
+    }
 
-    await createBooking(payload, requestKey);
+    if (reportDetails.trim().length < 20) {
+      setReportSuccess("Description must be at least 20 characters.");
+      return;
+    }
 
-    openStatusPopup(
-      "success",
-      isHostel
-        ? "Your hostel viewing request has been sent successfully."
-        : "Your viewing request has been sent successfully."
-    );
+    try {
+      const payload = {
+        category: reportReason,
+        subject: `Property report: ${property?.property_name || "Listing"}`,
+        description: reportDetails.trim(),
+        contact_email: localStorage.getItem("email") || "",
+        reported_property: property?.id,
+      };
 
-    setFormData({
-      phone: storedPhone || "",
-      preferred_date: "",
-      preferred_time: "",
-      message: initialMessage,
-    });
-    setErrors({});
-    setBookingRequestKey("");
-  } catch (error) {
-    console.error("Booking submission failed:", error);
+      await createReport(payload);
 
-    const backendError =
-      error?.response?.data?.detail ||
-      error?.response?.data?.non_field_errors?.[0] ||
-      error?.response?.data?.property?.[0] ||
-      error?.response?.data?.message ||
-      "Failed to schedule viewing. Please try again.";
+      setReportReason("");
+      setReportDetails("");
+      setShowReportBox(false);
+      setReportSuccess("");
 
-    openStatusPopup("error", backendError);
-    setBookingError(backendError);
-  }
-};
+      openStatusPopup("success", "Your report has been submitted successfully.");
+    } catch (error) {
+      console.error("Report submission failed:", error);
+
+      const backendError =
+        error?.response?.data?.detail ||
+        error?.response?.data?.description?.[0] ||
+        error?.response?.data?.category?.[0] ||
+        error?.response?.data?.subject?.[0] ||
+        error?.response?.data?.reported_property?.[0] ||
+        error?.response?.data?.contact_email?.[0] ||
+        "Failed to submit report. Please try again.";
+
+      setReportSuccess(backendError);
+    }
+  };
+
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setBookingError("");
+
+    if (!isLoggedIn) {
+      openLoginPopup();
+      return;
+    }
+
+    const validationErrors = validate();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
+    }
+
+    const requestKey = bookingRequestKey || crypto.randomUUID();
+    setBookingRequestKey(requestKey);
+
+    try {
+      const payload = {
+        property: property.id,
+        phone: formData.phone,
+        preferred_date: formData.preferred_date,
+        preferred_time: formData.preferred_time,
+        message: formData.message,
+      };
+
+      await createBooking(payload, requestKey);
+
+      openStatusPopup(
+        "success",
+        isHostel
+          ? "Your hostel viewing request has been sent successfully. Don’t pay before viewing the property physically."
+          : "Your viewing request has been sent successfully. Don’t pay before viewing the property physically."
+      );
+
+      setFormData({
+        phone: storedPhone || "",
+        preferred_date: "",
+        preferred_time: "",
+        message: initialMessage,
+      });
+      setErrors({});
+      setBookingRequestKey("");
+    } catch (error) {
+      console.error("Booking submission failed:", error);
+
+      const backendError =
+        error?.response?.data?.detail ||
+        error?.response?.data?.non_field_errors?.[0] ||
+        error?.response?.data?.property?.[0] ||
+        error?.response?.data?.message ||
+        "Failed to schedule viewing. Please try again.";
+
+      openStatusPopup("error", backendError);
+      setBookingError(backendError);
+    }
+  };
+
   const handleLoginRedirect = () => {
     navigate("/login", {
       state: {
@@ -270,9 +344,98 @@ const handleSubmit = async (e) => {
             )}
           </div>
         )}
+        <div className="booking-inline-safety">
+          Please inspect the property first. Do not make any payment before viewing.
+        </div>
 
+          {showReportBox && (
+          <div className="booking-report-box">
+            <h4>Report Property</h4>
+            <p>Tell us what seems wrong with this listing.</p>
+
+            <div className="input-group">
+              <label>Reason</label>
+              <div className="custom-select-wrapper">
+                <select
+                  value={reportReason}
+                  onChange={(e) => setReportReason(e.target.value)}
+                  className="custom-select"
+                >
+                  <option value="">Select a reason</option>
+                  <option value="fraudulent_listing">Fake listing</option>
+                  <option value="misleading_info">Wrong information</option>
+                  <option value="inappropriate_content">
+                    Inappropriate content or photos
+                  </option>
+                  <option value="scam">Suspected scam or fraud</option>
+                  <option value="wrong_price">Incorrect pricing</option>
+                  <option value="already_rented">Property already rented</option>
+                  <option value="harassment">Harassment or abuse</option>
+                  <option value="other">Other</option>
+                </select>
+
+                <span className="custom-select-arrow">
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path
+                      d="M3 5L7 9L11 5"
+                      stroke="#1a7a40"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </span>
+              </div>
+            </div>
+
+            <div className="input-group">
+              <label>Extra Details</label>
+              <textarea
+                placeholder="Write your complaint here..."
+                value={reportDetails}
+                onChange={(e) => setReportDetails(e.target.value)}
+              />
+            </div>
+
+            {reportSuccess && (
+              <p className="booking-report-feedback">{reportSuccess}</p>
+            )}
+
+            <div className="booking-report-actions">
+              <button
+                type="button"
+                className="booking-report-cancel-btn"
+                onClick={toggleReportBox}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="booking-report-submit-btn"
+                onClick={handleReportSubmit}
+              >
+                Submit Report
+              </button>
+            </div>
+          </div>
+        )}
+ <div className="booking-report-wrap">
+              {!showReportBox && (
+                <button
+                  type="button"
+                  className="booking-report-btn"
+                  onClick={toggleReportBox}
+                >
+                  Report Property
+                </button>
+              )}
+            </div>
+     
         <div className="form-container">
           <form onSubmit={handleSubmit}>
+
+
             <div className="input-group">
               <label>
                 <FaPhoneAlt className="booking-field-icon" />
@@ -339,10 +502,11 @@ const handleSubmit = async (e) => {
                 <small className="error">{errors.message}</small>
               )}
             </div>
-{bookingError && (
-  <p className="booking-error-message">{bookingError}</p>
-  
-) }
+
+            {bookingError && (
+              <p className="booking-error-message">{bookingError}</p>
+            )}
+
 
 
             <div className="input-group">
@@ -350,20 +514,21 @@ const handleSubmit = async (e) => {
                 {isHostel ? "Schedule Hostel Viewing" : "Schedule Viewing"}
               </button>
             </div>
+           
+
+         
           </form>
         </div>
       </div>
 
       {showLoginPopup && (
         <div
-          className={`login-popup-overlay ${
-            closingPopup ? "popup-overlay-close" : "popup-overlay-open"
-          }`}
+          className={`login-popup-overlay ${closingPopup ? "popup-overlay-close" : "popup-overlay-open"
+            }`}
         >
           <div
-            className={`login-popup ${
-              closingPopup ? "popup-close" : "popup-open"
-            }`}
+            className={`login-popup ${closingPopup ? "popup-close" : "popup-open"
+              }`}
           >
             <h3 className="log">Login Required</h3>
             <p>
