@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import "./AdminAddProperty.css";
 
 const OwnerSourceStep = ({
@@ -9,21 +9,56 @@ const OwnerSourceStep = ({
   next,
   owners = [],
   ownersLoading = false,
+  activeSupportSession = null,
+  supportSessionLoading = false,
 }) => {
   const [errors, setErrors] = useState({});
 
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const validatePhone = (phone) => /^\d{10}$/.test(phone);
 
+  const hasActiveSupportOwner = Boolean(
+    activeSupportSession?.id && activeSupportSession?.owner
+  );
+
+  const visibleOwners = hasActiveSupportOwner
+    ? owners.filter(
+        (owner) => String(owner.id) === String(activeSupportSession?.owner)
+      )
+    : [];
+
+  const selectedOwner = visibleOwners.find(
+    (owner) =>
+      String(owner.id) ===
+      String(data.owner_user_id || activeSupportSession?.owner || "")
+  );
+
+  useEffect(() => {
+    if (hasActiveSupportOwner) {
+      update({
+        owner_mode: "existing",
+        owner_user_id: String(activeSupportSession.owner),
+      });
+    } else if (data.owner_mode !== "external") {
+      update({
+        owner_mode: "external",
+        owner_user_id: "",
+      });
+    }
+  }, [hasActiveSupportOwner, activeSupportSession?.owner]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
-    update({ [name]: value });
 
     if (name === "owner_mode") {
+      update({ owner_mode: value });
       setErrors({});
+
       if (value === "existing") {
         update({
-          owner_user_id: "",
+          owner_user_id: hasActiveSupportOwner
+            ? String(activeSupportSession?.owner || "")
+            : "",
           external_full_name: "",
           external_phone: "",
           external_email: "",
@@ -33,8 +68,17 @@ const OwnerSourceStep = ({
         });
         setFile("external_document_file", null);
       }
+
+      if (value === "external") {
+        update({
+          owner_user_id: "",
+        });
+      }
+
+      return;
     }
 
+    update({ [name]: value });
     setErrors((prevErr) => ({ ...prevErr, [name]: "" }));
   };
 
@@ -50,16 +94,18 @@ const OwnerSourceStep = ({
     setErrors((prevErr) => ({ ...prevErr, external_document_file: "" }));
   };
 
-  const selectedOwner = owners.find(
-    (owner) => String(owner.id) === String(data.owner_user_id)
-  );
-
   const validate = () => {
     const newErrors = {};
 
     if (data.owner_mode === "existing") {
-      if (!data.owner_user_id?.toString().trim()) {
-        newErrors.owner_user_id = "Please select a registered landlord.";
+      const effectiveOwnerId =
+        data.owner_user_id || activeSupportSession?.owner || "";
+
+      if (!hasActiveSupportOwner) {
+        newErrors.owner_user_id =
+          "An active owner invite is required before posting for a registered landlord.";
+      } else if (!effectiveOwnerId.toString().trim()) {
+        newErrors.owner_user_id = "No invited owner is linked to this session.";
       }
     }
 
@@ -112,9 +158,36 @@ const OwnerSourceStep = ({
         <p>Choose who this property belongs to before continuing.</p>
       </div>
 
+      {supportSessionLoading ? (
+        <div className="support-session-banner support-session-banner--loading">
+          Checking active support session...
+        </div>
+      ) : hasActiveSupportOwner ? (
+        <div className="support-session-banner">
+          <h4>Active Admin Assistance Session</h4>
+          <p>
+            You are posting for{" "}
+            <strong>{activeSupportSession.owner_name || "selected owner"}</strong>
+            {activeSupportSession.owner_email
+              ? ` — ${activeSupportSession.owner_email}`
+              : ""}
+          </p>
+        </div>
+      ) : (
+        <div className="support-session-banner support-session-banner--warning">
+          <h4>No active owner invite</h4>
+          <p>
+            You can add for a new external landlord now. Posting for a registered
+            landlord requires an active owner invite.
+          </p>
+        </div>
+      )}
+
       <div className="owner-mode-group">
         <label
-          className={`owner-mode-card ${data.owner_mode === "existing" ? "selected" : ""}`}
+          className={`owner-mode-card ${
+            data.owner_mode === "existing" ? "selected" : ""
+          } ${!hasActiveSupportOwner ? "disabled-card" : ""}`}
         >
           <input
             type="radio"
@@ -122,6 +195,7 @@ const OwnerSourceStep = ({
             value="existing"
             checked={data.owner_mode === "existing"}
             onChange={handleChange}
+            disabled={!hasActiveSupportOwner}
           />
           <div className="owner-mode-text">
             <h4>Existing Landlord</h4>
@@ -130,7 +204,9 @@ const OwnerSourceStep = ({
         </label>
 
         <label
-          className={`owner-mode-card ${data.owner_mode === "external" ? "selected" : ""}`}
+          className={`owner-mode-card ${
+            data.owner_mode === "external" ? "selected" : ""
+          }`}
         >
           <input
             type="radio"
@@ -153,15 +229,15 @@ const OwnerSourceStep = ({
               <label>Select Registered Landlord</label>
               <select
                 name="owner_user_id"
-                value={data.owner_user_id || ""}
+                value={data.owner_user_id || activeSupportSession?.owner || ""}
                 onChange={handleChange}
-                disabled={ownersLoading}
+                disabled={ownersLoading || !hasActiveSupportOwner}
               >
                 <option value="">
                   {ownersLoading ? "Loading landlords..." : "Choose a landlord"}
                 </option>
 
-                {owners.map((owner) => (
+                {visibleOwners.map((owner) => (
                   <option key={owner.id} value={owner.id}>
                     {owner.name} — {owner.email} — {owner.phone || "No phone"}
                   </option>

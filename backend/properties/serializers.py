@@ -1,14 +1,15 @@
 import hashlib
 import json
 import logging
-
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import serializers
 
 from .models import ExternalLandlord, Favorite, Property, PropertyImage, PropertyDuplicateMatch, Room
 from .security import check_duplicate_property
 from users.models import User
 from notifications.sms import send_booking_created_sms
+
 logger = logging.getLogger(__name__)
 
 
@@ -61,7 +62,7 @@ def _get_user_roles(user):
 
 class RoomSerializer(serializers.ModelSerializer):
     available_spaces = serializers.SerializerMethodField()
-    effective_price  = serializers.SerializerMethodField()
+    effective_price = serializers.SerializerMethodField()
 
     class Meta:
         model = Room
@@ -87,8 +88,9 @@ class RoomSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+
     def get_available_spaces(self, obj):
-     return obj.available_spaces()    
+        return obj.available_spaces()
 
     def get_effective_price(self, obj):
         """Return price_override if set, otherwise fall back to property price."""
@@ -155,7 +157,7 @@ class PropertyImageSerializer(serializers.ModelSerializer):
 
 
 class PropertyDuplicateMatchSerializer(serializers.ModelSerializer):
-    matched_property_id   = serializers.IntegerField(source="matched_property.id", read_only=True)
+    matched_property_id = serializers.IntegerField(source="matched_property.id", read_only=True)
     matched_property_name = serializers.CharField(source="matched_property.property_name", read_only=True)
 
     class Meta:
@@ -172,7 +174,7 @@ class PropertyDuplicateMatchSerializer(serializers.ModelSerializer):
 
 class ExternalLandlordSerializer(serializers.ModelSerializer):
     properties_count = serializers.SerializerMethodField()
-    document_file    = serializers.SerializerMethodField()
+    document_file = serializers.SerializerMethodField()
 
     class Meta:
         model = ExternalLandlord
@@ -196,11 +198,11 @@ class ExternalLandlordSerializer(serializers.ModelSerializer):
 
 
 class RegisteredLandlordSerializer(serializers.ModelSerializer):
-    name        = serializers.SerializerMethodField()
+    name = serializers.SerializerMethodField()
     is_verified = serializers.SerializerMethodField()
 
     class Meta:
-        model  = User
+        model = User
         fields = ["id", "name", "email", "phone", "is_verified"]
 
     def get_name(self, obj):
@@ -240,35 +242,36 @@ class FlexibleJSONField(serializers.Field):
 
 
 class PropertySerializer(serializers.ModelSerializer):
-    images            = PropertyImageSerializer(many=True, read_only=True)
+    images = PropertyImageSerializer(many=True, read_only=True)
     duplicate_matches = PropertyDuplicateMatchSerializer(many=True, read_only=True)
-    amenities         = FlexibleJSONField(required=False)
+    amenities = FlexibleJSONField(required=False)
 
     # NEW: rooms are read-only here — created/managed via RoomSerializer
     rooms = RoomSerializer(many=True, read_only=True)
 
     # NEW: hostel-level capacity summary, derived from rooms
-    total_capacity    = serializers.SerializerMethodField()
-    total_occupied    = serializers.SerializerMethodField()
-    total_available   = serializers.SerializerMethodField()
+    total_capacity = serializers.SerializerMethodField()
+    total_occupied = serializers.SerializerMethodField()
+    total_available = serializers.SerializerMethodField()
 
-    owner_reference_id  = serializers.SerializerMethodField()
-    owner_name          = serializers.SerializerMethodField()
-    owner_phone         = serializers.SerializerMethodField()
-    owner_email         = serializers.SerializerMethodField()
-    owner_source        = serializers.SerializerMethodField()
-    approved_by_name    = serializers.SerializerMethodField()
+    owner_reference_id = serializers.SerializerMethodField()
+    owner_name = serializers.SerializerMethodField()
+    owner_phone = serializers.SerializerMethodField()
+    owner_email = serializers.SerializerMethodField()
+    owner_source = serializers.SerializerMethodField()
+    approved_by_name = serializers.SerializerMethodField()
 
-    owner_user_id        = serializers.IntegerField(write_only=True, required=False)
+    owner_user_id = serializers.IntegerField(write_only=True, required=False)
     external_landlord_id = serializers.IntegerField(write_only=True, required=False)
 
-    external_full_name      = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    external_phone          = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    external_email          = serializers.EmailField(write_only=True, required=False, allow_blank=True)
-    external_business_name  = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    external_document_type  = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    external_id_number      = serializers.CharField(write_only=True, required=False, allow_blank=True)
-    external_document_file  = serializers.FileField(write_only=True, required=False, allow_null=True)
+    external_full_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    external_phone = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    external_email = serializers.EmailField(write_only=True, required=False, allow_blank=True)
+    external_business_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    external_document_type = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    external_id_number = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    external_document_file = serializers.FileField(write_only=True, required=False, allow_null=True)
+    support_session_id = serializers.IntegerField(write_only=True, required=False)
 
     class Meta:
         model = Property
@@ -289,6 +292,9 @@ class PropertySerializer(serializers.ModelSerializer):
             "external_document_type",
             "external_id_number",
             "external_document_file",
+            
+"support_session_id",
+
             "property_name",
             "category",
             "property_type",
@@ -319,6 +325,7 @@ class PropertySerializer(serializers.ModelSerializer):
             "duplicate_matches",
             "created_at",
             "updated_at",
+            "support_session_id"
         ]
         read_only_fields = [
             "owner_reference_id",
@@ -349,19 +356,19 @@ class PropertySerializer(serializers.ModelSerializer):
     # ------------------------------------------------------------------ #
 
     def get_total_capacity(self, obj):
-     if obj.category != "hostel":
-        return None
-     return sum(r.max_capacity for r in obj.rooms.all())
+        if obj.category != "hostel":
+            return None
+        return sum(r.max_capacity for r in obj.rooms.all())
 
     def get_total_occupied(self, obj):
-     if obj.category != "hostel":
-        return None
-     return sum(r.occupied_spaces for r in obj.rooms.all())
+        if obj.category != "hostel":
+            return None
+        return sum(r.occupied_spaces for r in obj.rooms.all())
 
     def get_total_available(self, obj):
-     if obj.category != "hostel":
-        return None
-     return sum(r.available_spaces() for r in obj.rooms.all())
+        if obj.category != "hostel":
+            return None
+        return sum(r.available_spaces() for r in obj.rooms.all())
 
     # ------------------------------------------------------------------ #
     #  Read helpers (unchanged)                                           #
@@ -374,9 +381,9 @@ class PropertySerializer(serializers.ModelSerializer):
             return obj.external_landlord.id
         return None
 
-    def get_owner_name(self, obj):    return obj.owner_name
-    def get_owner_phone(self, obj):   return obj.owner_phone
-    def get_owner_email(self, obj):   return obj.owner_email
+    def get_owner_name(self, obj):  return obj.owner_name
+    def get_owner_phone(self, obj): return obj.owner_phone
+    def get_owner_email(self, obj): return obj.owner_email
 
     def get_owner_source(self, obj):
         if obj.owner:             return "registered"
@@ -395,13 +402,13 @@ class PropertySerializer(serializers.ModelSerializer):
 
     def _extract_external_fields(self, attrs):
         return {
-            "full_name":      attrs.get("external_full_name", "").strip(),
-            "phone":          attrs.get("external_phone", ""),
-            "email":          attrs.get("external_email", ""),
-            "business_name":  attrs.get("external_business_name", ""),
-            "document_type":  attrs.get("external_document_type", "").strip(),
-            "id_number":      attrs.get("external_id_number", "").strip(),
-            "document_file":  attrs.get("external_document_file"),
+            "full_name":     attrs.get("external_full_name", "").strip(),
+            "phone":         attrs.get("external_phone", ""),
+            "email":         attrs.get("external_email", ""),
+            "business_name": attrs.get("external_business_name", ""),
+            "document_type": attrs.get("external_document_type", "").strip(),
+            "id_number":     attrs.get("external_id_number", "").strip(),
+            "document_file": attrs.get("external_document_file"),
         }
 
     def _has_new_external_data(self, external):
@@ -444,18 +451,18 @@ class PropertySerializer(serializers.ModelSerializer):
             })
 
     # ------------------------------------------------------------------ #
-    #  validate() / create() / update() — unchanged from your version    #
+    #  validate() / create() / update()                                   #
     # ------------------------------------------------------------------ #
 
     def validate(self, attrs):
-        request   = self.context.get("request")
-        user      = request.user if request else None
-        instance  = getattr(self, "instance", None)
+        request = self.context.get("request")
+        user = request.user if request else None
+        instance = getattr(self, "instance", None)
         is_admin, is_owner = _get_user_roles(user)
 
-        owner_user_id        = attrs.get("owner_user_id")
+        owner_user_id = attrs.get("owner_user_id")
         external_landlord_id = attrs.get("external_landlord_id")
-        external             = self._extract_external_fields(attrs)
+        external = self._extract_external_fields(attrs)
         creating_new_external = self._has_new_external_data(external)
 
         ownership_fields_present = any([
@@ -483,28 +490,71 @@ class PropertySerializer(serializers.ModelSerializer):
             return attrs
 
         if is_admin:
-            selected_sources = sum([bool(owner_user_id), bool(external_landlord_id), bool(creating_new_external)])
+            support_session_id = attrs.get("support_session_id")
+
+            selected_sources = sum([
+                bool(owner_user_id),
+                bool(external_landlord_id),
+                bool(creating_new_external),
+            ])
+
             if selected_sources != 1:
                 raise serializers.ValidationError(
                     "Admin must choose exactly one owner source: "
                     "owner_user_id, external_landlord_id, or new external landlord details."
                 )
+
             if owner_user_id:
-                attrs["_resolved_owner"] = self._validate_registered_owner(owner_user_id)
+                from support.models import AdminSupportSession
+
+                owner = self._validate_registered_owner(owner_user_id)
+
+                if not support_session_id:
+                    raise serializers.ValidationError({
+                        "support_session_id": "Support session is required for admin-assisted creation."
+                    })
+
+                try:
+                    session = AdminSupportSession.objects.get(
+                        id=support_session_id,
+                        admin=user,
+                        owner=owner,
+                        status=AdminSupportSession.STATUS_ACTIVE,
+                    )
+                except AdminSupportSession.DoesNotExist:
+                    raise serializers.ValidationError({
+                        "support_session_id": "Invalid or inactive support session."
+                    })
+
+                if not session.expires_at or session.expires_at <= timezone.now():
+                    session.mark_expired()
+                    raise serializers.ValidationError({
+                        "support_session_id": "This support session has expired."
+                    })
+
+                attrs["_resolved_owner"] = owner
+                attrs["_support_session"] = session
+                
+
             if external_landlord_id:
                 attrs["_resolved_external_landlord"] = self._validate_existing_external_landlord(external_landlord_id)
+
             if creating_new_external:
                 self._validate_new_external_landlord_data(external)
                 attrs["_new_external_data"] = external
+
             attrs["_is_admin"] = True
             attrs["_is_owner"] = False
             return attrs
 
         raise serializers.ValidationError("You are not allowed to create a property.")
 
+
+
+
     def create(self, validated_data):
-        request  = self.context.get("request")
-        user     = request.user if request else None
+        request = self.context.get("request")
+        user = request.user if request else None
         is_admin = validated_data.pop("_is_admin", False)
         validated_data.pop("_is_owner", None)
 
@@ -517,45 +567,56 @@ class PropertySerializer(serializers.ModelSerializer):
         validated_data.pop("external_document_type", None)
         validated_data.pop("external_id_number", None)
         validated_data.pop("external_document_file", None)
+        validated_data.pop("support_session_id", None)
+        resolved_owner = validated_data.pop("_resolved_owner", None)
+        resolved_external_landlord = validated_data.pop("_resolved_external_landlord", None)
+        new_external_data = validated_data.pop("_new_external_data", None)
+        support_session = validated_data.pop("_support_session", None)
 
-        resolved_owner               = validated_data.pop("_resolved_owner", None)
-        resolved_external_landlord   = validated_data.pop("_resolved_external_landlord", None)
-        new_external_data            = validated_data.pop("_new_external_data", None)
-
+       
         is_owner_role = not is_admin and bool(
             user and user.is_authenticated and getattr(user, "role", None) == "owner"
         )
 
         if is_owner_role:
-            validated_data["owner"]             = user
+            validated_data["owner"] = user
             validated_data["external_landlord"] = None
         elif is_admin:
             if resolved_owner:
-                validated_data["owner"]             = resolved_owner
+                validated_data["owner"] = resolved_owner
                 validated_data["external_landlord"] = None
+                validated_data["created_by_admin"] = user
+                validated_data["support_session"] = support_session
             elif resolved_external_landlord:
-                validated_data["owner"]             = None
+                validated_data["owner"] = None
                 validated_data["external_landlord"] = resolved_external_landlord
             else:
                 ext = new_external_data
                 with transaction.atomic():
                     external_landlord_obj = ExternalLandlord.objects.create(
-                        full_name=ext["full_name"], phone=ext["phone"], email=ext["email"],
-                        business_name=ext["business_name"], document_type=ext["document_type"],
-                        id_number=ext["id_number"], document_file=ext["document_file"],
+                        full_name=ext["full_name"],
+                        phone=ext["phone"],
+                        email=ext["email"],
+                        business_name=ext["business_name"],
+                        document_type=ext["document_type"],
+                        id_number=ext["id_number"],
+                        document_file=ext["document_file"],
                         created_by=user,
                     )
-                    validated_data["owner"]             = None
+                    validated_data["owner"] = None
                     validated_data["external_landlord"] = external_landlord_obj
                     property_obj = Property(**validated_data)
                     property_obj.full_clean()
                     property_obj.save()
                     self._save_property_images(request, property_obj)
 
-                _prop_id, _prop_name, _owner_name = property_obj.id, property_obj.property_name, property_obj.owner_name or "Unknown"
+                _prop_id = property_obj.id
+                _prop_name = property_obj.property_name
+                _owner_name = property_obj.owner_name or "Unknown"
                 transaction.on_commit(lambda: _notify_admins(
                     message=f"New property submitted for approval: '{_prop_name}' by {_owner_name}.",
-                    notification_type="property_submitted", property_id=_prop_id,
+                    notification_type="property_submitted",
+                    property_id=_prop_id,
                 ))
                 transaction.on_commit(lambda: check_duplicate_property(Property.objects.get(pk=_prop_id)))
                 return property_obj
@@ -566,23 +627,34 @@ class PropertySerializer(serializers.ModelSerializer):
             property_obj.save()
             self._save_property_images(request, property_obj)
 
-        _prop_id, _prop_name, _owner_name = property_obj.id, property_obj.property_name, property_obj.owner_name or "Unknown"
+        _prop_id = property_obj.id
+        _prop_name = property_obj.property_name
+        _owner_name = property_obj.owner_name or "Unknown"
         transaction.on_commit(lambda: _notify_admins(
             message=f"New property submitted for approval: '{_prop_name}' by {_owner_name}.",
-            notification_type="property_submitted", property_id=_prop_id,
+            notification_type="property_submitted",
+            property_id=_prop_id,
         ))
         transaction.on_commit(lambda: check_duplicate_property(Property.objects.get(pk=_prop_id)))
         return property_obj
+    
+    
 
-    
-    
-    
+   
+   
+   
+   
     def _save_property_images(self, request, property_obj):
         if not request:
             return
         for image in request.FILES.getlist("property_images"):
             image_hash = _generate_file_hash(image)
-            PropertyImage.objects.create(property=property_obj, image=image, image_hash=image_hash)
+            PropertyImage.objects.create(
+                property=property_obj,
+                image=image,
+                image_hash=image_hash,
+            )
+
     def update(self, instance, validated_data):
         protected_fields = [
             "owner_user_id",
@@ -621,7 +693,7 @@ class PropertySerializer(serializers.ModelSerializer):
                 )
                 validated_data.pop(field)
 
-        request    = self.context.get("request")
+        request = self.context.get("request")
         new_images = request.FILES.getlist("property_images") if request else []
 
         with transaction.atomic():
@@ -637,28 +709,17 @@ class PropertySerializer(serializers.ModelSerializer):
 
         return instance
 
-    def _save_property_images(self, request, property_obj):
-        if not request:
-            return
-        for image in request.FILES.getlist("property_images"):
-            image_hash = _generate_file_hash(image)
-            PropertyImage.objects.create(
-                property=property_obj,
-                image=image,
-                image_hash=image_hash,
-            )
-
 
 # ------------------------------------------------------------------ #
 #  Favorite serializer (unchanged)                                    #
 # ------------------------------------------------------------------ #
 
 class FavoriteSerializer(serializers.ModelSerializer):
-    property    = PropertySerializer(read_only=True)
+    property = PropertySerializer(read_only=True)
     property_id = serializers.IntegerField(write_only=True)
 
     class Meta:
-        model  = Favorite
+        model = Favorite
         fields = ["id", "property", "property_id", "created_at"]
         read_only_fields = ["id", "property", "created_at"]
 

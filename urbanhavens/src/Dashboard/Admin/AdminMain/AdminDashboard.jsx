@@ -7,6 +7,11 @@ import {
   FaArrowUp,
   FaBell,
   FaTrash,
+  FaUserShield,
+  FaClock,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaEnvelopeOpenText,
 } from "react-icons/fa";
 import "./AdminDashboard.css";
 import { useNavigate } from "react-router-dom";
@@ -25,7 +30,9 @@ const AdminDashboard = () => {
   });
 
   const [loading, setLoading] = useState(true);
-
+const [supportInvites, setSupportInvites] = useState([]);
+const [supportLoading, setSupportLoading] = useState(true);
+const [supportActionLoading, setSupportActionLoading] = useState(null);
   const clearNotifications = () => {
     setNotifications([]);
     setUnreadCount(0);
@@ -108,6 +115,30 @@ const AdminDashboard = () => {
 
     fetchDashboardData();
   }, []);
+useEffect(() => {
+  fetchSupportInvites();
+}, []);
+
+const handleRespondToInvite = async (sessionId, action) => {
+  try {
+    setSupportActionLoading(`${sessionId}-${action}`);
+
+    await api.post(`/support/admin/respond/${sessionId}/`, {
+      action,
+    });
+
+    setSupportInvites((prev) =>
+      prev.filter((item) => item.id !== sessionId)
+    );
+  } catch (err) {
+    console.error(`Failed to ${action} invite`, err);
+    alert(err.response?.data?.detail || `Failed to ${action}`);
+  } finally {
+    setSupportActionLoading(null);
+  }
+};
+
+
 
   const statCards = [
     {
@@ -135,7 +166,17 @@ const AdminDashboard = () => {
       note: "Needs review",
     },
   ];
-
+const fetchSupportInvites = async () => {
+  try {
+    setSupportLoading(true);
+    const res = await api.get("/support/admin/pending/");
+    setSupportInvites(Array.isArray(res.data) ? res.data : []);
+  } catch (err) {
+    console.error("Failed to fetch support invites", err);
+  } finally {
+    setSupportLoading(false);
+  }
+};
   return (
     <div className="admin-dashboard">
       <div className="admin-header">
@@ -172,7 +213,81 @@ const AdminDashboard = () => {
           </div>
         ))}
       </div>
+<div className="ad-support-section">
+  <div className="ad-support-head">
+    <div className="ad-support-head-left">
+      <FaUserShield className="ad-support-head-icon" />
+      <div>
+        <h3 className="ad-support-title">Owner Assistance Invites</h3>
+        <p className="ad-support-subtitle">
+          Accept or decline temporary assistance requests.
+        </p>
+      </div>
+    </div>
+  </div>
 
+  {supportLoading ? (
+    <div className="ad-support-empty">
+      Loading support invites...
+    </div>
+  ) : supportInvites.length === 0 ? (
+    <div className="ad-support-empty">
+      <FaEnvelopeOpenText className="ad-support-empty-icon" />
+      <p>No pending assistance invites.</p>
+    </div>
+  ) : (
+    <div className="ad-support-grid">
+      {supportInvites.map((invite) => (
+        <div key={invite.id} className="ad-support-card">
+          <div className="ad-support-card-top">
+            <div>
+              <p className="ad-support-owner">{invite.owner_name}</p>
+              <p className="ad-support-owner-email">{invite.owner_email}</p>
+            </div>
+
+            <span className="ad-support-badge">
+              {invite.status}
+            </span>
+          </div>
+
+          <p className="ad-support-reason">
+            {invite.reason || "Help me post a property"}
+          </p>
+
+          <div className="ad-support-meta">
+            <span>
+              <FaClock /> {invite.duration_minutes || 30} mins
+            </span>
+          </div>
+
+          <div className="ad-support-actions">
+            <button
+              className="ad-support-btn ad-support-btn--accept"
+              onClick={() => handleRespondToInvite(invite.id, "accept")}
+              disabled={supportActionLoading === `${invite.id}-accept`}
+            >
+              <FaCheckCircle />
+              {supportActionLoading === `${invite.id}-accept`
+                ? "Accepting..."
+                : "Accept"}
+            </button>
+
+            <button
+              className="ad-support-btn ad-support-btn--decline"
+              onClick={() => handleRespondToInvite(invite.id, "decline")}
+              disabled={supportActionLoading === `${invite.id}-decline`}
+            >
+              <FaTimesCircle />
+              {supportActionLoading === `${invite.id}-decline`
+                ? "Declining..."
+                : "Decline"}
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
       {/* ── Bottom Panels ──────────────────────────────────────────────── */}
       <div className="admin-dashboard-bottom">
 

@@ -169,6 +169,27 @@ class Property(models.Model):
 
     def __str__(self):
         return f"{self.property_name} ({self.owner_name})"
+    created_by_admin = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="admin_created_properties",
+    )
+
+    support_session = models.ForeignKey(
+        "support.AdminSupportSession",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_properties",
+    )   
+
+
+
+
+
+
 
 class Room(models.Model):
     ROOM_TYPE_CHOICES = [
@@ -303,3 +324,5 @@ class Favorite(models.Model):
 
     def __str__(self):
         return f"{self.user.email} -> {self.property.property_name}"
+    
+    

@@ -18,7 +18,7 @@ const Home = () => {
          <RentalProcess/>
 
              <TestimonialSlider/>
-         <Footer/>
+         <Footer/> 
     </div>
   )
 }

@@ -396,3 +396,31 @@
 
   .stepper-header { grid-template-columns: 1fr; }
 }
+
+.support-session-banner {
+  background: #eef8f1;
+  border: 1px solid rgba(26, 122, 64, 0.16);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.support-session-banner h4 {
+  margin: 0 0 6px;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: #14532d;
+}
+
+.support-session-banner p {
+  margin: 0;
+  color: #355b46;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.support-session-banner--loading {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+}

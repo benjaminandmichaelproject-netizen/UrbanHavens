@@ -346,3 +346,90 @@
   background: #e53e3e;
   color: #fff;
 }
+
+.ad-support-section {
+  margin-top: 24px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 20px;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+.ad-support-head {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.ad-support-head-left {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.ad-support-head-icon {
+  color: #1a7a40;
+  font-size: 1.2rem;
+}
+
+.ad-support-title {
+  margin: 0;
+  font-weight: 800;
+}
+
+.ad-support-subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.ad-support-empty {
+  padding: 20px;
+  text-align: center;
+  color: #64748b;
+}
+
+.ad-support-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.ad-support-card {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 14px;
+}
+
+.ad-support-owner {
+  font-weight: 700;
+}
+
+.ad-support-owner-email {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.ad-support-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.ad-support-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.ad-support-btn--accept {
+  background: #1a7a40;
+  color: white;
+}
+
+.ad-support-btn--decline {
+  background: #fee2e2;
+  color: #b91c1c;
+}

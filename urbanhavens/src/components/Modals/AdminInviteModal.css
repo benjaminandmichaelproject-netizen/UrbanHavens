@@ -1,0 +1,246 @@
+.aim-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4000;
+  background: rgba(15, 23, 42, 0.48);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.aim-modal {
+  width: min(100%, 560px);
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 20px 70px rgba(15, 23, 42, 0.22);
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.aim-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.aim-title-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.aim-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 16px;
+  background: rgba(26, 122, 64, 0.12);
+  color: #1a7a40;
+  display: grid;
+  place-items: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.aim-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.aim-subtitle {
+  margin: 6px 0 0;
+  font-size: 0.93rem;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+.aim-close {
+  border: none;
+  background: #f8fafc;
+  color: #334155;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: 0.2s ease;
+}
+
+.aim-close:hover {
+  background: #eef2f7;
+}
+
+.aim-body {
+  padding: 22px 24px;
+}
+
+.aim-field + .aim-field {
+  margin-top: 18px;
+}
+
+.aim-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.aim-select,
+.aim-input {
+  width: 100%;
+  border: 1px solid #dbe3ee;
+  background: #fff;
+  border-radius: 14px;
+  outline: none;
+  font-size: 0.95rem;
+  color: #0f172a;
+  transition: 0.2s ease;
+}
+
+.aim-select {
+  padding: 14px 16px;
+}
+
+.aim-input {
+  padding: 14px 16px 14px 44px;
+}
+
+.aim-select:focus,
+.aim-input:focus {
+  border-color: #1a7a40;
+  box-shadow: 0 0 0 4px rgba(26, 122, 64, 0.09);
+}
+
+.aim-input-wrap {
+  position: relative;
+}
+
+.aim-input-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  font-size: 0.95rem;
+}
+
+.aim-note {
+  margin-top: 18px;
+  display: grid;
+  gap: 10px;
+  background: #f8fafc;
+  border: 1px solid #edf2f7;
+  border-radius: 16px;
+  padding: 14px 15px;
+}
+
+.aim-note-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #475569;
+  font-size: 0.92rem;
+}
+
+.aim-preview {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(26, 122, 64, 0.08), rgba(59, 130, 246, 0.06));
+  border: 1px solid rgba(26, 122, 64, 0.12);
+}
+
+.aim-preview-label {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.aim-preview-name {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.aim-preview-email {
+  margin: 4px 0 0;
+  color: #475569;
+  font-size: 0.92rem;
+}
+
+.aim-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 18px 24px 24px;
+}
+
+.aim-btn {
+  border: none;
+  border-radius: 14px;
+  padding: 13px 18px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.aim-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.aim-btn--ghost {
+  background: #eef2f7;
+  color: #334155;
+}
+
+.aim-btn--ghost:hover:not(:disabled) {
+  background: #e2e8f0;
+}
+
+.aim-btn--primary {
+  background: #1a7a40;
+  color: #fff;
+}
+
+.aim-btn--primary:hover:not(:disabled) {
+  background: #156535;
+}
+
+@media (max-width: 640px) {
+  .aim-modal {
+    border-radius: 20px;
+  }
+
+  .aim-head,
+  .aim-body,
+  .aim-actions {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .aim-actions {
+    flex-direction: column-reverse;
+  }
+
+  .aim-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

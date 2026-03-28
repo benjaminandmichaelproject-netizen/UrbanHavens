@@ -4,7 +4,7 @@ import PropertyDescription from "../../Owner/UploadDetails/PropertyDescription";
 import PropertyLocation from "../../Owner/UploadDetails/PropertyLocation";
 import PropertyLook from "../../Owner/UploadDetails/PropertyLook";
 import PreviewStep from "../../Owner/UploadDetails/PreviewStep";
-import axios from "axios";
+import { api } from "../../Owner/UploadDetails/api/api";
 import { getOwners, uploadProperty } from "../../Owner/UploadDetails/api/api";
 import { ADMIN_DEFAULT_FORM_DATA, ADMIN_DEFAULT_FILES,} from "./adminConstants";
 
@@ -54,6 +54,11 @@ const AdminAddProperty = () => {
     const [errorMessage, setErrorMessage] = useState("");
     const [owners, setOwners] = useState([]);
     const [ownersLoading, setOwnersLoading] = useState(false);
+const [activeSupportSession, setActiveSupportSession] = useState(null);
+
+const [supportSessionLoading, setSupportSessionLoading] = useState(false);
+
+
 
     useEffect(() => {
         const fetchOwners = async () => {
@@ -84,6 +89,36 @@ const AdminAddProperty = () => {
     useEffect(() => {
         saveState(formData, step);
     }, [formData, step]);
+useEffect(() => {
+    const fetchActiveSupportSession = async () => {
+        try {
+            setSupportSessionLoading(true);
+            const res = await api.get("/support/admin/current/");
+            setActiveSupportSession(res.data || null);
+
+            if (res.data?.owner) {
+                setFormData((prev) => ({
+                    ...prev,
+                    owner_source: {
+                        ...prev.owner_source,
+                        owner_mode: "existing",
+                        owner_user_id: String(res.data.owner),
+                    },
+                }));
+            }
+        } catch (error) {
+            console.error("Failed to fetch active support session:", error);
+            setActiveSupportSession(null);
+        } finally {
+            setSupportSessionLoading(false);
+        }
+    };
+
+    fetchActiveSupportSession();
+}, []);
+
+
+
 
     const nextStep = useCallback(() => {
         setStep((prev) => Math.min(prev + 1, STEPS.length));
@@ -135,6 +170,9 @@ const AdminAddProperty = () => {
         if (owner_source.owner_mode === "existing") {
             if (owner_source.owner_user_id) {
                 formPayload.append("owner_user_id", owner_source.owner_user_id);
+                if (activeSupportSession?.id) {
+            formPayload.append("support_session_id", activeSupportSession.id);
+        }
             }
         } else {
             if (owner_source.external_full_name) {
@@ -222,7 +260,7 @@ const AdminAddProperty = () => {
             );
         }
 
-       return (
+     return (
   <Component
     data={formData[key] ?? {}}
     update={(data) => updateSection(key, data)}
@@ -232,9 +270,10 @@ const AdminAddProperty = () => {
     prev={prevStep}
     owners={owners}
     ownersLoading={ownersLoading}
+    activeSupportSession={activeSupportSession}
+    supportSessionLoading={supportSessionLoading}
   />
-);
-    };
+)}
 
     const progressPercent = Math.round((step / STEPS.length) * 100);
 

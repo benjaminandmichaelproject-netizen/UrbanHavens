@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     "schools",
     "assistant",
     "reports",
+    "support"
 ]
 
 MIDDLEWARE = [

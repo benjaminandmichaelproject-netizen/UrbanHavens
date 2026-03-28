@@ -4,24 +4,44 @@ import MyProperties from "../MyProperties/MyProperties";
 import { useNavigate } from "react-router-dom";
 import { api } from "../UploadDetails/api/api";
 import { motion } from "framer-motion";
+import AdminInviteModal from "../../../components/Modals/AdminInviteModal";
 import {
   FaHome, FaCalendarCheck, FaFileContract, FaMoneyBillWave,
   FaBed, FaDoorOpen, FaDoorClosed, FaPlus, FaArrowRight,
-  FaChartLine, FaClipboardList,
+  FaChartLine, FaClipboardList, FaUserShield,
+  FaClock
 } from "react-icons/fa";
 
 const username = localStorage.getItem("username") || "Owner";
 
-const fadeUp  = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } };
+const fadeUp = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
 
 const OwnerDashboard = () => {
   const navigate = useNavigate();
 
-  const [stats, setStats]               = useState(null);
-  const [propCount, setPropCount]       = useState(0);
+  const [stats, setStats] = useState(null);
+  const [propCount, setPropCount] = useState(0);
   const [bookingCount, setBookingCount] = useState(0);
-  const [loading, setLoading]           = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [supportSession, setSupportSession] = useState(null);
+  const [timeLeft, setTimeLeft] = useState("");
+  const [admins, setAdmins] = useState([]);
+  useEffect(() => {
+    const fetchAdmins = async () => {
+      try {
+        const res = await api.get("/support/active-admins/");
+        setAdmins(res.data);
+      } catch (err) {
+        console.error("Failed to fetch admins", err);
+      }
+    };
+
+    fetchAdmins();
+  }, []);
+
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -33,8 +53,8 @@ const OwnerDashboard = () => {
           api.get("/bookings/my_owner_bookings/"),
         ]);
 
-        if (leaseRes.status   === "fulfilled") setStats(leaseRes.value.data);
-        if (propRes.status    === "fulfilled") {
+        if (leaseRes.status === "fulfilled") setStats(leaseRes.value.data);
+        if (propRes.status === "fulfilled") {
           const d = propRes.value.data;
           setPropCount(Array.isArray(d) ? d.length : d.results?.length ?? 0);
         }
@@ -50,7 +70,43 @@ const OwnerDashboard = () => {
     };
     fetchStats();
   }, []);
+  
+  
+  
+  useEffect(() => {
+    if (!supportSession?.expiresAt || supportSession.status !== "active") {
+      setTimeLeft("");
+      return;
+    }
 
+    const tick = () => {
+      const diff = supportSession.expiresAt - Date.now();
+
+      if (diff <= 0) {
+        setSupportSession((prev) =>
+          prev
+            ? {
+              ...prev,
+              status: "expired",
+              endedAt: Date.now(),
+            }
+            : null
+        );
+        setTimeLeft("00:00");
+        return;
+      }
+
+      const totalSeconds = Math.floor(diff / 1000);
+      const mins = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+      const secs = String(totalSeconds % 60).padStart(2, "0");
+      setTimeLeft(`${mins}:${secs}`);
+    };
+
+    tick();
+    const timer = setInterval(tick, 1000);
+
+    return () => clearInterval(timer);
+  }, [supportSession]);
   const topCards = [
     {
       label: "My Properties",
@@ -109,7 +165,89 @@ const OwnerDashboard = () => {
       color: "#f59e0b",
     },
   ];
+  const handleSendInvite = async ({ admin, reason }) => {
+  try {
+    setInviteLoading(true);
 
+    const res = await api.post("/support/owner/invite/", {
+      admin: admin.id,
+      reason,
+    });
+
+    const data = res.data;
+
+    setSupportSession({
+      id: data.id,
+      adminId: data.admin,
+      adminName: data.admin_name,
+      adminEmail: data.admin_email,
+      reason: data.reason,
+      status: data.status,
+      startedAt: data.started_at ? new Date(data.started_at).getTime() : null,
+      expiresAt: data.expires_at ? new Date(data.expires_at).getTime() : null,
+      endedAt: data.ended_at ? new Date(data.ended_at).getTime() : null,
+    });
+
+    setInviteModalOpen(false);
+  } catch (error) {
+    console.error("Invite failed:", error);
+    alert(error.response?.data?.detail || "Failed to send invite");
+  } finally {
+    setInviteLoading(false);
+  }
+};
+   
+const handleTerminateSession = async () => {
+  if (!supportSession?.id) return;
+
+  try {
+    const res = await api.post(`/support/owner/terminate/${supportSession.id}/`);
+    const data = res.data;
+
+    setSupportSession({
+      ...supportSession,
+      status: data.status,
+      endedAt: data.ended_at ? new Date(data.ended_at).getTime() : Date.now(),
+    });
+  } catch (err) {
+    console.error("Terminate failed", err);
+    alert(err.response?.data?.detail || "Failed to terminate session");
+  }
+};
+
+
+  const handleClearSession = () => {
+    setSupportSession(null);
+  };
+
+
+
+useEffect(() => {
+  const fetchSession = async () => {
+    try {
+      const res = await api.get("/support/owner/current/");
+      if (res.data) {
+        setSupportSession({
+          id: res.data.id,
+          adminId: res.data.admin,
+          adminName: res.data.admin_name,
+          adminEmail: res.data.admin_email,
+          reason: res.data.reason,
+          status: res.data.status,
+          startedAt: res.data.started_at ? new Date(res.data.started_at).getTime() : null,
+          expiresAt: res.data.expires_at ? new Date(res.data.expires_at).getTime() : null,
+          endedAt: res.data.ended_at ? new Date(res.data.ended_at).getTime() : null,
+        });
+      } else {
+        setSupportSession(null);
+      }
+    } catch (err) {
+      console.error("Failed to fetch support session", err);
+    }
+  };
+
+  fetchSession();
+}, []);
   return (
     <div className="od-page">
 
@@ -127,11 +265,110 @@ const OwnerDashboard = () => {
             <h2 className="od-banner-title">Welcome back, {username}!</h2>
             <p className="od-banner-sub">Manage your properties and track everything in one place.</p>
           </div>
+          <div className="od-banner-support-card">
+            <div className="od-banner-support-card-top">
+              <div className="od-banner-support-icon">
+                <FaUserShield />
+              </div>
+
+   <div className="od-banner-support-meta">
+  {!supportSession && (
+    <p className="od-banner-support-note">
+      Invite an admin when you need help posting a property.
+    </p>
+  )}
+
+  {supportSession?.status === "active" && (
+    <>
+      <p className="od-banner-support-note">
+        {supportSession.adminEmail}
+      </p>
+
+      <p className="od-banner-support-timer">
+        <FaClock /> {timeLeft} remaining
+      </p>
+
+      <button
+        className="od-banner-support-end-btn"
+        onClick={handleTerminateSession}
+      >
+        End Session
+      </button>
+    </>
+  )}
+
+  {supportSession?.status === "terminated" && (
+    <p className="od-banner-support-note">
+      This session was ended manually.
+    </p>
+  )}
+
+  {supportSession?.status === "expired" && (
+    <p className="od-banner-support-note">
+      The 30-minute support window has expired.
+    </p>
+  )}
+</div>
+
+              <span
+                className={`od-banner-support-badge ${supportSession?.status === "active"
+                    ? "od-banner-support-badge--active"
+                    : supportSession?.status === "terminated"
+                      ? "od-banner-support-badge--terminated"
+                      : supportSession?.status === "expired"
+                        ? "od-banner-support-badge--expired"
+                        : "od-banner-support-badge--idle"
+                  }`}
+              >
+                {!supportSession && "Idle"}
+                {supportSession?.status === "active" && "Live"}
+                {supportSession?.status === "terminated" && "Ended"}
+                {supportSession?.status === "expired" && "Expired"}
+              </span>
+            </div>
+
+            <div className="od-banner-support-meta">
+              {!supportSession && (
+                <p className="od-banner-support-note">
+                  Invite an admin when you need help posting a property.
+                </p>
+              )}
+
+              {supportSession?.status === "active" && (
+                <>
+                  <p className="od-banner-support-note">
+                    {supportSession.adminEmail}
+                  </p>
+                  <p className="od-banner-support-timer">
+                    <FaClock /> {timeLeft} remaining
+                  </p>
+                </>
+              )}
+
+              {supportSession?.status === "terminated" && (
+                <p className="od-banner-support-note">
+                  This session was ended manually.
+                </p>
+              )}
+
+              {supportSession?.status === "expired" && (
+                <p className="od-banner-support-note">
+                  The 30-minute support window has expired.
+                </p>
+              )}
+            </div>
+          </div>
           <button
             className="od-banner-btn"
             onClick={() => navigate("/dashboard/owner/UploadDetails/uploadpage")}
           >
             <FaPlus /> Add Property
+          </button>
+          <button
+            className="od-banner-btn od-banner-btn--alt"
+            onClick={() => setInviteModalOpen(true)}
+          >
+            <FaUserShield /> Invite Admin
           </button>
         </div>
       </motion.div>
@@ -275,8 +512,15 @@ const OwnerDashboard = () => {
         </div>
         <MyProperties />
       </motion.div>
-
+      <AdminInviteModal
+  open={inviteModalOpen}
+  onClose={() => setInviteModalOpen(false)}
+  onSendInvite={handleSendInvite}
+  admins={admins}
+  loading={inviteLoading}
+/>
     </div>
+
   );
 };
 
