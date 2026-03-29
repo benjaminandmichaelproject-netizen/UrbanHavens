@@ -363,6 +363,7 @@ const OwnerDashboard = () => {
                     End Session
                   </button>
                 </>
+                
               )}
 
               {supportSession?.status === "terminated" && (
@@ -376,6 +377,7 @@ const OwnerDashboard = () => {
                   The 30-minute support window has expired.
                 </p>
               )}
+             
             </div>
           </div>
 
@@ -388,7 +390,7 @@ const OwnerDashboard = () => {
             <FaPlus /> Add Property
           </button>
 
-          <button
+           <button
             className="od-banner-btn od-banner-btn--alt"
             onClick={() => setInviteModalOpen(true)}
           >

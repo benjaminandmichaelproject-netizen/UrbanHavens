@@ -278,6 +278,53 @@ class PropertyViewSet(viewsets.ModelViewSet):
             self.get_serializer(property_obj).data,
             status=status.HTTP_200_OK,
         )
+        
+    @action(detail=True, methods=["post"], url_path="request-recheck")
+    def request_recheck(self, request, pk=None):
+        property_obj = self.get_object()
+        user = request.user
+
+        if not user or not user.is_authenticated:
+            return Response(
+                {"detail": "Authentication required."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        if not self._is_admin(user) and property_obj.owner_id != user.id:
+            return Response(
+                {"detail": "You can only request recheck for your own property."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if property_obj.report_flag_status not in ["flagged", "hidden"]:
+            return Response(
+                {"detail": "This property is not currently flagged."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        property_obj.report_flag_status = "reviewing"
+        property_obj.save(update_fields=["report_flag_status"])
+
+        from notifications.models import Notification
+
+        admins = User.objects.filter(role="admin", is_active=True)
+
+        for admin in admins:
+            Notification.objects.create(
+                recipient=admin,
+                message=(
+                    f'Owner requested recheck for property "{property_obj.property_name}". '
+                    f"Current report count: {property_obj.reported_count}. "
+                    f"Main reasons: {property_obj.report_flag_reason_summary or 'Not available'}."
+                ),
+                notification_type="property_submitted",
+                related_property_id=property_obj.id,
+            )
+
+        return Response(
+            {"message": "Recheck request submitted successfully."},
+            status=status.HTTP_200_OK,
+        )
 
 class RoomViewSet(viewsets.ModelViewSet):
     serializer_class = RoomSerializer

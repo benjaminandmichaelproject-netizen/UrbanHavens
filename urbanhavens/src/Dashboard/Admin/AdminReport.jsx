@@ -1,14 +1,20 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../Owner/UploadDetails/api/api.js";
 import "./Report.css";
 
 const AdminReport = () => {
+  const navigate = useNavigate();
+
   const [reports, setReports] = useState([]);
   const [filteredReports, setFilteredReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-
+  const [updatingId, setUpdatingId] = useState(null);
+  const [disablingPropertyId, setDisablingPropertyId] = useState(null);
+const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+const [selectedPropertyToDisable, setSelectedPropertyToDisable] = useState(null);
   useEffect(() => {
     fetchReports();
   }, []);
@@ -44,6 +50,62 @@ const AdminReport = () => {
       setLoading(false);
     }
   };
+
+  const handleStatusUpdate = async (reportId, newStatus) => {
+    try {
+      setUpdatingId(reportId);
+      setApiError("");
+
+      await api.patch(`/reports/admin/${reportId}/`, {
+        status: newStatus,
+      });
+
+      await fetchReports();
+    } catch (error) {
+      const msg =
+        error.response?.data?.detail ||
+        error.response?.data?.message ||
+        "Failed to update report status.";
+      setApiError(msg);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+const openDisableConfirm = (propertyId) => {
+  setSelectedPropertyToDisable(propertyId);
+  setConfirmModalOpen(true);
+};
+
+const closeDisableConfirm = () => {
+  if (disablingPropertyId) return;
+  setConfirmModalOpen(false);
+  setSelectedPropertyToDisable(null);
+};
+
+const handleDisableProperty = async () => {
+  if (!selectedPropertyToDisable) return;
+
+  try {
+    setDisablingPropertyId(selectedPropertyToDisable);
+    setApiError("");
+
+    await api.patch(`/properties/${selectedPropertyToDisable}/`, {
+      is_available: false,
+    });
+
+    closeDisableConfirm();
+    await fetchReports();
+  } catch (err) {
+    const msg =
+      err.response?.data?.detail ||
+      err.response?.data?.message ||
+      "Failed to disable property.";
+    setApiError(msg);
+  } finally {
+    setDisablingPropertyId(null);
+  }
+};
 
   const getStatusClass = (status) => {
     switch (status) {
@@ -165,71 +227,183 @@ const AdminReport = () => {
                 <th>User</th>
                 <th>Booking</th>
                 <th>Status</th>
+                <th>Actions</th>
                 <th>Date</th>
               </tr>
             </thead>
 
             <tbody>
-              {filteredReports.map((report, index) => (
-                <tr key={report.id}>
-                  <td>{index + 1}</td>
+              {filteredReports.map((report, index) => {
+                const isUpdatingThisReport = updatingId === report.id;
+                const isDisablingThisProperty =
+                  disablingPropertyId === report.reported_property;
 
-                  <td>
-                    <div className="report-subject-cell">
-                      <strong>{report.subject}</strong>
-                      <span>{report.description}</span>
-                    </div>
-                  </td>
+                return (
+                  <tr
+                    key={report.id}
+                    className={report.category === "scam" ? "report-row-danger" : ""}
+                  >
+                    <td>{index + 1}</td>
 
-                  <td>{getCategoryLabel(report.category)}</td>
-
-                  <td>{report.reported_by_username || "Unknown"}</td>
-
-                  <td>{report.contact_email || "N/A"}</td>
-
-                  <td>
-                    {report.reported_property ? (
-                      <div className="report-property-cell">
-                        <strong>{getPropertyDisplayName(report)}</strong>
-                        <span>{getPropertyLocation(report)}</span>
-                        <small>ID: {report.reported_property}</small>
+                    <td>
+                      <div className="report-subject-cell">
+                        <strong>{report.subject}</strong>
+                        <span>{report.description}</span>
                       </div>
-                    ) : (
-                      "N/A"
-                    )}
-                  </td>
+                    </td>
 
-                  <td>
-                    {report.reported_property ? (
-                      <div className="report-owner-cell">
-                        <strong>{report.owner_name || "N/A"}</strong>
-                        <span>{report.owner_phone || "No phone"}</span>
-                        <small>{report.owner_email || "No email"}</small>
+                    <td>{getCategoryLabel(report.category)}</td>
+
+                    <td>{report.reported_by_username || "Unknown"}</td>
+
+                    <td>{report.contact_email || "N/A"}</td>
+
+                    <td>
+                      {report.reported_property ? (
+                        <div className="report-property-cell">
+                          <strong
+                            className="clickable-link"
+                            onClick={() =>navigate(`/detail/${report.reported_property}`)}
+                          >
+                            {getPropertyDisplayName(report)}
+                          </strong>
+                          <span>{getPropertyLocation(report)}</span>
+                          <small>ID: {report.reported_property}</small>
+                        </div>
+                      ) : (
+                        "N/A"
+                      )}
+                    </td>
+
+                    <td>
+                      {report.reported_property ? (
+                        <div className="report-owner-cell">
+                          <strong>{report.owner_name || "N/A"}</strong>
+                          <span>{report.owner_phone || "No phone"}</span>
+                          <small>{report.owner_email || "No email"}</small>
+                        </div>
+                      ) : (
+                        "N/A"
+                      )}
+                    </td>
+
+                    <td>{report.reported_user || "N/A"}</td>
+
+                    <td>{report.reported_booking || "N/A"}</td>
+
+                    <td>
+                      <span
+                        className={`report-status ${getStatusClass(report.status)}`}
+                      >
+                        {getStatusLabel(report.status)}
+                      </span>
+                    </td>
+
+                    <td>
+                      <div className="report-actions">
+                        <button
+                          type="button"
+                          className="report-action-btn reviewing"
+                          onClick={() => handleStatusUpdate(report.id, "reviewing")}
+                          disabled={
+                            isUpdatingThisReport || report.status === "reviewing"
+                          }
+                        >
+                          {isUpdatingThisReport ? "Updating..." : "Reviewing"}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="report-action-btn resolved"
+                          onClick={() => handleStatusUpdate(report.id, "resolved")}
+                          disabled={
+                            isUpdatingThisReport || report.status === "resolved"
+                          }
+                        >
+                          {isUpdatingThisReport ? "Updating..." : "Resolve"}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="report-action-btn dismissed"
+                          onClick={() => handleStatusUpdate(report.id, "dismissed")}
+                          disabled={
+                            isUpdatingThisReport || report.status === "dismissed"
+                          }
+                        >
+                          {isUpdatingThisReport ? "Updating..." : "Dismiss"}
+                        </button>
+
+                        {report.reported_property && (
+                          <>
+                            <button
+                              type="button"
+                              className="report-action-btn view"
+                              onClick={() => navigate(`/detail/${report.reported_property}`)}
+                            >
+                              View
+                            </button>
+
+                           <button
+  type="button"
+  className="report-action-btn danger"
+  onClick={() => openDisableConfirm(report.reported_property)}
+  disabled={isDisablingThisProperty}
+>
+  {isDisablingThisProperty ? "Disabling..." : "Disable"}
+</button>
+                          </>
+                        )}
                       </div>
-                    ) : (
-                      "N/A"
-                    )}
-                  </td>
+                    </td>
 
-                  <td>{report.reported_user || "N/A"}</td>
-
-                  <td>{report.reported_booking || "N/A"}</td>
-
-                  <td>
-                    <span
-                      className={`report-status ${getStatusClass(report.status)}`}
-                    >
-                      {getStatusLabel(report.status)}
-                    </span>
-                  </td>
-
-                  <td>{formatDate(report.created_at)}</td>
-                </tr>
-              ))}
+                    <td>{formatDate(report.created_at)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
+
+      {confirmModalOpen && (
+        <div className="report-modal-backdrop" onClick={closeDisableConfirm}>
+          <div
+            className="report-confirm-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="report-confirm-icon">!</div>
+            <h3>Disable Property</h3>
+            <p>
+              Are you sure you want to disable this property listing?
+            </p>
+            <p className="report-confirm-subtext">
+              This will make the property unavailable to users.
+            </p>
+
+            <div className="report-confirm-actions">
+              <button
+                type="button"
+                className="report-confirm-cancel"
+                onClick={closeDisableConfirm}
+                disabled={!!disablingPropertyId}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="report-confirm-danger"
+                onClick={handleDisableProperty}
+                disabled={!!disablingPropertyId}
+              >
+                {disablingPropertyId ? "Disabling..." : "Yes, Disable"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

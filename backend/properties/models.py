@@ -92,9 +92,31 @@ class Property(models.Model):
     security_flag_reason  = models.TextField(blank=True, null=True)
     security_flagged_at   = models.DateTimeField(blank=True, null=True)
     security_under_review = models.BooleanField(default=False)
-
+    security_flagged      = models.BooleanField(default=False)
+    security_flag_type    = models.CharField(max_length=100, choices=SECURITY_FLAG_TYPE_CHOICES, blank=True, null=True)
+    security_flag_reason  = models.TextField(blank=True, null=True)
+    security_flagged_at   = models.DateTimeField(blank=True, null=True)
+    security_under_review = models.BooleanField(default=False)
+    
+    report_flag_status = models.CharField(
+        max_length=20,
+        choices=[
+            ("active", "Active"),
+            ("flagged", "Flagged"),
+            ("hidden", "Hidden"),
+            ("reviewing", "Reviewing"),
+            ("resolved", "Resolved"),
+        ],
+        default="active",
+    )
+    report_flagged = models.BooleanField(default=False)
+    report_flagged_at = models.DateTimeField(null=True, blank=True)
+    report_flag_reason_summary = models.TextField(blank=True, default="")
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    reported_count = models.PositiveIntegerField(default=0)
+
 
     class Meta:
         constraints = [
@@ -169,6 +191,9 @@ class Property(models.Model):
 
     def __str__(self):
         return f"{self.property_name} ({self.owner_name})"
+    
+    
+    
     created_by_admin = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

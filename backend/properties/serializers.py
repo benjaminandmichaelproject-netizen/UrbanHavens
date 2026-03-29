@@ -325,7 +325,12 @@ class PropertySerializer(serializers.ModelSerializer):
             "duplicate_matches",
             "created_at",
             "updated_at",
-            "support_session_id"
+            "support_session_id",
+            "reported_count",
+"report_flag_status",
+"report_flagged",
+"report_flagged_at",
+"report_flag_reason_summary",
         ]
         read_only_fields = [
             "owner_reference_id",
@@ -349,6 +354,11 @@ class PropertySerializer(serializers.ModelSerializer):
             "total_available",
             "created_at",
             "updated_at",
+            "reported_count",
+"report_flag_status",
+"report_flagged",
+"report_flagged_at",
+"report_flag_reason_summary",
         ]
 
     # ------------------------------------------------------------------ #

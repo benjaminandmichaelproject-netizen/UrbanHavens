@@ -10,6 +10,8 @@ class Notification(models.Model):
         ("property_submitted", "Property Submitted"),
         ("property_approved", "Property Approved"),
         ("property_rejected", "Property Rejected"),
+        ("property_flagged", "Property Flagged"),
+("property_hidden", "Property Hidden"),
     )
 
     recipient = models.ForeignKey(
