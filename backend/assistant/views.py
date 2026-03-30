@@ -41,7 +41,10 @@ def _get_gemini_client():
 def _build_queryset(filters: dict):
     from properties.models import Property
 
-    qs = Property.objects.filter(is_available=True).select_related("owner")
+    qs = Property.objects.filter(
+    is_available=True,
+    report_flag_status="active"
+).select_related("owner")
 
     if loc := filters.get("location"):
         qs = qs.filter(

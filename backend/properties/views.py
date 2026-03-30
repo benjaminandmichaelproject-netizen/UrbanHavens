@@ -5,6 +5,8 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
+from system_logs.logger import log_property_event
+
 from .models import ExternalLandlord, Favorite, Property, Room
 from .pagination import PropertyPagination
 from .serializers import (
@@ -14,6 +16,7 @@ from .serializers import (
     RegisteredLandlordSerializer,
     RoomSerializer,
 )
+
 User = get_user_model()
 
 
@@ -56,7 +59,10 @@ class PropertyViewSet(viewsets.ModelViewSet):
         user = self.request.user if hasattr(self.request, "user") else None
 
         if self.action in ["list", "featured"]:
-            queryset = queryset.filter(approval_status="approved")
+            queryset = queryset.filter(
+    approval_status="approved",
+    report_flag_status="active"
+)
 
             category = self.request.query_params.get("category")
             if category:
@@ -118,17 +124,49 @@ class PropertyViewSet(viewsets.ModelViewSet):
         return [permissions.IsAuthenticated()]
 
     def perform_create(self, serializer):
-        serializer.save()
+        property_obj = serializer.save()
+
+        try:
+            log_property_event(
+                message=f"Property created: {property_obj.property_name}",
+                status="success",
+                user=self.request.user,
+                detail=(
+                    f"Category: {property_obj.category}, "
+                    f"Type: {property_obj.property_type}, "
+                    f"City: {property_obj.city}, "
+                    f"Approval: {property_obj.approval_status}"
+                ),
+                endpoint=self.request.path,
+                property_id=property_obj.id,
+            )
+        except Exception:
+            pass
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context["request"] = self.request
         return context
-
+    
+    
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         user = request.user
 
+        # 🔴 BLOCK hidden properties from public
+        if instance.report_flag_status == "hidden":
+            if not user or not user.is_authenticated:
+                return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+            if self._is_admin(user):
+                return Response(self.get_serializer(instance).data)
+
+            if getattr(user, "role", None) == "owner" and instance.owner_id == user.id:
+                return Response(self.get_serializer(instance).data)
+
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 🟡 BLOCK unapproved properties from public
         if instance.approval_status != "approved":
             if not user or not user.is_authenticated:
                 return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
@@ -141,7 +179,9 @@ class PropertyViewSet(viewsets.ModelViewSet):
 
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        # ✅ ALLOW normal access
         return Response(self.get_serializer(instance).data)
+
 
     @action(detail=False, methods=["get"], url_path="my-properties")
     def my_properties(self, request):
@@ -172,7 +212,11 @@ class PropertyViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="featured", permission_classes=[AllowAny])
     def featured(self, request):
         queryset = (
-            Property.objects.filter(approval_status="approved", is_featured=True)
+            Property.objects.filter(
+    approval_status="approved",
+    is_featured=True,
+    report_flag_status="active"
+)
             .select_related("owner", "external_landlord", "approved_by")
             .prefetch_related("images", "rooms")
             .order_by("-updated_at")[:6]
@@ -205,6 +249,22 @@ class PropertyViewSet(viewsets.ModelViewSet):
                 update_fields=["approval_status", "is_available", "approved_by", "approved_at"]
             )
 
+        try:
+            log_property_event(
+                message=f"Property approved: {property_obj.property_name}",
+                status="success",
+                user=request.user,
+                detail=(
+                    f"Property ID: {property_obj.id}, "
+                    f"Category: {property_obj.category}, "
+                    f"Available: {property_obj.is_available}"
+                ),
+                endpoint=request.path,
+                property_id=property_obj.id,
+            )
+        except Exception:
+            pass
+
         return Response(
             self.get_serializer(property_obj).data,
             status=status.HTTP_200_OK,
@@ -234,6 +294,18 @@ class PropertyViewSet(viewsets.ModelViewSet):
             ]
         )
 
+        try:
+            log_property_event(
+                message=f"Property rejected: {property_obj.property_name}",
+                status="failure",
+                user=request.user,
+                detail=f"Property ID: {property_obj.id} was rejected by admin.",
+                endpoint=request.path,
+                property_id=property_obj.id,
+            )
+        except Exception:
+            pass
+
         return Response(
             self.get_serializer(property_obj).data,
             status=status.HTTP_200_OK,
@@ -257,6 +329,18 @@ class PropertyViewSet(viewsets.ModelViewSet):
         property_obj.is_featured = True
         property_obj.save(update_fields=["is_featured"])
 
+        try:
+            log_property_event(
+                message=f"Property featured: {property_obj.property_name}",
+                status="info",
+                user=request.user,
+                detail=f"Property ID: {property_obj.id} marked as featured.",
+                endpoint=request.path,
+                property_id=property_obj.id,
+            )
+        except Exception:
+            pass
+
         return Response(
             self.get_serializer(property_obj).data,
             status=status.HTTP_200_OK,
@@ -274,11 +358,23 @@ class PropertyViewSet(viewsets.ModelViewSet):
         property_obj.is_featured = False
         property_obj.save(update_fields=["is_featured"])
 
+        try:
+            log_property_event(
+                message=f"Property unfeatured: {property_obj.property_name}",
+                status="info",
+                user=request.user,
+                detail=f"Property ID: {property_obj.id} removed from featured list.",
+                endpoint=request.path,
+                property_id=property_obj.id,
+            )
+        except Exception:
+            pass
+
         return Response(
             self.get_serializer(property_obj).data,
             status=status.HTTP_200_OK,
         )
-        
+
     @action(detail=True, methods=["post"], url_path="request-recheck")
     def request_recheck(self, request, pk=None):
         property_obj = self.get_object()
@@ -321,10 +417,27 @@ class PropertyViewSet(viewsets.ModelViewSet):
                 related_property_id=property_obj.id,
             )
 
+        try:
+            log_property_event(
+                message=f"Property recheck requested: {property_obj.property_name}",
+                status="info",
+                user=request.user,
+                detail=(
+                    f"Property ID: {property_obj.id}, "
+                    f"Report status: {property_obj.report_flag_status}, "
+                    f"Reported count: {property_obj.reported_count}"
+                ),
+                endpoint=request.path,
+                property_id=property_obj.id,
+            )
+        except Exception:
+            pass
+
         return Response(
             {"message": "Recheck request submitted successfully."},
             status=status.HTTP_200_OK,
         )
+
 
 class RoomViewSet(viewsets.ModelViewSet):
     serializer_class = RoomSerializer
@@ -412,6 +525,8 @@ class RoomViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN,
             )
         return super().destroy(request, *args, **kwargs)
+
+
 def _get_registered_landlord_or_404(id):
     try:
         return User.objects.get(id=id, role="owner")
@@ -505,7 +620,11 @@ def registered_landlord_properties(request, id):
         )
 
     properties = (
-        Property.objects.filter(owner=user, approval_status="approved")
+        Property.objects.filter(
+    owner=user,
+    approval_status="approved",
+    report_flag_status="active"
+)
         .select_related("owner", "external_landlord", "approved_by")
         .prefetch_related("images", "rooms")
         .order_by("-id")

@@ -35,6 +35,25 @@ class Property(models.Model):
     SECURITY_FLAG_TYPE_CHOICES = [
         ("duplicate_property", "Duplicate Property"),
     ]
+    
+    REGION_CHOICES = [
+    ("ahafo", "Ahafo"),
+    ("ashanti", "Ashanti"),
+    ("bono", "Bono"),
+    ("bono_east", "Bono East"),
+    ("central", "Central"),
+    ("eastern", "Eastern"),
+    ("greater_accra", "Greater Accra"),
+    ("north_east", "North East"),
+    ("northern", "Northern"),
+    ("oti", "Oti"),
+    ("savannah", "Savannah"),
+    ("upper_east", "Upper East"),
+    ("upper_west", "Upper West"),
+    ("volta", "Volta"),
+    ("western", "Western"),
+    ("western_north", "Western North"),
+]
 
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -61,7 +80,7 @@ class Property(models.Model):
     description   = models.TextField()
     amenities     = models.JSONField(default=list, blank=True)
 
-    region = models.CharField(max_length=100)
+    region = models.CharField(max_length=50, choices=REGION_CHOICES)
     city   = models.CharField(max_length=100)
     school = models.CharField(max_length=100, blank=True, null=True)
     lat    = models.FloatField(blank=True, null=True)
