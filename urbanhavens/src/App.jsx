@@ -58,7 +58,8 @@ import Hostel from "./Pages/PropertyListing/hostelForRent/Hostel";
 import HouseForRent from "./Pages/PropertyListing/houseForRent/HouseForRent";
 // ── AI Assistant ─────────────────────────────────────────────────
  import { AIAssistantButton } from "./components/AIAssistant/AIAssistant";
-
+import Bugs from "./Dashboard/Admin/Bugs/Bugs";
+import SchoolsRegion from "./Dashboard/Admin/SchoolsRegion/SchoolsRegion";
 const AppContent = () => {
   const location = useLocation();
 
@@ -382,6 +383,14 @@ const AppContent = () => {
             }
           />
           <Route
+            path="admin/bugs"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Bugs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="admin/documents"
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
@@ -394,6 +403,14 @@ const AppContent = () => {
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <div>Notifications</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/schools-regions"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+               <SchoolsRegion/>
               </ProtectedRoute>
             }
           />

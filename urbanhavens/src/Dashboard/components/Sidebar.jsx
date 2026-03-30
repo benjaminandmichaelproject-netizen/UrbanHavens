@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
 import {
   FaTachometerAlt, FaHome, FaCalendarCheck, FaUpload,
   FaUsers, FaFileContract, FaFileAlt, FaLifeRing, FaCog,
@@ -38,10 +38,10 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
     <aside className={`db-sidebar ${isOpen ? "db-sidebar--open" : "db-sidebar--closed"}`}>
 
       {/* Brand */}
-      <div className="db-sidebar-brand">
-        <div className="db-brand-icon">U</div>
-        <span className="db-brand-name">UrbanHavens</span>
-      </div>
+      <Link to="/" className="db-sidebar-brand">
+  <div className="db-brand-icon">U</div>
+  <span className="db-brand-name">UrbanHavens</span>
+</Link>
 
       <nav className="db-sidebar-nav">
         <ul>
@@ -64,6 +64,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
               <SectionLabel label="Insights" />
               <NavItem to="/dashboard/admin/reports" icon={<FaChartBar />} label="Reports" onClick={handleClick} />
+              <NavItem to="/dashboard/admin/bugs" icon={<FaChartBar />} label="Bugs" onClick={handleClick} />
               <NavItem to="/dashboard/admin/documents" icon={<FaFileAlt />} label="Documents" onClick={handleClick} />
               <NavItem to="/dashboard/admin/notifications" icon={<FaBell />} label="Notifications" onClick={handleClick} />
 

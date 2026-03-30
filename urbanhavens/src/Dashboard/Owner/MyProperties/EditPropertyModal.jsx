@@ -179,61 +179,68 @@ const EditPropertyModal = ({ property, onClose, onUpdated }) => {
 
   /* ── submit ─────────────────────────────────────── */
   const handleSave = async () => {
-    const detailOk   = validateDetails();
-    const locationOk = validateLocation();
+  const detailOk   = validateDetails();
+  const locationOk = validateLocation();
 
-    if (!detailOk) { setTab("details");  return; }
-    if (!locationOk) { setTab("location"); return; }
-    if (totalImageCount === 0) {
-      setTab("images");
-      setToast({ type: "error", msg: "At least 1 image is required." });
-      return;
-    }
+  if (!detailOk)   { setTab("details");  return; }
+  if (!locationOk) { setTab("location"); return; }
+  if (totalImageCount === 0) {
+    setTab("images");
+    setToast({ type: "error", msg: "At least 1 image is required." });
+    return;
+  }
 
-    try {
-      setSaving(true);
-      const payload = new FormData();
+  try {
+    setSaving(true);
+    const payload = new FormData();
 
-      /* flat fields */
-      const combined = { ...form, ...loc };
-      Object.entries(combined).forEach(([key, val]) => {
-        if (val !== undefined && val !== null && val !== "") {
-          if (key === "amenities") {
-            payload.append("amenities", JSON.stringify(Array.isArray(val) ? val : []));
-          } else {
-            payload.append(key, val);
-          }
+    /* flat fields */
+    const combined = { ...form, ...loc };
+    Object.entries(combined).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== "") {
+        if (key === "amenities") {
+          payload.append("amenities", JSON.stringify(Array.isArray(val) ? val : []));
+        } else {
+          payload.append(key, val);
         }
-      });
+      }
+    });
 
-      /* images to delete */
-      existingImages
-        .filter((i) => i.toDelete)
-        .forEach((i) => payload.append("delete_images", i.url));
+    /* images to delete */
+    existingImages
+      .filter((i) => i.toDelete)
+      .forEach((i) => payload.append("delete_images", i.url));
 
-      /* new images */
-      newFiles.forEach((f) => payload.append("property_images", f));
+    /* new images */
+    newFiles.forEach((f) => payload.append("property_images", f));
 
-      const updated = await updateProperty(property.id, payload);
-      setToast({ type: "success", msg: "Property updated successfully!" });
-      const merged = {
-        ...property,
-        ...form,
-        ...loc,
-        status: property.status ?? "Active",
-        images: [
-          ...existingImages.filter((i) => !i.toDelete).map((i) => i.url),
-          ...newPreviews,
-        ],
-      };
-      setTimeout(() => { onUpdated(merged); onClose(); }, 1200);
-    } catch (err) {
-      console.error("Update failed:", err);
-      setToast({ type: "error", msg: "Update failed. Please try again." });
-    } finally {
-      setSaving(false);
-    }
-  };
+    const updated = await updateProperty(property.id, payload);
+
+    setToast({ type: "success", msg: "Property updated successfully!" });
+
+    // Use server-returned images so URLs are real, not revoked blob URLs
+    const mergedImages = updated?.images?.length
+      ? updated.images.map((img) =>
+          typeof img === "string" ? img : normalizeUrl(img.image ?? img.url ?? "")
+        )
+      : existingImages.filter((i) => !i.toDelete).map((i) => i.url);
+
+    const merged = {
+      ...property,
+      ...form,
+      ...loc,
+      status: property.status ?? "Active",
+      images: mergedImages,
+    };
+
+    setTimeout(() => { onUpdated(merged); onClose(); }, 1200);
+  } catch (err) {
+    console.error("Update failed:", err);
+    setToast({ type: "error", msg: "Update failed. Please try again." });
+  } finally {
+    setSaving(false);
+  }
+};
 
   /* ── render ─────────────────────────────────────── */
   return (

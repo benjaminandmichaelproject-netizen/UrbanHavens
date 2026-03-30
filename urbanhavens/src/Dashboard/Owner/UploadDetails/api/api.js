@@ -431,5 +431,64 @@ export const resetPassword = async (email, code, password, confirmPassword) => {
     throw err;
   }
 };
+// ─── Schools APIs ────────────────────────────────────────────────────────────
+export const getSchools = async (q = "") => {
+  try {
+    const res = await api.get(`/schools/?q=${encodeURIComponent(q)}`);
+    return res.data;
+  } catch (err) {
+    console.error("Fetch schools error:", err.response?.data || err.message);
+    throw err.response?.data || err;
+  }
+};
 
+export const getRegions = async () => {
+  try {
+    const res = await api.get("/schools/regions/");
+    return res.data;
+  } catch (err) {
+    console.error("Fetch regions error:", err.response?.data || err.message);
+    throw err.response?.data || err;
+  }
+};
+
+export const getAllSchoolsAdmin = async () => {
+  try {
+    const res = await api.get("/schools/manage/");
+    return res.data;
+  } catch (err) {
+    console.error("Fetch all schools admin error:", err.response?.data || err.message);
+    throw err.response?.data || err;
+  }
+};
+
+export const createSchool = async (data) => {
+  try {
+    const res = await api.post("/schools/manage/", data);
+    return res.data;
+  } catch (err) {
+    console.error("Create school error:", err.response?.data || err.message);
+    throw err.response?.data || err;
+  }
+};
+
+export const updateSchool = async (id, data) => {
+  try {
+    const res = await api.patch(`/schools/manage/${id}/`, data);
+    return res.data;
+  } catch (err) {
+    console.error("Update school error:", err.response?.data || err.message);
+    throw err.response?.data || err;
+  }
+};
+
+export const deleteSchool = async (id) => {
+  try {
+    const res = await api.delete(`/schools/manage/${id}/`);
+    return res.data;
+  } catch (err) {
+    console.error("Delete school error:", err.response?.data || err.message);
+    throw err.response?.data || err;
+  }
+};
 export { api };

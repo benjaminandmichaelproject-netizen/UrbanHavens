@@ -391,6 +391,9 @@ const AdminDashboard = () => {
             <button onClick={() => navigate("/dashboard/admin/bookings")}>
               Check Bookings
             </button>
+            <button onClick={() => navigate("/dashboard/admin/schools-regions")}>
+             Add Schools and region
+            </button>
           </div>
         </div>
       </div>
