@@ -29,45 +29,25 @@ from .paystack import (
 from .serializers import PaymentSerializer
 
 
-class InitializeRenewalPaymentSerializer(
-    serializers.Serializer
-):
+class InitializeRenewalPaymentSerializer(serializers.Serializer):
     # Identifies the approved renewal request.
-    renewal_request_id = serializers.IntegerField(
-        min_value=1,
-    )
+    renewal_request_id = serializers.IntegerField(min_value=1)
 
     # Restricts renewal payments to supported channels.
     payment_method = serializers.ChoiceField(
-        choices=[
-            "paystack",
-            "direct",
-        ],
+        choices=["paystack", "direct"],
     )
 
     # Validates tenant ownership and renewal readiness.
     def validate(self, attrs):
         request = self.context.get("request")
 
-        if (
-            not request
-            or not request.user.is_authenticated
-        ):
+        if not request or not request.user.is_authenticated:
             raise serializers.ValidationError(
-                {
-                    "detail": (
-                        "Authentication is required to "
-                        "initialize renewal payment."
-                    )
-                }
+                {"detail": "Authentication is required to initialize renewal payment."}
             )
 
-        renewal_request_id = attrs[
-            "renewal_request_id"
-        ]
-
         try:
-            # Loads only the authenticated tenant's renewal.
             renewal = (
                 LeaseRenewalRequest.objects
                 .select_related(
@@ -78,7 +58,7 @@ class InitializeRenewalPaymentSerializer(
                     "room",
                 )
                 .get(
-                    id=renewal_request_id,
+                    id=attrs["renewal_request_id"],
                     tenant=request.user,
                 )
             )
@@ -86,24 +66,20 @@ class InitializeRenewalPaymentSerializer(
             raise serializers.ValidationError(
                 {
                     "renewal_request_id": (
-                        "Renewal request not found or "
-                        "does not belong to you."
+                        "Renewal request not found or does not belong to you."
                     )
                 }
             )
 
-        # Allows payment only after owner approval.
         if renewal.status != "payment_pending":
             raise serializers.ValidationError(
                 {
                     "renewal_request_id": (
-                        "This renewal request is not "
-                        "awaiting payment."
+                        "This renewal request is not awaiting payment."
                     )
                 }
             )
 
-        # Ensures the existing lease remains active.
         if renewal.current_lease.status != "active":
             raise serializers.ValidationError(
                 {
@@ -113,42 +89,20 @@ class InitializeRenewalPaymentSerializer(
                 }
             )
 
-        # Prevents duplicate renewal payment records.
-        if Payment.objects.filter(
-            renewal_request=renewal,
-        ).exists():
-            raise serializers.ValidationError(
-                {
-                    "renewal_request_id": (
-                        "A payment already exists for "
-                        "this renewal request."
-                    )
-                }
-            )
-
-        # Confirms a valid trusted renewal amount exists.
         if (
             renewal.expected_amount is None
-            or renewal.expected_amount
-            <= Decimal("0.00")
+            or renewal.expected_amount <= Decimal("0.00")
         ):
             raise serializers.ValidationError(
-                {
-                    "renewal_request_id": (
-                        "The renewal amount is invalid."
-                    )
-                }
+                {"renewal_request_id": "The renewal amount is invalid."}
             )
 
-        # Makes the verified renewal available to the view.
+        # Passes the trusted renewal to the view.
         attrs["_resolved_renewal"] = renewal
-
         return attrs
 
 
-class ConfirmDirectRenewalPaymentSerializer(
-    serializers.Serializer
-):
+class ConfirmDirectRenewalPaymentSerializer(serializers.Serializer):
     # Stores the amount the owner actually received.
     amount_received = serializers.DecimalField(
         max_digits=12,
@@ -167,33 +121,23 @@ class ConfirmDirectRenewalPaymentSerializer(
 
 class InitializeRenewalPaymentView(APIView):
     # Requires the tenant to be authenticated.
-    permission_classes = [
-        permissions.IsAuthenticated,
-    ]
+    permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
-        # Validates the renewal and selected payment method.
         serializer = InitializeRenewalPaymentSerializer(
             data=request.data,
-            context={
-                "request": request,
-            },
+            context={"request": request},
         )
+        serializer.is_valid(raise_exception=True)
 
-        serializer.is_valid(
-            raise_exception=True
-        )
+        renewal = serializer.validated_data["_resolved_renewal"]
+        requested_method = serializer.validated_data["payment_method"]
 
-        renewal = serializer.validated_data[
-            "_resolved_renewal"
-        ]
-
-        payment_method = serializer.validated_data[
-            "payment_method"
-        ]
+        payment = None
+        created_new_payment = False
 
         with transaction.atomic():
-            # Locks the renewal against duplicate payment creation.
+            # Locks the renewal against simultaneous payment attempts.
             locked_renewal = (
                 LeaseRenewalRequest.objects
                 .select_for_update()
@@ -204,100 +148,176 @@ class InitializeRenewalPaymentView(APIView):
                     "property",
                     "room",
                 )
-                .get(
-                    id=renewal.id,
-                    tenant=request.user,
-                )
+                .get(id=renewal.id, tenant=request.user)
             )
 
-            # Rechecks status after acquiring the database lock.
             if locked_renewal.status != "payment_pending":
                 return Response(
-                    {
-                        "detail": (
-                            "This renewal request is no "
-                            "longer awaiting payment."
-                        )
-                    },
+                    {"detail": "This renewal request is no longer awaiting payment."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Rechecks duplicate payment creation while locked.
-            if Payment.objects.filter(
-                renewal_request=locked_renewal,
-            ).exists():
+            if locked_renewal.current_lease.status != "active":
                 return Response(
-                    {
-                        "detail": (
-                            "A payment already exists for "
-                            "this renewal request."
-                        )
-                    },
+                    {"detail": "The current lease is no longer active."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Creates a server-controlled renewal reference.
-            reference = (
-                f"UH-REN-{locked_renewal.id}-"
-                f"{uuid.uuid4().hex[:12].upper()}"
+            existing_payment = (
+                Payment.objects
+                .select_for_update()
+                .filter(renewal_request=locked_renewal)
+                .order_by("-created_at")
+                .first()
             )
 
-            # Creates the payment from trusted renewal values.
-            payment = Payment.objects.create(
-                booking=None,
-                renewal_request=locked_renewal,
-                tenant=locked_renewal.tenant,
-                landlord=locked_renewal.landlord,
-                property=locked_renewal.property,
-                room=locked_renewal.room,
-                payment_type="renewal",
-                payment_method=payment_method,
-                duration_months=(
-                    locked_renewal
-                    .requested_duration_months
-                ),
-                amount=locked_renewal.expected_amount,
-                expected_amount=(
-                    locked_renewal.expected_amount
-                ),
-                reference=reference,
-                status="pending",
-                settlement_status=(
+            if existing_payment:
+                # Successful payments always block another attempt.
+                if existing_payment.status == "success":
+                    return Response(
+                        {
+                            "detail": "This renewal payment has already been completed.",
+                            "payment": PaymentSerializer(existing_payment).data,
+                            "renewal_status": locked_renewal.status,
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                # A pending direct payment must wait for owner confirmation.
+                if (
+                    existing_payment.status == "pending"
+                    and existing_payment.payment_method == "direct"
+                ):
+                    return Response(
+                        {
+                            "detail": (
+                                "A direct renewal payment request already exists "
+                                "and is awaiting owner confirmation."
+                            ),
+                            "payment": PaymentSerializer(existing_payment).data,
+                            "renewal_status": locked_renewal.status,
+                            "authorization_url": None,
+                        },
+                        status=status.HTTP_200_OK,
+                    )
+
+                # Reuses an existing unfinished Paystack checkout.
+                if (
+                    existing_payment.status == "pending"
+                    and existing_payment.payment_method == "paystack"
+                    and existing_payment.paystack_authorization_url
+                ):
+                    return Response(
+                        {
+                            "detail": (
+                                "An unfinished Paystack payment already exists. "
+                                "Continue the existing payment."
+                            ),
+                            "payment": PaymentSerializer(existing_payment).data,
+                            "renewal_status": locked_renewal.status,
+                            "authorization_url": (
+                                existing_payment.paystack_authorization_url
+                            ),
+                            "access_code": existing_payment.paystack_access_code,
+                            "reference": existing_payment.reference,
+                        },
+                        status=status.HTTP_200_OK,
+                    )
+
+                # Reuses failed or incomplete attempts instead of creating another row.
+                payment = existing_payment
+                payment.payment_method = requested_method
+                payment.reference = (
+                    f"UH-REN-{locked_renewal.id}-"
+                    f"{uuid.uuid4().hex[:12].upper()}"
+                )
+                payment.status = "pending"
+                payment.amount = locked_renewal.expected_amount
+                payment.expected_amount = locked_renewal.expected_amount
+                payment.duration_months = (
+                    locked_renewal.requested_duration_months
+                )
+                payment.paystack_access_code = ""
+                payment.paystack_authorization_url = ""
+                payment.paystack_response = None
+                payment.verified_at = None
+                payment.platform_commission = Decimal("0.00")
+                payment.paystack_fee = Decimal("0.00")
+                payment.owner_net_amount = Decimal("0.00")
+                payment.settlement_status = (
                     "pending"
-                    if payment_method == "paystack"
+                    if requested_method == "paystack"
                     else "not_applicable"
-                ),
-            )
+                )
+                payment.save(
+                    update_fields=[
+                        "payment_method",
+                        "reference",
+                        "status",
+                        "amount",
+                        "expected_amount",
+                        "duration_months",
+                        "paystack_access_code",
+                        "paystack_authorization_url",
+                        "paystack_response",
+                        "verified_at",
+                        "platform_commission",
+                        "paystack_fee",
+                        "owner_net_amount",
+                        "settlement_status",
+                        "updated_at",
+                    ]
+                )
+            else:
+                payment = Payment.objects.create(
+                    booking=None,
+                    renewal_request=locked_renewal,
+                    tenant=locked_renewal.tenant,
+                    landlord=locked_renewal.landlord,
+                    property=locked_renewal.property,
+                    room=locked_renewal.room,
+                    payment_type="renewal",
+                    payment_method=requested_method,
+                    duration_months=(
+                        locked_renewal.requested_duration_months
+                    ),
+                    amount=locked_renewal.expected_amount,
+                    expected_amount=locked_renewal.expected_amount,
+                    reference=(
+                        f"UH-REN-{locked_renewal.id}-"
+                        f"{uuid.uuid4().hex[:12].upper()}"
+                    ),
+                    status="pending",
+                    settlement_status=(
+                        "pending"
+                        if requested_method == "paystack"
+                        else "not_applicable"
+                    ),
+                )
+                created_new_payment = True
 
-        # Returns a pending direct payment for owner confirmation.
-        if payment_method == "direct":
+        # Returns direct payment requests for owner confirmation.
+        if requested_method == "direct":
             try:
-                # Notifies the landlord of the direct request.
                 tenant_name = (
                     payment.tenant.get_full_name().strip()
                     or payment.tenant.username
                     or payment.tenant.email
                 )
-
                 send_notification(
                     user=payment.landlord,
                     message=(
-                        f"{tenant_name} selected direct payment "
-                        f"for the {payment.duration_months}-month "
-                        f"renewal of "
+                        f"{tenant_name} selected direct payment for the "
+                        f"{payment.duration_months}-month renewal of "
                         f"{payment.property.property_name}. "
                         f"Expected amount: GHS {payment.amount}."
                     ),
-                    notification_type=(
-                        "renewal_direct_payment_requested"
-                    ),
+                    notification_type="renewal_direct_payment_requested",
                     property_id=payment.property_id,
                 )
             except Exception as exc:
-                # Prevents notification failure from reversing payment.
                 print(
-                    "RENEWAL DIRECT PAYMENT "
-                    "NOTIFICATION FAILED:",
+                    "RENEWAL DIRECT PAYMENT NOTIFICATION FAILED:",
                     repr(exc),
                     flush=True,
                 )
@@ -305,57 +325,61 @@ class InitializeRenewalPaymentView(APIView):
             return Response(
                 {
                     "detail": (
-                        "Direct renewal payment request "
-                        "created successfully. Pay the owner "
-                        "and wait for confirmation."
+                        "Direct renewal payment request created successfully. "
+                        "Pay the owner and wait for confirmation."
                     ),
-                    "payment": PaymentSerializer(
-                        payment
-                    ).data,
-                    "renewal_status": (
-                        locked_renewal.status
-                    ),
+                    "payment": PaymentSerializer(payment).data,
+                    "renewal_status": locked_renewal.status,
                     "authorization_url": None,
                 },
-                status=status.HTTP_201_CREATED,
+                status=(
+                    status.HTTP_201_CREATED
+                    if created_new_payment
+                    else status.HTTP_200_OK
+                ),
             )
 
         # Loads the owner's verified Paystack account.
         try:
-            owner_account = (
-                OwnerPaymentAccount.objects.get(
-                    owner=payment.landlord,
-                    is_active=True,
-                    is_verified=True,
-                )
+            owner_account = OwnerPaymentAccount.objects.get(
+                owner=payment.landlord,
+                is_active=True,
+                is_verified=True,
             )
         except OwnerPaymentAccount.DoesNotExist:
-            payment.delete()
+            if created_new_payment:
+                payment.delete()
+            else:
+                payment.status = "failed"
+                payment.save(update_fields=["status", "updated_at"])
 
             return Response(
                 {
                     "detail": (
-                        "The property owner does not have "
-                        "an active verified payment account."
+                        "The property owner does not have an active "
+                        "verified payment account."
                     )
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
         if not owner_account.paystack_subaccount_code:
-            payment.delete()
+            if created_new_payment:
+                payment.delete()
+            else:
+                payment.status = "failed"
+                payment.save(update_fields=["status", "updated_at"])
 
             return Response(
                 {
                     "detail": (
-                        "The property owner's Paystack "
-                        "subaccount is not configured."
+                        "The property owner's Paystack subaccount "
+                        "is not configured."
                     )
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Builds the frontend renewal verification callback.
         frontend_url = getattr(
             settings,
             "FRONTEND_URL",
@@ -368,43 +392,31 @@ class InitializeRenewalPaymentView(APIView):
         )
 
         try:
-            # Initializes the renewal payment with Paystack.
             paystack_data = initialize_paystack_payment(
                 email=payment.tenant.email,
                 amount=payment.amount,
                 reference=payment.reference,
                 callback_url=callback_url,
-                subaccount_code=(
-                    owner_account
-                    .paystack_subaccount_code
-                ),
+                subaccount_code=owner_account.paystack_subaccount_code,
                 bearer="subaccount",
             )
         except PaystackError as exc:
-            payment.delete()
+            payment.status = "failed"
+            payment.save(update_fields=["status", "updated_at"])
 
             return Response(
-                {
-                    "detail": str(exc),
-                },
+                {"detail": str(exc)},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
-        # Stores Paystack initialization details.
-        payment.paystack_access_code = (
-            paystack_data.get(
-                "access_code",
-                "",
-            )
+        payment.paystack_access_code = paystack_data.get(
+            "access_code",
+            "",
         )
-
-        payment.paystack_authorization_url = (
-            paystack_data.get(
-                "authorization_url",
-                "",
-            )
+        payment.paystack_authorization_url = paystack_data.get(
+            "authorization_url",
+            "",
         )
-
         payment.save(
             update_fields=[
                 "paystack_access_code",
@@ -415,25 +427,18 @@ class InitializeRenewalPaymentView(APIView):
 
         return Response(
             {
-                "detail": (
-                    "Renewal payment initialized "
-                    "successfully."
-                ),
-                "payment": PaymentSerializer(
-                    payment
-                ).data,
-                "renewal_status": (
-                    locked_renewal.status
-                ),
-                "authorization_url": (
-                    payment.paystack_authorization_url
-                ),
-                "access_code": (
-                    payment.paystack_access_code
-                ),
+                "detail": "Renewal payment initialized successfully.",
+                "payment": PaymentSerializer(payment).data,
+                "renewal_status": locked_renewal.status,
+                "authorization_url": payment.paystack_authorization_url,
+                "access_code": payment.paystack_access_code,
                 "reference": payment.reference,
             },
-            status=status.HTTP_201_CREATED,
+            status=(
+                status.HTTP_201_CREATED
+                if created_new_payment
+                else status.HTTP_200_OK
+            ),
         )
 
 
