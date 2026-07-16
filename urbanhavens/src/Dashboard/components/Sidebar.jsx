@@ -90,9 +90,15 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               <NavItem to="/dashboard/owner/OwnerLeases/OwnerLeases" icon={<FaUsers />} label="Tenants" onClick={handleClick} />
               <NavItem to="/dashboard/owner/contracts" icon={<FaFileContract />} label="Contracts" onClick={handleClick} />
               <NavItem to="/dashboard/owner/documents" icon={<FaFileAlt />} label="Documents" onClick={handleClick} />
+             <NavItem to="/dashboard/owner/OnsitePayments/OnsitePayments" icon={<FaFileAlt />} label="Onsite Payments" onClick={handleClick} />
+              <NavItem to="/dashboard/owner/AwaitingLeasePage/AwaitingLeasePage" icon={<FaFileAlt />} label="Awaiting Leases" onClick={handleClick} />
+              <NavItem to="/dashboard/owner/OwnerTransactions/OwnerTransactions" icon={<FaFileAlt />} label="Transactions" onClick={handleClick} />
+              <NavItem to="/dashboard/owner/OwnerRenewal/OwnerRenewal" icon={<FaFileAlt />} label="Owner Renewal" onClick={handleClick} />
+
 
               <SectionLabel label="Account" />
               <NavItem to="/dashboard/owner/help" icon={<FaLifeRing />} label="Help & Support" onClick={handleClick} />
+              <NavItem to="/dashboard/owner/payment" icon={<FaCreditCard />} label="Payment" onClick={handleClick} />
               <NavItem to="/dashboard/owner/settings" icon={<FaCog />} label="Settings" onClick={handleClick} />
               <NavItem to="/logout" icon={<FaSignOutAlt />} label="Log Out" onClick={handleClick} />
             </>
@@ -112,7 +118,7 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               <NavItem to="/dashboard/tenant/payments" icon={<FaCreditCard />} label="Payments" onClick={handleClick} />
               <NavItem to="/dashboard/tenant/Report/Report" icon={<FaCreditCard />} label="Report" onClick={handleClick} />
               <NavItem to="/dashboard/tenant/TenantNotification/TenantNotification" icon={<FaCreditCard />} label="TenantNotification" onClick={handleClick} />
-
+              <NavItem to="/dashboard/tenant/Transactions/transactions" icon={<FaFileAlt />} label="Transactions" onClick={handleClick} />
               <SectionLabel label="Account" />
               <NavItem to="/dashboard/tenant/help" icon={<FaLifeRing />} label="Help Center" onClick={handleClick} />
               <NavItem to="/dashboard/tenant/settings" icon={<FaCog />} label="Account Settings" onClick={handleClick} />

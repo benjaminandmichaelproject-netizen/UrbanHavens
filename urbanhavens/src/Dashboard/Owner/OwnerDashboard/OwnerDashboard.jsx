@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../UploadDetails/api/api";
 import { motion } from "framer-motion";
 import AdminInviteModal from "../../../components/Modals/AdminInviteModal";
+
+import PaymentMethodModal from "../PaymentMethodModal/PaymentMethodModal";
 import {
   FaHome,
   FaCalendarCheck,
@@ -34,6 +36,7 @@ const stagger = {
 };
 
 const OwnerDashboard = () => {
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const navigate = useNavigate();
 
   const [stats, setStats] = useState(null);
@@ -389,7 +392,12 @@ const OwnerDashboard = () => {
           >
             <FaPlus /> Add Property
           </button>
-
+          <button
+  className="od-banner-btn"
+  onClick={() => setShowPaymentModal(true)}
+>
+  <FaPlus /> Add Payment Method
+</button>
            <button
             className="od-banner-btn od-banner-btn--alt"
             onClick={() => setInviteModalOpen(true)}
@@ -561,6 +569,10 @@ const OwnerDashboard = () => {
         admins={admins}
         loading={inviteLoading}
       />
+      <PaymentMethodModal
+  isOpen={showPaymentModal}
+  onClose={() => setShowPaymentModal(false)}
+/>
     </div>
   );
 };

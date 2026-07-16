@@ -660,3 +660,68 @@
   .financial-cards-row   { flex-direction: column; }
   .info-section          { padding: 20px; }
 }
+
+
+
+/* Aligns tenant lease navigation and document actions. */
+.lease-top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+/* Opens the protected printable tenancy agreement. */
+.download-lease-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border: 1px solid #17834f;
+  border-radius: 10px;
+  background: #17834f;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.download-lease-button:hover {
+  border-color: #126a40;
+  background: #126a40;
+  transform: translateY(-1px);
+}
+
+.download-lease-button:focus-visible {
+  outline: 3px solid rgba(23, 131, 79, 0.22);
+  outline-offset: 2px;
+}
+
+/* Displays a safe fallback when no agreement exists. */
+.agreement-unavailable {
+  color: #7a8b82;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .lease-top-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .download-lease-button,
+  .back-to-dashboard {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .agreement-unavailable {
+    text-align: center;
+  }
+}

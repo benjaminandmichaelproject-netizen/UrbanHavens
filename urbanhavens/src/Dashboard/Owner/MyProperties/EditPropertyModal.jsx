@@ -23,7 +23,7 @@ const API_MEDIA_BASE  = "http://127.0.0.1:8000";
 const MAX_IMAGES      = 6;
 const NUMBER_OPTIONS  = Array.from({ length: 10 }, (_, i) => i + 1);
 const ROOM_OPTIONS    = Array.from({ length: 50 }, (_, i) => i + 1);
-
+const RENTAL_DURATION_OPTIONS = [6, 12, 18, 24];
 const CATEGORY_LABELS = {
   hostel:     "Hostel",
   house_rent: "House for Rent",
@@ -64,7 +64,11 @@ const EditPropertyModal = ({ property, onClose, onUpdated }) => {
     bathrooms:     property.bathrooms     ?? "",
     price:         property.price         ?? "",
     description:   property.description   ?? "",
-    amenities:     Array.isArray(property.amenities) ? property.amenities : [],
+   amenities: Array.isArray(property.amenities) ? property.amenities : [],
+
+allowed_rental_months: Array.isArray(property.allowed_rental_months)
+  ? property.allowed_rental_months
+  : [],
   });
   const [detailErrors, setDetailErrors] = useState({});
 
@@ -115,6 +119,30 @@ const EditPropertyModal = ({ property, onClose, onUpdated }) => {
   const removeAmenity = (i) =>
     setForm((p) => ({ ...p, amenities: p.amenities.filter((_, idx) => idx !== i) }));
 
+const toggleRentalDuration = (months) => {
+  setForm((prev) => {
+    const current = Array.isArray(prev.allowed_rental_months)
+      ? prev.allowed_rental_months
+      : [];
+
+    const updated = current.includes(months)
+      ? current.filter((m) => m !== months)
+      : [...current, months];
+
+    return {
+      ...prev,
+      allowed_rental_months: updated,
+    };
+  });
+
+  setDetailErrors((prev) => ({
+    ...prev,
+    allowed_rental_months: "",
+  }));
+};
+
+
+
   const validateDetails = () => {
     const e = {};
     if (!form.property_name?.trim()) e.property_name = "Required";
@@ -125,8 +153,17 @@ const EditPropertyModal = ({ property, onClose, onUpdated }) => {
     if (!isHostel && (!form.bathrooms || form.bathrooms < 1)) e.bathrooms = "Required";
     if (!form.price || form.price <= 0) e.price = "Required";
     if (!form.description?.trim()) e.description = "Required";
-    setDetailErrors(e);
-    return !Object.keys(e).length;
+   if (
+  !Array.isArray(form.allowed_rental_months) ||
+  form.allowed_rental_months.length === 0
+) {
+  e.allowed_rental_months =
+    "Select at least one rental duration.";
+}
+
+setDetailErrors(e);
+return !Object.keys(e).length;
+   
   };
 
   /* ── location helpers ───────────────────────────── */
@@ -198,11 +235,17 @@ const EditPropertyModal = ({ property, onClose, onUpdated }) => {
     const combined = { ...form, ...loc };
     Object.entries(combined).forEach(([key, val]) => {
       if (val !== undefined && val !== null && val !== "") {
-        if (key === "amenities") {
-          payload.append("amenities", JSON.stringify(Array.isArray(val) ? val : []));
-        } else {
-          payload.append(key, val);
-        }
+       if (
+  key === "amenities" ||
+  key === "allowed_rental_months"
+) {
+  payload.append(
+    key,
+    JSON.stringify(Array.isArray(val) ? val : [])
+  );
+} else {
+  payload.append(key, val);
+}
       }
     });
 
@@ -554,7 +597,34 @@ const EditPropertyModal = ({ property, onClose, onUpdated }) => {
                   </div>
                 </motion.div>
               )}
+<div className="form-group full-width">
+  <label>Available Rental Durations</label>
 
+  <div className="rental-duration-grid">
+    {RENTAL_DURATION_OPTIONS.map((months) => (
+      <label
+        key={months}
+        className="rental-duration-option"
+      >
+        <input
+          type="checkbox"
+          checked={
+  (form.allowed_rental_months || []).includes(months)
+}
+          onChange={() => toggleRentalDuration(months)}
+        />
+
+        {months} Months
+      </label>
+    ))}
+  </div>
+
+  {detailErrors.allowed_rental_months &&  (
+    <span className="error-text">
+      {detailErrors.allowed_rental_months}
+    </span>
+  )}
+</div>
               {/* ────────── IMAGES TAB ────────── */}
               {tab === "images" && (
                 <motion.div

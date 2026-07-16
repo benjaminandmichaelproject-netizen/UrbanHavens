@@ -357,3 +357,55 @@ def send_meeting_updated_sms(meeting) -> Optional[Dict[str, Any]]:
         booking_id=meeting.booking.id,
         meeting_id=meeting.id,
     )
+
+# ---------------------------------------------------------------------------
+# Payment lifecycle SMS helpers
+# ---------------------------------------------------------------------------
+def send_rent_payment_received_sms(payment):
+    """
+    Notifies the landlord after a successful Paystack payment.
+
+    This confirms tenant payment only. It does not claim that
+    Paystack settlement has already reached the landlord.
+    """
+    landlord = getattr(payment, "landlord", None)
+    phone = getattr(landlord, "phone", None)
+
+    # Stops safely when the landlord has no phone number.
+    if not phone:
+        print(
+            "PAYMENT SMS SKIPPED: Landlord has no phone number.",
+            flush=True,
+        )
+        return None
+
+    property_name = payment.property.property_name
+
+    # Reads the payment account safely without raising an error.
+    payment_account = getattr(
+        landlord,
+        "payment_account",
+        None,
+    )
+
+    provider_name = "registered payment"
+
+    if payment_account:
+        provider_name = (
+            payment_account.get_provider_display()
+        )
+
+    message = (
+        f"UrbanHavens: Payment of GHS {payment.amount} "
+        f"has been received for {property_name}. "
+        f"Expected settlement: GHS "
+        f"{payment.owner_net_amount}. "
+        f"Paystack is processing the transfer to your "
+        f"{provider_name} account."
+    )
+
+    return send_sms(
+        phone=phone,
+        message=message,
+        booking_id=payment.booking_id,
+    )

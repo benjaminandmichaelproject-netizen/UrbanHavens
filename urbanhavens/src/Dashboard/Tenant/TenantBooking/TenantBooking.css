@@ -687,3 +687,282 @@
 
   .tb-modal-grid { grid-template-columns: 1fr; }
 }
+
+
+.tb-action-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.tb-rent-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  background: #1a7a40;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.tb-rent-btn:hover {
+  background: #22a055;
+  transform: translateY(-1px);
+}
+
+.tb-rent-btn-modal {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.tb-rental-ready p {
+  color: #4a7060;
+  line-height: 1.6;
+  margin-bottom: 0;
+}
+
+.tb-rental-modal {
+  max-width: 620px;
+}
+
+
+
+/* ============================================================
+   RENTAL PAYMENT MODAL
+   ============================================================ */
+
+.tb-rental-modal {
+  width: min(680px, calc(100vw - 32px));
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 22px;
+}
+
+.tb-rental-modal .tb-modal-body {
+  padding: 22px 26px 28px;
+}
+
+.tb-rental-modal .tb-modal-section {
+  padding: 20px;
+  margin-bottom: 16px;
+  border: 1px solid #d9e7df;
+  border-radius: 14px;
+  background: #f5f9f7;
+}
+
+.tb-rental-modal .tb-modal-section h4 {
+  margin: 0 0 18px;
+  color: #3f705d;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tb-rental-modal .tb-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 28px;
+}
+
+.tb-rental-modal .tb-modal-grid > div {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.tb-rental-modal .tb-modal-grid span {
+  color: #557a6b;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.tb-rental-modal .tb-modal-grid strong {
+  color: #102d20;
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.tb-rental-select {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 38px 10px 12px;
+  border: 1px solid #cddbd4;
+  border-radius: 9px;
+  background: #ffffff;
+  color: #102d20;
+  font-family: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.tb-rental-select:focus {
+  border-color: #1a7a40;
+  box-shadow: 0 0 0 3px rgba(26, 122, 64, 0.12);
+}
+
+/* Payment options */
+
+.tb-payment-options {
+  display: grid;
+  gap: 12px;
+}
+
+.tb-payment-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+  width: 100%;
+  padding: 16px;
+  border: 1.5px solid #d7e3dc;
+  border-radius: 12px;
+  background: #ffffff;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.tb-payment-option:hover {
+  border-color: #1a7a40;
+}
+
+.tb-payment-option.selected {
+  border-color: #1a7a40;
+  background: #edf7f1;
+  box-shadow: 0 0 0 3px rgba(26, 122, 64, 0.08);
+}
+
+/* Important: override global input styling */
+
+.tb-payment-option input[type="radio"] {
+  appearance: auto !important;
+  -webkit-appearance: radio !important;
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  padding: 0 !important;
+  margin: 2px 0 0 !important;
+  border: initial !important;
+  border-radius: 50% !important;
+  box-shadow: none !important;
+  accent-color: #1a7a40;
+  cursor: pointer;
+}
+
+.tb-payment-option > span {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+
+.tb-payment-option strong {
+  color: #102d20;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.tb-payment-option small {
+  color: #607b6e;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Rental summary */
+
+.tb-rental-summary {
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  border: 1px solid #d9e7df;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.tb-rental-summary > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 9px 0;
+  color: #496b5d;
+  font-size: 14px;
+}
+
+.tb-rental-summary > div + div {
+  border-top: 1px solid #edf2ef;
+}
+
+.tb-rental-summary strong {
+  color: #102d20;
+  font-weight: 700;
+}
+
+.tb-rental-summary-total {
+  margin-top: 4px;
+  padding-top: 14px !important;
+}
+
+.tb-rental-summary-total span,
+.tb-rental-summary-total strong {
+  color: #1a7a40;
+  font-size: 17px;
+  font-weight: 800;
+}
+
+/* Continue button */
+
+.tb-rental-modal .tb-rent-btn-modal {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 4px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.tb-rental-modal .tb-rent-btn-modal:disabled {
+  background: #aabdb3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Error */
+
+.tb-rental-modal .tb-error {
+  margin: 0 0 14px;
+  padding: 11px 13px;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 13px;
+}
+
+/* Responsive */
+
+@media (max-width: 640px) {
+  .tb-rental-modal .tb-modal-body {
+    padding: 18px;
+  }
+
+  .tb-rental-modal .tb-modal-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .tb-payment-option {
+    padding: 14px;
+  }
+
+  .tb-rental-summary > div {
+    align-items: flex-start;
+  }
+}

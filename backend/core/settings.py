@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     "reports",
     "support",
     "system_logs",
+     "payments",
 ]
 
 MIDDLEWARE = [
@@ -226,6 +227,12 @@ AUTHENTICATION_BACKENDS = [
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 
+PAYSTACK_PUBLIC_KEY = os.getenv("PAYSTACK_PUBLIC_KEY", "")
+PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "http://localhost:5173"
+)
 # Security settings
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 X_FRAME_OPTIONS = "DENY"

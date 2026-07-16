@@ -529,5 +529,87 @@
 
   .ol-search { min-width: unset; }
 
-  .ol-filters { justify-content: flex-start; }
+  .ol-/* Displays the agreement reference and document action. */
+.ol-agreement-stack {
+  display: flex;
+  min-width: 155px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+/* Displays the official agreement reference. */
+.ol-agreement-number {
+  color: #718078;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+
+/* Opens the official printable tenancy agreement. */
+.ol-agreement-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 11px;
+  border: 1px solid #17834f;
+  border-radius: 8px;
+  background: #17834f;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.ol-agreement-btn:hover {
+  border-color: #126a40;
+  background: #126a40;
+}
+
+.ol-agreement-btn:focus-visible {
+  outline: 3px solid rgba(23, 131, 79, 0.22);
+  outline-offset: 2px;
+}filters { justify-content: flex-start; }
+}
+
+/* Aligns the renewal shortcut and lease summary counts. */
+.ol-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+/* Opens the dedicated renewal-request workflow. */
+.ol-renewals-page-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 15px;
+  border: 1px solid #176a43;
+  border-radius: 9px;
+  background: #176a43;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ol-renewals-page-btn:hover {
+  background: #125738;
+}
+
+@media (max-width: 900px) {
+  .ol-header-actions {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ol-renewals-page-btn {
+    width: 100%;
+  }
 }

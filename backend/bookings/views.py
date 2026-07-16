@@ -27,9 +27,7 @@ def build_request_hash(data: dict) -> str:
     Produce a stable SHA-256 fingerprint of the incoming request body.
 
     Keys are sorted before serialisation so that two payloads with the same
-    data but different key ordering produce the same hash. This hash is
-    stored alongside the idempotency key so we can detect when a client
-    reuses a key with a different payload.
+    data but different key ordering produce the same hash.
     """
     normalized = json.dumps(data, sort_keys=True, default=str)
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
@@ -42,7 +40,7 @@ def build_request_hash(data: dict) -> str:
 class BookingViewSet(viewsets.ModelViewSet):
     """
     Full CRUD viewset for Booking, plus custom actions for owner/tenant
-    list views, rejection, confirmation, and archiving (clearing) bookings.
+    list views, rejection, confirmation, and archiving bookings.
     """
 
     serializer_class = BookingSerializer
@@ -66,13 +64,22 @@ class BookingViewSet(viewsets.ModelViewSet):
             return queryset.order_by("-id")
 
         if self.action == "my_owner_bookings":
-            return queryset.filter(owner=user, archived_by_owner=False).order_by("-id")
+            return queryset.filter(
+                owner=user,
+                archived_by_owner=False,
+            ).order_by("-id")
 
         if self.action == "my_tenant_bookings":
-            return queryset.filter(tenant=user, archived_by_tenant=False).order_by("-id")
+            return queryset.filter(
+                tenant=user,
+                archived_by_tenant=False,
+            ).order_by("-id")
 
         if self.action == "list":
-            return queryset.filter(tenant=user, archived_by_tenant=False).order_by("-id")
+            return queryset.filter(
+                tenant=user,
+                archived_by_tenant=False,
+            ).order_by("-id")
 
         if self.action in [
             "retrieve",
@@ -84,7 +91,9 @@ class BookingViewSet(viewsets.ModelViewSet):
             "reject",
             "confirm",
         ]:
-            return queryset.filter(Q(tenant=user) | Q(owner=user)).order_by("-id")
+            return queryset.filter(
+                Q(tenant=user) | Q(owner=user)
+            ).order_by("-id")
 
         return queryset.none()
 
@@ -98,11 +107,12 @@ class BookingViewSet(viewsets.ModelViewSet):
         return context
 
     # ------------------------------------------------------------------
-    # Create — with idempotency key support
+    # Create booking with idempotency key support
     # ------------------------------------------------------------------
 
     def create(self, request, *args, **kwargs):
         idempotency_key = request.headers.get("Idempotency-Key")
+
         if not idempotency_key:
             return Response(
                 {"detail": "Idempotency-Key header is required."},
@@ -111,7 +121,6 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         request_hash = build_request_hash(request.data)
 
-        # STEP 1 — check existing key FIRST (no lock)
         existing_key = BookingIdempotencyKey.objects.filter(
             user=request.user,
             key=idempotency_key,
@@ -121,21 +130,27 @@ class BookingViewSet(viewsets.ModelViewSet):
         if existing_key:
             if existing_key.request_hash != request_hash:
                 return Response(
-                    {"detail": "This Idempotency-Key was already used with a different booking request."},
+                    {
+                        "detail": (
+                            "This Idempotency-Key was already used with "
+                            "a different booking request."
+                        )
+                    },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             if existing_key.response_body and existing_key.response_status:
-                return Response(existing_key.response_body, status=existing_key.response_status)
+                return Response(
+                    existing_key.response_body,
+                    status=existing_key.response_status,
+                )
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # STEP 2 — create booking FIRST (short transaction)
         with transaction.atomic():
             booking = serializer.save()
 
-        # STEP 3 — write idempotency key OUTSIDE main transaction
         key_record, _ = BookingIdempotencyKey.objects.get_or_create(
             key=idempotency_key,
             defaults={
@@ -145,25 +160,36 @@ class BookingViewSet(viewsets.ModelViewSet):
             },
         )
 
-        # STEP 4 — store response
         response_serializer = self.get_serializer(booking)
         response_body = response_serializer.data
 
         key_record.response_status = status.HTTP_201_CREATED
         key_record.response_body = response_body
-        key_record.save(update_fields=["response_status", "response_body"])
+        key_record.save(
+            update_fields=[
+                "response_status",
+                "response_body",
+            ]
+        )
 
-        # STEP 5 — logging LAST (never block booking)
         log_booking_event(
             message=f"Booking {booking.id} created",
             status="success",
             booking_id=booking.id,
             user=request.user,
-            detail=f"New booking for {booking.property.property_name} by {request.user.username}",
+            detail=(
+                f"New booking for {booking.property.property_name} "
+                f"by {request.user.username}"
+            ),
         )
 
         headers = self.get_success_headers(response_body)
-        return Response(response_body, status=status.HTTP_201_CREATED, headers=headers)
+
+        return Response(
+            response_body,
+            status=status.HTTP_201_CREATED,
+            headers=headers,
+        )
 
     # ------------------------------------------------------------------
     # Custom list actions
@@ -174,34 +200,57 @@ class BookingViewSet(viewsets.ModelViewSet):
         user = request.user
         role = getattr(user, "role", None)
 
-        if not (user.is_superuser or role in ["admin", "owner"]):
+        if not (
+            user.is_superuser
+            or role in ["admin", "owner"]
+        ):
             return Response(
-                {"detail": "Only property owners can view owner bookings."},
+                {
+                    "detail": (
+                        "Only property owners can view owner bookings."
+                    )
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
 
         bookings = (
-            Booking.objects.select_related("property", "tenant", "owner")
+            Booking.objects.select_related(
+                "property",
+                "tenant",
+                "owner",
+            )
             .prefetch_related("property__images")
-            .filter(owner=user, archived_by_owner=False)
+            .filter(
+                owner=user,
+                archived_by_owner=False,
+            )
             .order_by("-id")
         )
+
         serializer = self.get_serializer(bookings, many=True)
         return Response(serializer.data)
 
     @action(detail=False, methods=["get"])
     def my_tenant_bookings(self, request):
         bookings = (
-            Booking.objects.select_related("property", "tenant", "owner")
+            Booking.objects.select_related(
+                "property",
+                "tenant",
+                "owner",
+            )
             .prefetch_related("property__images")
-            .filter(tenant=request.user, archived_by_tenant=False)
+            .filter(
+                tenant=request.user,
+                archived_by_tenant=False,
+            )
             .order_by("-id")
         )
+
         serializer = self.get_serializer(bookings, many=True)
         return Response(serializer.data)
 
     # ------------------------------------------------------------------
-    # Status-change actions
+    # Confirm booking
     # ------------------------------------------------------------------
 
     @action(detail=True, methods=["post"], url_path="confirm")
@@ -210,9 +259,15 @@ class BookingViewSet(viewsets.ModelViewSet):
         user = request.user
         role = getattr(user, "role", None)
 
-        if user.id != booking.owner_id and not (user.is_superuser or role == "admin"):
+        if user.id != booking.owner_id and not (
+            user.is_superuser or role == "admin"
+        ):
             return Response(
-                {"detail": "Only the property owner can confirm this booking."},
+                {
+                    "detail": (
+                        "Only the property owner can confirm this booking."
+                    )
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -222,9 +277,20 @@ class BookingViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if booking.status in ["rejected", "converted"]:
+        if booking.status in [
+            "rejected",
+            "converted",
+            "inspection_completed",
+            "payment_pending",
+            "cancelled",
+        ]:
             return Response(
-                {"detail": "This booking cannot be confirmed in its current state."},
+                {
+                    "detail": (
+                        "This booking cannot be confirmed "
+                        "in its current state."
+                    )
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -236,7 +302,10 @@ class BookingViewSet(viewsets.ModelViewSet):
             status="success",
             booking_id=booking.id,
             user=request.user,
-            detail=f"Booking for {booking.property.property_name} confirmed by {request.user.username}",
+            detail=(
+                f"Booking for {booking.property.property_name} "
+                f"confirmed by {request.user.username}"
+            ),
         )
 
         from notifications.utils import send_notification
@@ -245,8 +314,8 @@ class BookingViewSet(viewsets.ModelViewSet):
         send_notification(
             user=booking.tenant,
             message=(
-                f"Your booking request for {booking.property.property_name} "
-                f"has been confirmed."
+                f"Your booking request for "
+                f"{booking.property.property_name} has been confirmed."
             ),
             notification_type="booking_confirmed",
             property_id=booking.property.id,
@@ -254,11 +323,13 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         try:
             send_booking_approved_sms(booking)
+
             log_sms_success(
                 message="Booking confirmation SMS sent successfully",
                 phone=booking.tenant.phone or "",
                 booking_id=booking.id,
             )
+
         except Exception as exc:
             log_sms_failure(
                 message="Booking confirmation SMS failed",
@@ -268,7 +339,15 @@ class BookingViewSet(viewsets.ModelViewSet):
             )
 
         serializer = self.get_serializer(booking)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK,
+        )
+
+    # ------------------------------------------------------------------
+    # Reject booking
+    # ------------------------------------------------------------------
 
     @action(detail=True, methods=["post"], url_path="reject")
     def reject(self, request, pk=None):
@@ -276,9 +355,15 @@ class BookingViewSet(viewsets.ModelViewSet):
         user = request.user
         role = getattr(user, "role", None)
 
-        if user.id != booking.owner_id and not (user.is_superuser or role == "admin"):
+        if user.id != booking.owner_id and not (
+            user.is_superuser or role == "admin"
+        ):
             return Response(
-                {"detail": "Only the property owner can reject this booking."},
+                {
+                    "detail": (
+                        "Only the property owner can reject this booking."
+                    )
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -288,9 +373,18 @@ class BookingViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if booking.status == "converted":
+        if booking.status in [
+            "converted",
+            "inspection_completed",
+            "payment_pending",
+        ]:
             return Response(
-                {"detail": "Converted bookings cannot be rejected."},
+                {
+                    "detail": (
+                        "This booking cannot be rejected "
+                        "in its current state."
+                    )
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -302,7 +396,10 @@ class BookingViewSet(viewsets.ModelViewSet):
             status="failure",
             booking_id=booking.id,
             user=request.user,
-            detail=f"Booking for {booking.property.property_name} rejected by {request.user.username}",
+            detail=(
+                f"Booking for {booking.property.property_name} "
+                f"rejected by {request.user.username}"
+            ),
         )
 
         from notifications.utils import send_notification
@@ -311,8 +408,8 @@ class BookingViewSet(viewsets.ModelViewSet):
         send_notification(
             user=booking.tenant,
             message=(
-                f"Your booking request for {booking.property.property_name} "
-                f"has been rejected."
+                f"Your booking request for "
+                f"{booking.property.property_name} has been rejected."
             ),
             notification_type="booking_rejected",
             property_id=booking.property.id,
@@ -320,11 +417,13 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         try:
             send_booking_rejected_sms(booking)
+
             log_sms_success(
                 message="Booking rejection SMS sent successfully",
                 phone=booking.tenant.phone or "",
                 booking_id=booking.id,
             )
+
         except Exception as exc:
             log_sms_failure(
                 message="Booking rejection SMS failed",
@@ -334,10 +433,14 @@ class BookingViewSet(viewsets.ModelViewSet):
             )
 
         serializer = self.get_serializer(booking)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK,
+        )
 
     # ------------------------------------------------------------------
-    # Archive (clear) actions
+    # Archive booking for owner
     # ------------------------------------------------------------------
 
     @action(detail=True, methods=["post"], url_path="clear")
@@ -346,15 +449,25 @@ class BookingViewSet(viewsets.ModelViewSet):
         user = request.user
         role = getattr(user, "role", None)
 
-        if user.id != booking.owner_id and not (user.is_superuser or role == "admin"):
+        if user.id != booking.owner_id and not (
+            user.is_superuser or role == "admin"
+        ):
             return Response(
-                {"detail": "Only the property owner can clear this booking."},
+                {
+                    "detail": (
+                        "Only the property owner can clear this booking."
+                    )
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
 
         if booking.status != "converted":
             return Response(
-                {"detail": "Only converted bookings can be cleared."},
+                {
+                    "detail": (
+                        "Only converted bookings can be cleared."
+                    )
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -366,27 +479,52 @@ class BookingViewSet(viewsets.ModelViewSet):
             status="info",
             booking_id=booking.id,
             user=request.user,
-            detail=f"Converted booking for {booking.property.property_name} cleared from owner active list",
+            detail=(
+                f"Converted booking for "
+                f"{booking.property.property_name} "
+                f"cleared from owner active list"
+            ),
         )
 
         return Response(
-            {"detail": "Booking cleared from active owner view."},
+            {
+                "detail": (
+                    "Booking cleared from active owner view."
+                )
+            },
             status=status.HTTP_200_OK,
         )
 
-    @action(detail=True, methods=["post"], url_path="clear-for-tenant")
+    # ------------------------------------------------------------------
+    # Archive booking for tenant
+    # ------------------------------------------------------------------
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="clear-for-tenant",
+    )
     def clear_for_tenant(self, request, pk=None):
         booking = self.get_object()
 
         if request.user.id != booking.tenant_id:
             return Response(
-                {"detail": "Only the tenant can clear this booking from their list."},
+                {
+                    "detail": (
+                        "Only the tenant can clear this booking "
+                        "from their list."
+                    )
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
 
         if booking.status != "converted":
             return Response(
-                {"detail": "Only converted bookings can be cleared."},
+                {
+                    "detail": (
+                        "Only converted bookings can be cleared."
+                    )
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -398,11 +536,19 @@ class BookingViewSet(viewsets.ModelViewSet):
             status="info",
             booking_id=booking.id,
             user=request.user,
-            detail=f"Converted booking for {booking.property.property_name} cleared from tenant active list",
+            detail=(
+                f"Converted booking for "
+                f"{booking.property.property_name} "
+                f"cleared from tenant active list"
+            ),
         )
 
         return Response(
-            {"detail": "Booking cleared from active tenant view."},
+            {
+                "detail": (
+                    "Booking cleared from active tenant view."
+                )
+            },
             status=status.HTTP_200_OK,
         )
 
@@ -414,7 +560,7 @@ class BookingViewSet(viewsets.ModelViewSet):
 class InspectionMeetingViewSet(viewsets.ModelViewSet):
     """
     CRUD viewset for InspectionMeeting, plus custom actions for
-    cancelling and completing a meeting.
+    cancelling and completing meetings.
     """
 
     serializer_class = InspectionMeetingSerializer
@@ -438,9 +584,13 @@ class InspectionMeetingViewSet(viewsets.ModelViewSet):
             return queryset.order_by("-id")
 
         if role == "owner":
-            return queryset.filter(booking__owner=user).order_by("-id")
+            return queryset.filter(
+                booking__owner=user
+            ).order_by("-id")
 
-        return queryset.filter(booking__tenant=user).order_by("-id")
+        return queryset.filter(
+            booking__tenant=user
+        ).order_by("-id")
 
     # ------------------------------------------------------------------
     # Serializer context
@@ -460,11 +610,14 @@ class InspectionMeetingViewSet(viewsets.ModelViewSet):
             meeting_id=meeting.id,
             booking_id=meeting.booking.id,
             user=self.request.user,
-            detail=f"{meeting.date} {meeting.time} at {meeting.location}",
+            detail=(
+                f"{meeting.date} {meeting.time} "
+                f"at {meeting.location}"
+            ),
         )
 
     # ------------------------------------------------------------------
-    # Status-change actions
+    # Cancel meeting
     # ------------------------------------------------------------------
 
     @action(detail=True, methods=["post"], url_path="cancel")
@@ -473,9 +626,15 @@ class InspectionMeetingViewSet(viewsets.ModelViewSet):
         user = request.user
         role = getattr(user, "role", None)
 
-        if user.id != meeting.booking.owner_id and not (user.is_superuser or role == "admin"):
+        if user.id != meeting.booking.owner_id and not (
+            user.is_superuser or role == "admin"
+        ):
             return Response(
-                {"detail": "Only the property owner can cancel this meeting."},
+                {
+                    "detail": (
+                        "Only the property owner can cancel this meeting."
+                    )
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -485,8 +644,18 @@ class InspectionMeetingViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        if meeting.status == "completed":
+            return Response(
+                {
+                    "detail": (
+                        "A completed meeting cannot be cancelled."
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         meeting.status = "cancelled"
-        meeting.save()
+        meeting.save(update_fields=["status"])
 
         log_meeting_event(
             message=f"Meeting {meeting.id} cancelled",
@@ -494,7 +663,11 @@ class InspectionMeetingViewSet(viewsets.ModelViewSet):
             meeting_id=meeting.id,
             booking_id=meeting.booking.id,
             user=request.user,
-            detail=f"Meeting for {meeting.booking.property.property_name} cancelled by {request.user.username}",
+            detail=(
+                f"Meeting for "
+                f"{meeting.booking.property.property_name} "
+                f"cancelled by {request.user.username}"
+            ),
         )
 
         from notifications.utils import send_notification
@@ -503,14 +676,23 @@ class InspectionMeetingViewSet(viewsets.ModelViewSet):
             user=meeting.booking.tenant,
             message=(
                 f"Your inspection meeting for "
-                f"{meeting.booking.property.property_name} has been cancelled."
+                f"{meeting.booking.property.property_name} "
+                f"has been cancelled."
             ),
             notification_type="meeting_cancelled",
             property_id=meeting.booking.property.id,
         )
 
         serializer = self.get_serializer(meeting)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK,
+        )
+
+    # ------------------------------------------------------------------
+    # Complete inspection meeting
+    # ------------------------------------------------------------------
 
     @action(detail=True, methods=["post"], url_path="complete")
     def complete(self, request, pk=None):
@@ -518,29 +700,68 @@ class InspectionMeetingViewSet(viewsets.ModelViewSet):
         user = request.user
         role = getattr(user, "role", None)
 
-        if user.id != meeting.booking.owner_id and not (user.is_superuser or role == "admin"):
+        if user.id != meeting.booking.owner_id and not (
+            user.is_superuser or role == "admin"
+        ):
             return Response(
-                {"detail": "Only the property owner can mark this meeting as completed."},
+                {
+                    "detail": (
+                        "Only the property owner can mark this "
+                        "meeting as completed."
+                    )
+                },
                 status=status.HTTP_403_FORBIDDEN,
             )
 
         if meeting.status != "upcoming":
             return Response(
-                {"detail": "Only upcoming meetings can be marked as completed."},
+                {
+                    "detail": (
+                        "Only upcoming meetings can be "
+                        "marked as completed."
+                    )
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        meeting.status = "completed"
-        meeting.save()
+        booking = meeting.booking
+
+        if booking.status not in ["pending", "confirmed", "approved"]:
+         return Response(
+            {
+                "detail": (
+                    "This booking cannot move to inspection completed "
+                    "in its current state."
+                )
+            },
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+        with transaction.atomic():
+            meeting.status = "completed"
+            meeting.save(update_fields=["status"])
+
+            booking.status = "inspection_completed"
+            booking.save(update_fields=["status"])
 
         log_meeting_event(
             message=f"Meeting {meeting.id} completed",
             status="success",
             meeting_id=meeting.id,
-            booking_id=meeting.booking.id,
+            booking_id=booking.id,
             user=request.user,
-            detail=f"Meeting for {meeting.booking.property.property_name} marked completed by {request.user.username}",
+            detail=(
+                f"Meeting for {booking.property.property_name} "
+                f"marked completed by {request.user.username}"
+            ),
         )
 
         serializer = self.get_serializer(meeting)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(
+            {
+                "detail": "Inspection marked as completed.",
+                "meeting": serializer.data,
+                "booking_status": booking.status,
+            },
+            status=status.HTTP_200_OK,
+        )

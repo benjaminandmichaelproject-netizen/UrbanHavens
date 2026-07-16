@@ -352,6 +352,46 @@ export const createTenantLease = async (leaseData) => {
   }
 };
 
+// ─── Awaiting Lease APIs ─────────────────────────────────────────────────────
+
+// Fetches all successful payments waiting for lease creation.
+export const getAwaitingLeases = async () => {
+  try {
+    const res = await api.get("/leases/awaiting/");
+    return res.data;
+  } catch (err) {
+    console.error(
+      "Fetch awaiting leases error:",
+      err.response?.data || err.message
+    );
+    throw err.response?.data || err;
+  }
+};
+
+// Creates a lease from a successful payment.
+export const createLeaseFromPayment = async (
+  paymentId,
+  leaseData
+) => {
+  try {
+    const res = await api.post(
+      `/leases/create-from-payment/${paymentId}/`,
+      leaseData
+    );
+
+    return res.data;
+  } catch (err) {
+    console.error(
+      "Create lease from payment error:",
+      err.response?.data || err.message
+    );
+    throw err.response?.data || err;
+  }
+};
+
+
+
+
 export const getLeases = async () => {
   try {
     const res = await api.get("/leases/");
@@ -492,3 +532,35 @@ export const deleteSchool = async (id) => {
   }
 };
 export { api };
+
+export const saveOwnerPaymentAccount = async (paymentData) => {
+  const response = await api.patch(
+    "/payments/owner/payment-account/",
+    paymentData
+  );
+
+  return response.data;
+};
+// Fetches all owner payment transactions from every payment method.
+export const getOwnerTransactions = async () => {
+  try {
+    const response = await api.get(
+      "/payments/owner/transactions/"
+    );
+
+    const data = response.data;
+
+    return Array.isArray(data)
+      ? data
+      : data?.results || [];
+  } catch (error) {
+    console.error(
+      "Fetch owner transactions error:",
+      error.response?.data || error.message
+    );
+
+    throw error.response?.data || error;
+  }
+};
+
+

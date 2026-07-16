@@ -3,7 +3,7 @@ import React, { useMemo, useState } from "react";
 const NUMBER_OPTIONS = Array.from({ length: 10 }, (_, i) => i + 1);
 const ROOM_OPTIONS = Array.from({ length: 50 }, (_, i) => i + 1);
 const CAPACITY_OPTIONS = Array.from({ length: 6 }, (_, i) => i + 1);
-
+const RENTAL_DURATION_OPTIONS = [6, 12, 18, 24];
 const createEmptyRoom = (index = 1, propertyType = "mixed") => ({
   temp_id: `${Date.now()}-${index}-${Math.random().toString(36).slice(2, 8)}`,
   room_number: "",
@@ -95,6 +95,30 @@ const PropertyDescription = ({ data = {}, update, next, prev }) => {
 
   const removeAmenity = (i) =>
     update({ amenities: amenities.filter((_, idx) => idx !== i) });
+
+const toggleRentalDuration = (months) => {
+  const current = Array.isArray(data.allowed_rental_months)
+    ? data.allowed_rental_months
+    : [];
+
+  if (current.includes(months)) {
+    update({
+      allowed_rental_months: current.filter((m) => m !== months),
+    });
+  } else {
+    update({
+      allowed_rental_months: [...current, months],
+    });
+  }
+
+  setErrors((prev) => ({
+    ...prev,
+    allowed_rental_months: "",
+  }));
+};
+
+
+
 
   const addRoom = () => {
     const propertyType = data.property_type || "mixed";
@@ -211,7 +235,13 @@ const PropertyDescription = ({ data = {}, update, next, prev }) => {
         ? "Base room price required"
         : "Valid price required";
     }
-
+if (
+  !Array.isArray(data.allowed_rental_months) ||
+  data.allowed_rental_months.length === 0
+) {
+  newErrors.allowed_rental_months =
+    "Select at least one rental duration.";
+}
     if (!data.description?.trim()) {
       newErrors.description = "Description is required";
     }
@@ -369,7 +399,34 @@ const PropertyDescription = ({ data = {}, update, next, prev }) => {
           )}
         </div>
       </div>
+<div className="form-group full-width">
+  <label>Available Rental Durations</label>
 
+  <div className="rental-duration-grid">
+    {RENTAL_DURATION_OPTIONS.map((months) => (
+      <label
+        key={months}
+        className="rental-duration-option"
+      >
+        <input
+          type="checkbox"
+          checked={
+            (data.allowed_rental_months || []).includes(months)
+          }
+          onChange={() => toggleRentalDuration(months)}
+        />
+
+        {months} Months
+      </label>
+    ))}
+  </div>
+
+  {errors.allowed_rental_months && (
+    <span className="error-text">
+      {errors.allowed_rental_months}
+    </span>
+  )}
+</div>
       {isHostel && (
         <>
           <div className="hostel-info-banner">
