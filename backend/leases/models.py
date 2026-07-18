@@ -414,208 +414,255 @@ class LeaseRenewalRequest(models.Model):
         auto_now=True,
     )
 
+    class Meta:
+        # Displays the newest renewal requests first.
+        ordering = ["-created_at"]
 
-class Meta:
-    # Displays the newest renewal requests first.
-    ordering = ["-created_at"]
+        # Improves common owner, tenant, and status queries.
+        indexes = [
+            models.Index(fields=["tenant", "status"]),
+            models.Index(fields=["landlord", "status"]),
+            models.Index(fields=["current_lease", "status"]),
+            models.Index(fields=["property", "status"]),
+        ]
 
-    # Improves common owner, tenant, and status queries.
-    indexes = [
-        models.Index(
-            fields=["tenant", "status"],
-        ),
-        models.Index(
-            fields=["landlord", "status"],
-        ),
-        models.Index(
-            fields=["current_lease", "status"],
-        ),
-        models.Index(
-            fields=["property", "status"],
-        ),
-    ]
-
-    # Prevents multiple open renewals for the same lease.
-    constraints = [
-        models.UniqueConstraint(
-            fields=["current_lease"],
-            condition=models.Q(
-                status__in=[
-                    "pending",
-                    "payment_pending",
-                    "payment_completed",
-                ]
+        # Prevents multiple open renewals for the same lease.
+        constraints = [
+            models.UniqueConstraint(
+                fields=["current_lease"],
+                condition=models.Q(
+                    status__in=[
+                        "pending",
+                        "payment_pending",
+                        "payment_completed",
+                    ]
+                ),
+                name="unique_open_renewal_per_lease",
             ),
-            name="unique_open_renewal_per_lease",
-        ),
-    ]
+        ]
 
-    # Validates renewal ownership, dates, duration, and property relations.
+    # Validates renewal ownership, dates, duration, and relations.
     def clean(self):
         super().clean()
-
         errors = {}
 
         if self.current_lease_id:
             current_lease = self.current_lease
 
-            # Ensures the renewal tenant matches the current lease.
             if self.tenant_id and current_lease.tenant_id != self.tenant_id:
                 errors["tenant"] = (
-                    "Renewal tenant must match the current " "lease tenant."
+                    "Renewal tenant must match the current lease tenant."
                 )
 
-                # Ensures the renewal landlord matches the current lease.
-                if self.landlord_id and current_lease.landlord_id != self.landlord_id:
-                    errors["landlord"] = (
-                        "Renewal landlord must match the current " "lease landlord."
+            if self.landlord_id and current_lease.landlord_id != self.landlord_id:
+                errors["landlord"] = (
+                    "Renewal landlord must match the current lease landlord."
+                )
+
+            if self.property_id and current_lease.property_id != self.property_id:
+                errors["property"] = (
+                    "Renewal property must match the current lease property."
+                )
+
+            if current_lease.room_id:
+                if not self.room_id:
+                    errors["room"] = (
+                        "A hostel renewal must keep the tenant's current room."
                     )
+                elif current_lease.room_id != self.room_id:
+                    errors["room"] = (
+                        "Renewal room must match the tenant's current hostel room."
+                    )
+            elif self.room_id:
+                errors["room"] = (
+                    "A house renewal cannot have a hostel room."
+                )
 
-                    # Ensures the renewal property matches the current lease.
-                    if (
-                        self.property_id
-                        and current_lease.property_id != self.property_id
-                    ):
-                        errors["property"] = (
-                            "Renewal property must match the current " "lease property."
-                        )
+            if (
+                self.proposed_start_date
+                and current_lease.lease_end_date
+                and self.proposed_start_date <= current_lease.lease_end_date
+            ):
+                errors["proposed_start_date"] = (
+                    "The renewed lease must start after the current lease ends."
+                )
 
-                        # Ensures the renewal room matches the existing hostel room.
-                        if (
-                            current_lease.room_id
-                            and self.room_id
-                            and current_lease.room_id != self.room_id
-                        ):
-                            errors["room"] = (
-                                "Renewal room must match the tenant's "
-                                "current hostel room."
-                            )
+        if (
+            self.proposed_start_date
+            and self.proposed_end_date
+            and self.proposed_end_date < self.proposed_start_date
+        ):
+            errors["proposed_end_date"] = (
+                "Renewal end date cannot be earlier than the renewal start date."
+            )
 
-                            # Prevents attaching a room to a house renewal.
-                            if not current_lease.room_id and self.room_id:
-                                errors["room"] = (
-                                    "A house renewal cannot have a hostel room."
-                                )
+        if (
+            self.requested_duration_months is not None
+            and self.requested_duration_months < 1
+        ):
+            errors["requested_duration_months"] = (
+                "Renewal duration must be at least one month."
+            )
 
-                                # Requires the renewal to begin after the current lease.
-                                if (
-                                    self.proposed_start_date
-                                    and current_lease.lease_end_date
-                                    and self.proposed_start_date
-                                    <= current_lease.lease_end_date
-                                ):
-                                    errors["proposed_start_date"] = (
-                                        "The renewed lease must start after the "
-                                        "current lease ends."
-                                    )
+        if self.property_id and self.requested_duration_months:
+            try:
+                allowed_durations = [
+                    int(months)
+                    for months in (self.property.allowed_rental_months or [])
+                ]
+            except (TypeError, ValueError):
+                allowed_durations = []
 
-                                    # Prevents invalid renewal date ranges.
-                                    if (
-                                        self.proposed_start_date
-                                        and self.proposed_end_date
-                                        and self.proposed_end_date
-                                        < self.proposed_start_date
-                                    ):
-                                        errors["proposed_end_date"] = (
-                                            "Renewal end date cannot be earlier than "
-                                            "the renewal start date."
-                                        )
+            if allowed_durations and self.requested_duration_months not in allowed_durations:
+                errors["requested_duration_months"] = (
+                    "The selected renewal duration is not approved for this property."
+                )
 
-                                        # Prevents invalid renewal durations.
-                                        if (
-                                            self.requested_duration_months is not None
-                                            and self.requested_duration_months < 1
-                                        ):
-                                            errors["requested_duration_months"] = (
-                                                "Renewal duration must be at least one month."
-                                            )
+        if self.monthly_rent is not None and self.monthly_rent < 0:
+            errors["monthly_rent"] = "Monthly rent cannot be negative."
 
-                                            # Restricts renewal duration to owner-approved options.
-                                            if self.property_id:
-                                                try:
-                                                    allowed_durations = [
-                                                        int(months)
-                                                        for months in (
-                                                            self.property.allowed_rental_months
-                                                            or []
-                                                        )
-                                                    ]
-                                                except (TypeError, ValueError):
-                                                    allowed_durations = []
+        if self.expected_amount is not None and self.expected_amount < 0:
+            errors["expected_amount"] = (
+                "Expected renewal amount cannot be negative."
+            )
 
-                                                    if (
-                                                        self.requested_duration_months
-                                                        and self.requested_duration_months
-                                                        not in allowed_durations
-                                                    ):
-                                                        errors[
-                                                            "requested_duration_months"
-                                                        ] = (
-                                                            "The selected renewal duration is not "
-                                                            "approved for this property."
-                                                        )
+        if (
+            self.monthly_rent is not None
+            and self.requested_duration_months
+            and self.expected_amount is not None
+        ):
+            calculated_amount = (
+                self.monthly_rent * self.requested_duration_months
+            )
 
-                                                        # Prevents negative rent values.
-                                                        if (
-                                                            self.monthly_rent
-                                                            is not None
-                                                            and self.monthly_rent < 0
-                                                        ):
-                                                            errors["monthly_rent"] = (
-                                                                "Monthly rent cannot be negative."
-                                                            )
+            if self.expected_amount != calculated_amount:
+                errors["expected_amount"] = (
+                    "Expected amount must equal monthly rent multiplied by the renewal duration."
+                )
 
-                                                            # Prevents negative expected amounts.
-                                                            if (
-                                                                self.expected_amount
-                                                                is not None
-                                                                and self.expected_amount
-                                                                < 0
-                                                            ):
-                                                                errors[
-                                                                    "expected_amount"
-                                                                ] = "Expected renewal amount cannot be negative."
+        if errors:
+            raise ValidationError(errors)
 
-                                                                # Confirms the expected amount matches trusted rent values.
-                                                                if (
-                                                                    self.monthly_rent
-                                                                    is not None
-                                                                    and self.requested_duration_months
-                                                                    and self.expected_amount
-                                                                    is not None
-                                                                ):
-                                                                    calculated_amount = (
-                                                                        self.monthly_rent
-                                                                        * self.requested_duration_months
-                                                                    )
-
-                                                                    if (
-                                                                        self.expected_amount
-                                                                        != calculated_amount
-                                                                    ):
-                                                                        errors[
-                                                                            "expected_amount"
-                                                                        ] = (
-                                                                            "Expected amount must equal monthly rent "
-                                                                            "multiplied by the renewal duration."
-                                                                        )
-
-                                                                        if errors:
-                                                                            raise ValidationError(
-                                                                                errors
-                                                                            )
-
-                                                                        # Validates every renewal before saving.
-
+    # Validates every renewal before saving.
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
 
-        # Returns a readable renewal description.
-
+    # Returns a readable renewal description.
     def __str__(self):
         return (
             f"Renewal for Lease #{self.current_lease_id} - "
             f"{self.requested_duration_months} months - "
             f"{self.status}"
+        )
+
+
+class LeaseLifecycleEvent(models.Model):
+    EVENT_TYPE_CHOICES = [
+        (
+            "expiry_30_day_reminder",
+            "30-Day Expiry Reminder",
+        ),
+        (
+            "expiry_14_day_reminder",
+            "14-Day Expiry Reminder",
+        ),
+        (
+            "expiry_7_day_reminder",
+            "7-Day Expiry Reminder",
+        ),
+        (
+            "lease_expired",
+            "Lease Expired",
+        ),
+        (
+            "expiry_blocked_by_renewal",
+            "Expiry Blocked by Renewal",
+        ),
+        (
+            "renewal_payment_cancelled",
+            "Renewal Payment Cancelled",
+        ),
+        (
+            "renewal_completed",
+            "Renewal Completed",
+        ),
+    ]
+
+    # Links the event to its lease.
+    lease = models.ForeignKey(
+        TenantLease,
+        on_delete=models.CASCADE,
+        related_name="lifecycle_events",
+    )
+
+    # Optionally connects the event to a renewal request.
+    renewal_request = models.ForeignKey(
+        "LeaseRenewalRequest",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="lifecycle_events",
+    )
+
+    # Identifies the lifecycle action that occurred.
+    event_type = models.CharField(
+        max_length=50,
+        choices=EVENT_TYPE_CHOICES,
+    )
+
+    # Stores a readable explanation for auditing.
+    message = models.TextField(
+        blank=True,
+        default="",
+    )
+
+    # Records structured event details for reporting.
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+    )
+
+    # Records when the lifecycle event occurred.
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+
+    class Meta:
+        ordering = [
+            "-created_at",
+        ]
+
+        # Prevents the same event from being recorded twice.
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "lease",
+                    "event_type",
+                ],
+                name=(
+                    "unique_lease_lifecycle_event_type"
+                ),
+            ),
+        ]
+
+        indexes = [
+            models.Index(
+                fields=[
+                    "event_type",
+                    "created_at",
+                ],
+            ),
+            models.Index(
+                fields=[
+                    "lease",
+                    "created_at",
+                ],
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f"Lease #{self.lease_id} - "
+            f"{self.get_event_type_display()}"
         )

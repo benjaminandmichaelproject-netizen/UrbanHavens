@@ -3,7 +3,7 @@ import React from 'react'
 const Contracts = () => {
   return (
     <div>
-      
+      <h1>hi</h1>
     </div>
   )
 }
