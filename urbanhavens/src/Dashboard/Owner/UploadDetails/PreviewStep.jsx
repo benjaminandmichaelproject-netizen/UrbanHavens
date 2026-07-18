@@ -84,6 +84,14 @@ const PreviewStep = ({ formData, files, prev, finish, isSubmitting }) => {
         {property.amenities?.length > 0 && (
           <p><strong>Amenities:</strong> {property.amenities.join(", ")}</p>
         )}
+        {property.allowed_rental_months?.length > 0 && (
+  <p>
+    <strong>Rental Durations:</strong>{" "}
+    {property.allowed_rental_months
+      .map((months) => `${months} months`)
+      .join(", ")}
+  </p>
+)}
       </div>
 
       <div className="preview-section">

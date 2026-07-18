@@ -1,0 +1,726 @@
+/* Defines the full owner renewal management page. */
+.owner-renewals-page {
+  width: 100%;
+  min-height: 100vh;
+  padding: 28px;
+  background: #f5f8f6;
+  color: #183b2d;
+}
+
+/* Aligns the page heading and refresh action. */
+.owner-renewals-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 26px;
+}
+
+.owner-renewals-header h1 {
+  margin: 4px 0 8px;
+  color: #123d2c;
+  font-size: 30px;
+  line-height: 1.2;
+}
+
+.owner-renewals-header p {
+  max-width: 650px;
+  margin: 0;
+  color: #6b7e75;
+  line-height: 1.65;
+}
+
+/* Displays the small section label above the title. */
+.owner-renewals-eyebrow {
+  color: #16804b;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Refreshes the renewal request list. */
+.owner-renewals-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-width: 125px;
+  padding: 11px 16px;
+  border: 1px solid #cdded5;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #176a43;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.owner-renewals-refresh-btn:hover:not(:disabled) {
+  border-color: #18804d;
+  background: #f7fbf8;
+  transform: translateY(-1px);
+}
+
+.owner-renewals-refresh-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Rotates the refresh icon while loading. */
+.owner-renewals-spinning {
+  animation: owner-renewals-spin 0.8s linear infinite;
+}
+
+@keyframes owner-renewals-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Displays renewal summary cards. */
+.owner-renewals-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 17px;
+  margin-bottom: 24px;
+}
+
+.owner-renewals-summary article {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  min-height: 105px;
+  padding: 20px;
+  border: 1px solid #dfe9e3;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 7px 22px rgba(29, 61, 45, 0.04);
+}
+
+.owner-renewals-summary article > div:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.owner-renewals-summary article span {
+  color: #6d8076;
+  font-size: 13px;
+}
+
+.owner-renewals-summary article strong {
+  color: #143d2c;
+  font-size: 25px;
+}
+
+/* Styles summary card icons. */
+.owner-renewals-summary-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 49px;
+  height: 49px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  background: #e5f4eb;
+  color: #187a49;
+  font-size: 21px;
+}
+
+.owner-renewals-summary-icon.pending {
+  background: #fff3d6;
+  color: #b57400;
+}
+
+.owner-renewals-summary-icon.payment {
+  background: #e8efff;
+  color: #315eb4;
+}
+
+.owner-renewals-summary-icon.complete {
+  background: #def7e8;
+  color: #147641;
+}
+
+/* Displays success and error feedback. */
+.owner-renewals-feedback {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 16px;
+  margin-bottom: 20px;
+  border-radius: 11px;
+  font-weight: 600;
+}
+
+.owner-renewals-feedback.success {
+  border: 1px solid #b8e8c9;
+  background: #edf9f1;
+  color: #126a3d;
+}
+
+.owner-renewals-feedback.error {
+  border: 1px solid #fecaca;
+  background: #fff1f1;
+  color: #b42318;
+}
+
+.owner-renewals-feedback button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Displays status filter buttons. */
+.owner-renewals-filters {
+  display: flex;
+  gap: 9px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 6px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  border: 1px solid #dce7e1;
+  border-radius: 13px;
+  background: #ffffff;
+}
+
+.owner-renewals-filters button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: max-content;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: #61756b;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.owner-renewals-filters button.active {
+  background: #176a43;
+  color: #ffffff;
+}
+
+.owner-renewals-filters button span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 23px;
+  height: 23px;
+  padding: 0 6px;
+  border-radius: 20px;
+  background: rgba(23, 106, 67, 0.1);
+  font-size: 11px;
+}
+
+.owner-renewals-filters button.active span {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Displays loading, empty, and error states. */
+.owner-renewals-state {
+  display: flex;
+  min-height: 330px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  border: 1px dashed #ccdcd3;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #71837a;
+  text-align: center;
+}
+
+.owner-renewals-state > svg {
+  margin-bottom: 14px;
+  color: #94aa9e;
+  font-size: 43px;
+}
+
+.owner-renewals-state h3 {
+  margin: 0;
+  color: #244b39;
+}
+
+.owner-renewals-state p {
+  max-width: 430px;
+  margin: 8px 0 0;
+  line-height: 1.6;
+}
+
+.owner-renewals-state.error {
+  border-color: #fecaca;
+  color: #a92c25;
+}
+
+.owner-renewals-state.error > svg {
+  color: #d94d45;
+}
+
+.owner-renewals-state button {
+  margin-top: 16px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 9px;
+  background: #176a43;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Displays the page loader. */
+.owner-renewals-loader {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 14px;
+  border: 4px solid #dbe7df;
+  border-top-color: #176a43;
+  border-radius: 50%;
+  animation: owner-renewals-spin 0.8s linear infinite;
+}
+
+/* Contains the responsive renewal table. */
+.owner-renewals-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid #dce7e1;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(25, 57, 42, 0.04);
+}
+
+.owner-renewals-table {
+  width: 100%;
+  min-width: 1320px;
+  border-collapse: collapse;
+}
+
+.owner-renewals-table th {
+  padding: 15px 16px;
+  background: #f1f6f3;
+  color: #557064;
+  font-size: 11px;
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.owner-renewals-table td {
+  padding: 17px 16px;
+  border-top: 1px solid #edf2ef;
+  color: #345244;
+  vertical-align: middle;
+}
+
+/* Styles the property table cell. */
+.owner-renewals-property-cell {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.owner-renewals-property-cell > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 39px;
+  height: 39px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: #e8f4ed;
+  color: #176a43;
+}
+
+.owner-renewals-property-cell > span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.owner-renewals-property-cell strong {
+  color: #183f30;
+}
+
+.owner-renewals-property-cell small {
+  color: #7a8b82;
+}
+
+/* Styles tenant information. */
+.owner-renewals-tenant-cell {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #536f62;
+}
+
+.owner-renewals-tenant-cell svg {
+  color: #1a7449;
+}
+
+/* Displays current and proposed dates. */
+.owner-renewals-date-stack {
+  display: flex;
+  min-width: 150px;
+  flex-direction: column;
+  gap: 5px;
+  color: #61766b;
+  font-size: 12px;
+}
+
+.owner-renewals-date-stack span {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.owner-renewals-duration {
+  display: flex;
+  min-width: 190px;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.owner-renewals-duration strong {
+  color: #1a4332;
+}
+
+.owner-renewals-duration span {
+  color: #778980;
+  font-size: 12px;
+}
+
+/* Displays renewal financial details. */
+.owner-renewals-money {
+  display: flex;
+  min-width: 135px;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.owner-renewals-money strong {
+  color: #133d2c;
+}
+
+.owner-renewals-money span {
+  color: #7d8c85;
+  font-size: 11px;
+}
+
+/* Styles all renewal status badges. */
+.owner-renewals-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 7px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.owner-renewals-status.pending {
+  background: #fff1c9;
+  color: #9a6500;
+}
+
+.owner-renewals-status.payment-pending {
+  background: #e5edff;
+  color: #315ba8;
+}
+
+.owner-renewals-status.payment-completed {
+  background: #dbf6e6;
+  color: #117444;
+}
+
+.owner-renewals-status.approved {
+  background: #dff6e7;
+  color: #126d40;
+}
+
+.owner-renewals-status.rejected {
+  background: #fee2e2;
+  color: #b42318;
+}
+
+.owner-renewals-status.cancelled {
+  background: #eceff1;
+  color: #617078;
+}
+
+.owner-renewals-status.unknown {
+  background: #f1f3f2;
+  color: #647169;
+}
+
+/* Aligns table action controls. */
+.owner-renewals-actions {
+  display: flex;
+  min-width: 180px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.owner-renewals-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.owner-renewals-actions button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.owner-renewals-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Approves a pending renewal. */
+.owner-renewals-approve-btn {
+  border: 1px solid #16804b;
+  background: #16804b;
+  color: #ffffff;
+}
+
+.owner-renewals-approve-btn:hover:not(:disabled) {
+  border-color: #12683e;
+  background: #12683e;
+}
+
+/* Rejects a pending renewal. */
+.owner-renewals-reject-btn {
+  border: 1px solid #e2a4a4;
+  background: #fff5f5;
+  color: #b42318;
+}
+
+.owner-renewals-reject-btn:hover:not(:disabled) {
+  border-color: #d87979;
+  background: #fee8e8;
+}
+
+/* Completes a fully paid renewal. */
+.owner-renewals-complete-btn {
+  border: 1px solid #126a43;
+  background: #126a43;
+  color: #ffffff;
+}
+
+.owner-renewals-complete-btn:hover:not(:disabled) {
+  border-color: #0f5636;
+  background: #0f5636;
+}
+
+/* Displays non-interactive action messages. */
+.owner-renewals-waiting-text,
+.owner-renewals-finished-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #718078;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.owner-renewals-waiting-text {
+  color: #8f6900;
+}
+
+/* Covers the page behind the rejection modal. */
+.owner-renewals-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(9, 25, 17, 0.58);
+  backdrop-filter: blur(3px);
+}
+
+/* Styles the renewal rejection form. */
+.owner-renewals-modal {
+  width: min(100%, 520px);
+  padding: 24px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(5, 20, 12, 0.28);
+}
+
+.owner-renewals-modal header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.owner-renewals-modal h2 {
+  margin: 0;
+  color: #173e2e;
+  font-size: 22px;
+}
+
+.owner-renewals-modal header p {
+  margin: 6px 0 0;
+  color: #74857c;
+}
+
+.owner-renewals-modal header > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 35px;
+  height: 35px;
+  border: 0;
+  border-radius: 50%;
+  background: #f2f5f3;
+  color: #52665c;
+  cursor: pointer;
+}
+
+.owner-renewals-modal label {
+  display: block;
+  margin-bottom: 8px;
+  color: #294d3d;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.owner-renewals-modal textarea {
+  width: 100%;
+  min-height: 125px;
+  padding: 13px 14px;
+  border: 1px solid #cddbd4;
+  border-radius: 10px;
+  outline: none;
+  color: #29483a;
+  font: inherit;
+  line-height: 1.55;
+  resize: vertical;
+}
+
+.owner-renewals-modal textarea:focus {
+  border-color: #18804d;
+  box-shadow: 0 0 0 3px rgba(24, 128, 77, 0.12);
+}
+
+.owner-renewals-modal > small {
+  display: block;
+  margin-top: 7px;
+  color: #8a9991;
+  text-align: right;
+}
+
+/* Aligns rejection modal actions. */
+.owner-renewals-modal footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.owner-renewals-modal footer button {
+  padding: 10px 15px;
+  border-radius: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.owner-renewals-modal-cancel {
+  border: 1px solid #d1ddd6;
+  background: #ffffff;
+  color: #496257;
+}
+
+.owner-renewals-modal-reject {
+  border: 1px solid #ba2d25;
+  background: #ba2d25;
+  color: #ffffff;
+}
+
+.owner-renewals-modal footer button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Adjusts summary cards on medium-width screens. */
+@media (max-width: 1150px) {
+  .owner-renewals-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Adjusts page layout for tablets. */
+@media (max-width: 760px) {
+  .owner-renewals-page {
+    padding: 18px;
+  }
+
+  .owner-renewals-header {
+    flex-direction: column;
+  }
+
+  .owner-renewals-refresh-btn {
+    width: 100%;
+  }
+
+  .owner-renewals-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-renewals-filters {
+    width: 100%;
+  }
+
+  .owner-renewals-modal {
+    padding: 20px;
+  }
+}
+
+/* Adjusts modal controls on small phones. */
+@media (max-width: 480px) {
+  .owner-renewals-page {
+    padding: 14px;
+  }
+
+  .owner-renewals-header h1 {
+    font-size: 26px;
+  }
+
+  .owner-renewals-modal footer {
+    flex-direction: column;
+  }
+
+  .owner-renewals-modal footer button {
+    width: 100%;
+  }
+}

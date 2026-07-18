@@ -161,20 +161,20 @@ const Uploadpage = () => {
       ...locationData,
     };
 
-    Object.entries(combinedData).forEach(([key, value]) => {
-      if (key === "rooms") return;
+   Object.entries(combinedData).forEach(([key, value]) => {
+  if (key === "rooms") return;
 
-      if (value !== undefined && value !== null && value !== "") {
-        if (key === "amenities") {
-          formPayload.append(
-            "amenities",
-            JSON.stringify(Array.isArray(value) ? value : [])
-          );
-        } else {
-          formPayload.append(key, value);
-        }
-      }
-    });
+  if (value !== undefined && value !== null && value !== "") {
+    if (key === "amenities" || key === "allowed_rental_months") {
+      formPayload.append(
+        key,
+        JSON.stringify(Array.isArray(value) ? value : [])
+      );
+    } else {
+      formPayload.append(key, value);
+    }
+  }
+});
 
     const imageFiles = files.property_images?.property_images || [];
     imageFiles.forEach((file) => {

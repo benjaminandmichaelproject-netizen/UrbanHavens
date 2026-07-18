@@ -1,13 +1,36 @@
-from rest_framework import serializers
-from .models import Booking, InspectionMeeting
-from notifications.utils import send_notification
 from django.contrib.auth import get_user_model
+from rest_framework import serializers
+from django.db import transaction
 from leases.models import TenantLease
-from notifications.sms import send_booking_created_sms
+from notifications.sms import (
+    send_booking_approved_sms,
+    send_booking_cancelled_sms,
+    send_booking_created_sms,
+    send_booking_rejected_sms,
+    send_meeting_scheduled_sms,
+    send_meeting_updated_sms,
+)
+from notifications.utils import send_notification
+from system_logs.logger import (
+    log_booking_event,
+    log_meeting_event,
+    log_sms_failure,
+)
+
+from .models import Booking, InspectionMeeting
+
 User = get_user_model()
 
 
-def _notify_admins(message, notification_type, property_id=None):
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _notify_admins(message: str, notification_type: str, property_id=None) -> None:
+    """
+    Send an in-app notification to every active admin user.
+    """
     admins = User.objects.filter(role="admin", is_active=True)
     for admin in admins:
         send_notification(
@@ -18,8 +41,19 @@ def _notify_admins(message, notification_type, property_id=None):
         )
 
 
+# ---------------------------------------------------------------------------
+# Booking Serializer
+# ---------------------------------------------------------------------------
+
+
 class BookingSerializer(serializers.ModelSerializer):
-    property_name = serializers.CharField(source="property.property_name", read_only=True)
+    """
+    Serializer for the Booking model.
+    """
+
+    property_name = serializers.CharField(
+        source="property.property_name", read_only=True
+    )
     property_city = serializers.CharField(source="property.city", read_only=True)
     property_region = serializers.CharField(source="property.region", read_only=True)
     property_price = serializers.DecimalField(
@@ -28,7 +62,21 @@ class BookingSerializer(serializers.ModelSerializer):
         decimal_places=2,
         read_only=True,
     )
-    property_type = serializers.CharField(source="property.property_type", read_only=True)
+    property_type = serializers.CharField(
+        source="property.property_type", read_only=True
+    )
+    # Returns the property category so the frontend can detect hostels.
+    property_category = serializers.CharField(
+        source="property.category",
+        read_only=True,
+    )
+
+    # Returns only hostel rooms that still have available space.
+    rooms = serializers.SerializerMethodField()
+    property_allowed_rental_months = serializers.JSONField(
+        source="property.allowed_rental_months",
+        read_only=True,
+    )
     property_images = serializers.SerializerMethodField()
 
     tenant_name = serializers.SerializerMethodField()
@@ -52,6 +100,9 @@ class BookingSerializer(serializers.ModelSerializer):
             "property_region",
             "property_price",
             "property_type",
+            "property_category",
+            "property_allowed_rental_months",
+            "rooms",
             "property_images",
             "tenant",
             "tenant_name",
@@ -86,6 +137,9 @@ class BookingSerializer(serializers.ModelSerializer):
             "property_region",
             "property_price",
             "property_type",
+            "property_category",
+            "property_allowed_rental_months",
+            "rooms",
             "property_images",
             "status",
             "archived_by_owner",
@@ -98,166 +152,252 @@ class BookingSerializer(serializers.ModelSerializer):
     def get_property_images(self, obj):
         request = self.context.get("request")
         result = []
-
         for img in obj.property.images.all():
             if img.image:
-                url = request.build_absolute_uri(img.image.url) if request else img.image.url
+                url = (
+                    request.build_absolute_uri(img.image.url)
+                    if request
+                    else img.image.url
+                )
                 result.append(url)
+        return result
+
+    # Returns only hostel rooms with at least one unoccupied and unreserved space.
+
+
+    def get_rooms(self, obj):
+        if obj.property.category != "hostel":
+            return []
+
+        available_rooms = obj.property.rooms.filter(
+            is_available=True,
+        ).order_by("room_number")
+
+        result = []
+
+        for room in available_rooms:
+            available_spaces = room.available_spaces()
+
+            # Excludes rooms that are fully occupied or fully reserved.
+            if available_spaces <= 0:
+                continue
+
+            effective_price = (
+                room.price_override
+                if room.price_override is not None
+                else obj.property.price
+            )
+
+            result.append(
+                {
+                    "id": room.id,
+                    "room_number": room.room_number,
+                    "room_type": room.room_type,
+                    "gender_restriction": room.gender_restriction,
+                    "max_capacity": room.max_capacity,
+                    "occupied_spaces": room.occupied_spaces,
+                    "reserved_spaces": room.reserved_spaces,
+                    "available_spaces": available_spaces,
+                    "is_available": room.is_available,
+                    "price_override": (
+                        str(room.price_override)
+                        if room.price_override is not None
+                        else None
+                    ),
+                    "effective_price": str(effective_price),
+                }
+            )
 
         return result
 
     def get_tenant_name(self, obj):
-        full = f"{obj.tenant.first_name} {obj.tenant.last_name}".strip()
-        return full or obj.tenant.username
+            full = f"{obj.tenant.first_name} {obj.tenant.last_name}".strip()
+            return full or obj.tenant.username
 
     def get_owner_name(self, obj):
-        full = f"{obj.owner.first_name} {obj.owner.last_name}".strip()
-        return full or obj.owner.username
+            full = f"{obj.owner.first_name} {obj.owner.last_name}".strip()
+            return full or obj.owner.username
 
     def get_meeting(self, obj):
-        meeting = getattr(obj, "meeting", None)
-        if meeting is None:
-            return None
-        return InspectionMeetingSerializer(meeting, context=self.context).data
+            meeting = getattr(obj, "meeting", None)
+            if meeting is None:
+                return None
+            return InspectionMeetingSerializer(meeting, context=self.context).data
 
     def get_lease(self, obj):
-        lease = getattr(obj, "tenant_lease", None)
-        if lease is None:
-            return None
-
-        return {
-            "id": lease.id,
-            "status": lease.status,
-            "lease_end_date": str(lease.lease_end_date) if lease.lease_end_date else None,
-        }
-        
-        
+            lease = getattr(obj, "tenant_lease", None)
+            if lease is None:
+                return None
+            return {
+                "id": lease.id,
+                "status": lease.status,
+                "lease_end_date": (
+                    str(lease.lease_end_date) if lease.lease_end_date else None
+                ),
+            }
 
     def validate_property(self, property_obj):
-        if not property_obj.is_available:
-            raise serializers.ValidationError("This property is not available for booking.")
-
-        if getattr(property_obj, "approval_status", None) != "approved":
-            raise serializers.ValidationError("Only approved properties can be booked.")
-
-        if property_obj.owner is None:
-            raise serializers.ValidationError(
-                "This property cannot be booked because it is not linked to a registered landlord account."
-            )
-
-        return property_obj
+            if not property_obj.is_available:
+                raise serializers.ValidationError(
+                    "This property is not available for booking."
+                )
+            if getattr(property_obj, "approval_status", None) != "approved":
+                raise serializers.ValidationError("Only approved properties can be booked.")
+            if getattr(property_obj, "report_flag_status", None) in ["hidden", "flagged"]:
+                raise serializers.ValidationError(
+                    "This property is currently under review and cannot be booked."
+                )
+            if property_obj.owner is None:
+                raise serializers.ValidationError(
+                    "This property is not linked to a registered landlord account."
+                )
+            return property_obj
 
     def validate_preferred_date(self, value):
-        from django.utils import timezone
-        if value < timezone.localdate():
-            raise serializers.ValidationError("Preferred viewing date cannot be in the past.")
-        return value
-    
-    
-    
+            from django.utils import timezone
+
+            if value < timezone.localdate():
+                raise serializers.ValidationError(
+                    "Preferred viewing date cannot be in the past."
+                )
+            return value
+
     def validate(self, attrs):
-      attrs = super().validate(attrs)
+            attrs = super().validate(attrs)
+            request = self.context.get("request")
+            user = request.user if request else None
+            property_obj = attrs.get("property")
 
-      request = self.context.get("request")
-      user = request.user if request else None
-      property_obj = attrs.get("property")
+            if not user or not user.is_authenticated:
+                raise serializers.ValidationError("Authentication required.")
 
-      if not user or not user.is_authenticated:
-        raise serializers.ValidationError("Authentication required.")
-      if property_obj:
-        existing_open_booking = Booking.objects.filter(
-        tenant=user,
-        property=property_obj,
-        status__in=["pending", "approved"],
-        ).exists()
- 
-      if existing_open_booking:
-        raise serializers.ValidationError({
-            "detail": "You already have an active booking request for this property."
-        })
+            if property_obj:
+                if Booking.objects.filter(
+                    tenant=user, property=property_obj, status__in=["pending", "approved"]
+                ).exists():
+                    raise serializers.ValidationError(
+                        {"detail": "You already have an active booking request."}
+                    )
 
-      has_active_lease_for_same_property = TenantLease.objects.filter(
-        tenant=user,
-        property=property_obj,
-        status="active",
-        ).exists()
+            if TenantLease.objects.filter(
+                tenant=user, property=property_obj, status="active"
+            ).exists():
+                raise serializers.ValidationError(
+                    {"detail": "You already have an active lease for this property."}
+                )
 
-      if has_active_lease_for_same_property:
-        raise serializers.ValidationError({
-            "detail": "You already have an active lease for this property and cannot book it again until the lease ends."
-        })
-      return attrs
-    
-    
-    
-    
-    
+            return attrs
 
     def create(self, validated_data):
-        request = self.context.get("request")
-        property_obj = validated_data["property"]
+            request = self.context.get("request")
+            property_obj = validated_data["property"]
 
-        booking = Booking.objects.create(
-            tenant=request.user,
-            owner=property_obj.owner,
-            **validated_data
-        )
-        try:
-            send_booking_created_sms(booking)
-        except Exception as exc:
-             print("SMS sending failed:", exc)
-        
-        
-        
+            booking = Booking.objects.create(
+                tenant=request.user, owner=property_obj.owner, **validated_data
+            )
 
-        tenant_full_name = (
-            f"{request.user.first_name} {request.user.last_name}".strip()
-            or request.user.username
-        )
+            log_booking_event(
+                message=f"Booking created for {property_obj.property_name}",
+                status="success",
+                booking_id=booking.id,
+                user=request.user,
+                detail=f"Date: {booking.preferred_date}, Time: {booking.preferred_time}",
+            )
 
-        send_notification(
-            user=property_obj.owner,
-            message=(
-                f"{tenant_full_name} requested a viewing for "
-                f"{property_obj.property_name} on {booking.preferred_date} "
-                f"at {booking.preferred_time}."
-            ),
-            notification_type="inspection_request",
-            property_id=property_obj.id,
-        )
+            try:
+                send_booking_created_sms(booking)
+            except Exception as exc:
+                log_sms_failure(
+                    message="Booking created SMS failed",
+                    phone=property_obj.owner.phone or "",
+                    booking_id=booking.id,
+                    detail=str(exc),
+                )
 
-        _notify_admins(
-            message=(
-                f"New booking: {tenant_full_name} requested a viewing for "
-                f"{property_obj.property_name} on {booking.preferred_date} "
-                f"at {booking.preferred_time}."
-            ),
-            notification_type="new_booking",
-            property_id=property_obj.id,
-        )
+            tenant_name = (
+                f"{request.user.first_name} {request.user.last_name}".strip()
+                or request.user.username
+            )
 
-        return booking
+            send_notification(
+                user=property_obj.owner,
+                message=f"{tenant_name} requested a viewing for {property_obj.property_name}.",
+                notification_type="inspection_request",
+                property_id=property_obj.id,
+            )
+
+            _notify_admins(
+                message=f"New booking: {tenant_name} for {property_obj.property_name}.",
+                notification_type="new_booking",
+                property_id=property_obj.id,
+            )
+
+            return booking
+
+
+# ---------------------------------------------------------------------------
+# Inspection Meeting Serializer
+# ---------------------------------------------------------------------------
 
 
 class InspectionMeetingSerializer(serializers.ModelSerializer):
-    property_name = serializers.CharField(source="booking.property.property_name", read_only=True)
-    property_city = serializers.CharField(source="booking.property.city", read_only=True)
-    property_region = serializers.CharField(source="booking.property.region", read_only=True)
-    property_type = serializers.CharField(source="booking.property.property_type", read_only=True)
+    """
+    Serializer for creating and updating property inspection meetings.
+
+    When an inspection meeting is scheduled, the related booking moves
+    from pending to approved.
+    """
+
+    property_name = serializers.CharField(
+        source="booking.property.property_name",
+        read_only=True,
+    )
+    property_city = serializers.CharField(
+        source="booking.property.city",
+        read_only=True,
+    )
+    property_region = serializers.CharField(
+        source="booking.property.region",
+        read_only=True,
+    )
+    property_type = serializers.CharField(
+        source="booking.property.property_type",
+        read_only=True,
+    )
     property_images = serializers.SerializerMethodField()
 
     tenant_name = serializers.SerializerMethodField()
-    tenant_email = serializers.EmailField(source="booking.tenant.email", read_only=True)
-    tenant_phone = serializers.CharField(source="booking.phone", read_only=True)
+    tenant_email = serializers.EmailField(
+        source="booking.tenant.email",
+        read_only=True,
+    )
+    tenant_phone = serializers.CharField(
+        source="booking.phone",
+        read_only=True,
+    )
 
     owner_name = serializers.SerializerMethodField()
-    owner_email = serializers.EmailField(source="booking.owner.email", read_only=True)
-    owner_phone = serializers.CharField(source="booking.owner.phone", read_only=True)
+    owner_email = serializers.EmailField(
+        source="booking.owner.email",
+        read_only=True,
+    )
+    owner_phone = serializers.CharField(
+        source="booking.owner.phone",
+        read_only=True,
+    )
 
-    preferred_date = serializers.DateField(source="booking.preferred_date", read_only=True)
-    preferred_time = serializers.TimeField(source="booking.preferred_time", read_only=True)
-
-    scheduled_at = serializers.DateTimeField(source="created_at", read_only=True)
+    preferred_date = serializers.DateField(
+        source="booking.preferred_date",
+        read_only=True,
+    )
+    preferred_time = serializers.TimeField(
+        source="booking.preferred_time",
+        read_only=True,
+    )
+    scheduled_at = serializers.DateTimeField(
+        source="created_at",
+        read_only=True,
+    )
 
     class Meta:
         model = InspectionMeeting
@@ -310,75 +450,204 @@ class InspectionMeetingSerializer(serializers.ModelSerializer):
 
         for img in obj.booking.property.images.all():
             if img.image:
-                url = request.build_absolute_uri(img.image.url) if request else img.image.url
+                url = (
+                    request.build_absolute_uri(img.image.url)
+                    if request
+                    else img.image.url
+                )
                 result.append(url)
 
         return result
 
     def get_tenant_name(self, obj):
         tenant = obj.booking.tenant
-        full = f"{tenant.first_name} {tenant.last_name}".strip()
-        return full or tenant.username
+        full_name = f"{tenant.first_name} {tenant.last_name}".strip()
+        return full_name or tenant.username
 
     def get_owner_name(self, obj):
         owner = obj.booking.owner
-        full = f"{owner.first_name} {owner.last_name}".strip()
-        return full or owner.username
+        full_name = f"{owner.first_name} {owner.last_name}".strip()
+        return full_name or owner.username
 
     def validate(self, attrs):
+        attrs = super().validate(attrs)
+
         request = self.context.get("request")
         user = request.user if request else None
-        booking = attrs.get("booking") or (self.instance.booking if self.instance else None)
+
+        booking = attrs.get("booking")
+
+        if not user or not user.is_authenticated:
+            raise serializers.ValidationError("Authentication is required.")
 
         if not booking:
-            raise serializers.ValidationError("Booking is required.")
+            raise serializers.ValidationError({"booking": "A booking is required."})
 
-        if user and user.id != booking.owner_id:
-            if not (user.is_superuser or getattr(user, "role", None) == "admin"):
-                raise serializers.ValidationError(
-                    "Only the property owner can schedule a meeting for this booking."
-                )
+        role = getattr(user, "role", None)
 
-        if booking.status in ("converted", "rejected"):
+        is_allowed_owner = user.id == booking.owner_id
+        is_admin = user.is_superuser or role == "admin"
+
+        if not is_allowed_owner and not is_admin:
             raise serializers.ValidationError(
-                "Cannot schedule a meeting for a converted or rejected booking."
+                {
+                    "booking": (
+                        "Only the property owner can schedule " "an inspection meeting."
+                    )
+                }
+            )
+
+        if booking.status not in [
+            "pending",
+            "confirmed",
+            "approved",
+        ]:
+            raise serializers.ValidationError(
+                {
+                    "booking": (
+                        "An inspection meeting cannot be scheduled "
+                        "for this booking in its current state."
+                    )
+                }
+            )
+
+        if hasattr(booking, "meeting"):
+            raise serializers.ValidationError(
+                {
+                    "booking": (
+                        "An inspection meeting already exists " "for this booking."
+                    )
+                }
+            )
+
+        if not booking.property.is_available:
+            raise serializers.ValidationError(
+                {"booking": ("This property is no longer available.")}
+            )
+
+        if booking.property.approval_status != "approved":
+            raise serializers.ValidationError(
+                {
+                    "booking": (
+                        "Only approved properties can have " "inspection meetings."
+                    )
+                }
+            )
+
+        if booking.property.report_flag_status in [
+            "hidden",
+            "flagged",
+        ]:
+            raise serializers.ValidationError(
+                {"booking": ("This property is currently under review.")}
             )
 
         return attrs
 
     def create(self, validated_data):
-        meeting = InspectionMeeting.objects.create(**validated_data)
-        booking = meeting.booking
+        request = self.context.get("request")
+
+        with transaction.atomic():
+            booking = validated_data["booking"]
+
+            meeting = InspectionMeeting.objects.create(**validated_data)
+
+            if booking.status in [
+                "pending",
+                "confirmed",
+            ]:
+                booking.status = "approved"
+                booking.save(update_fields=["status"])
+
+        log_meeting_event(
+            message=(f"Meeting scheduled for booking {booking.id}"),
+            status="success",
+            meeting_id=meeting.id,
+            booking_id=booking.id,
+            user=request.user if request else None,
+            detail=(f"{meeting.date} {meeting.time} " f"at {meeting.location}"),
+        )
 
         send_notification(
             user=booking.tenant,
             message=(
-                f"An inspection meeting has been scheduled for "
-                f"{booking.property.property_name} on {meeting.date} at {meeting.time}. "
-                f"Location: {meeting.location}."
+                f"Meeting scheduled for "
+                f"{booking.property.property_name} "
+                f"on {meeting.date}."
             ),
             notification_type="meeting_scheduled",
             property_id=booking.property.id,
         )
+
+        try:
+            send_meeting_scheduled_sms(meeting)
+        except Exception as exc:
+            log_sms_failure(
+                message="Meeting scheduled SMS failed",
+                phone=booking.phone or "",
+                booking_id=booking.id,
+                meeting_id=meeting.id,
+                detail=str(exc),
+            )
 
         return meeting
 
     def update(self, instance, validated_data):
         validated_data.pop("booking", None)
 
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
+        request = self.context.get("request")
+        user = request.user if request else None
+        role = getattr(user, "role", None)
 
-        instance.save()
+        is_allowed_owner = (
+            user and user.is_authenticated and user.id == instance.booking.owner_id
+        )
+        is_admin = (
+            user and user.is_authenticated and (user.is_superuser or role == "admin")
+        )
+
+        if not is_allowed_owner and not is_admin:
+            raise serializers.ValidationError(
+                "Only the property owner can update this meeting."
+            )
+
+        if instance.status != "upcoming":
+            raise serializers.ValidationError("Only upcoming meetings can be updated.")
+
+        with transaction.atomic():
+            for attr, value in validated_data.items():
+                setattr(instance, attr, value)
+
+            instance.save()
+
+        log_meeting_event(
+            message=f"Meeting {instance.id} updated",
+            status="info",
+            meeting_id=instance.id,
+            booking_id=instance.booking.id,
+            user=request.user if request else None,
+        )
 
         send_notification(
             user=instance.booking.tenant,
             message=(
-                f"Your inspection meeting for {instance.booking.property.property_name} "
-                f"has been updated. New date: {instance.date} at {instance.time}."
+                f"Meeting for "
+                f"{instance.booking.property.property_name} "
+                f"has been updated."
             ),
             notification_type="meeting_updated",
             property_id=instance.booking.property.id,
         )
+
+        try:
+            send_meeting_updated_sms(instance)
+        except Exception as exc:
+            log_sms_failure(
+                message="Meeting updated SMS failed",
+                phone=instance.booking.phone or "",
+                booking_id=instance.booking.id,
+                meeting_id=instance.id,
+                detail=str(exc),
+            )
 
         return instance

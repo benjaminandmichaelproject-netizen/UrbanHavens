@@ -23,7 +23,7 @@ const API_MEDIA_BASE  = "http://127.0.0.1:8000";
 const MAX_IMAGES      = 6;
 const NUMBER_OPTIONS  = Array.from({ length: 10 }, (_, i) => i + 1);
 const ROOM_OPTIONS    = Array.from({ length: 50 }, (_, i) => i + 1);
-
+const RENTAL_DURATION_OPTIONS = [6, 12, 18, 24];
 const CATEGORY_LABELS = {
   hostel:     "Hostel",
   house_rent: "House for Rent",
@@ -64,7 +64,11 @@ const EditPropertyModal = ({ property, onClose, onUpdated }) => {
     bathrooms:     property.bathrooms     ?? "",
     price:         property.price         ?? "",
     description:   property.description   ?? "",
-    amenities:     Array.isArray(property.amenities) ? property.amenities : [],
+   amenities: Array.isArray(property.amenities) ? property.amenities : [],
+
+allowed_rental_months: Array.isArray(property.allowed_rental_months)
+  ? property.allowed_rental_months
+  : [],
   });
   const [detailErrors, setDetailErrors] = useState({});
 
@@ -115,6 +119,30 @@ const EditPropertyModal = ({ property, onClose, onUpdated }) => {
   const removeAmenity = (i) =>
     setForm((p) => ({ ...p, amenities: p.amenities.filter((_, idx) => idx !== i) }));
 
+const toggleRentalDuration = (months) => {
+  setForm((prev) => {
+    const current = Array.isArray(prev.allowed_rental_months)
+      ? prev.allowed_rental_months
+      : [];
+
+    const updated = current.includes(months)
+      ? current.filter((m) => m !== months)
+      : [...current, months];
+
+    return {
+      ...prev,
+      allowed_rental_months: updated,
+    };
+  });
+
+  setDetailErrors((prev) => ({
+    ...prev,
+    allowed_rental_months: "",
+  }));
+};
+
+
+
   const validateDetails = () => {
     const e = {};
     if (!form.property_name?.trim()) e.property_name = "Required";
@@ -125,8 +153,17 @@ const EditPropertyModal = ({ property, onClose, onUpdated }) => {
     if (!isHostel && (!form.bathrooms || form.bathrooms < 1)) e.bathrooms = "Required";
     if (!form.price || form.price <= 0) e.price = "Required";
     if (!form.description?.trim()) e.description = "Required";
-    setDetailErrors(e);
-    return !Object.keys(e).length;
+   if (
+  !Array.isArray(form.allowed_rental_months) ||
+  form.allowed_rental_months.length === 0
+) {
+  e.allowed_rental_months =
+    "Select at least one rental duration.";
+}
+
+setDetailErrors(e);
+return !Object.keys(e).length;
+   
   };
 
   /* ── location helpers ───────────────────────────── */
@@ -179,61 +216,74 @@ const EditPropertyModal = ({ property, onClose, onUpdated }) => {
 
   /* ── submit ─────────────────────────────────────── */
   const handleSave = async () => {
-    const detailOk   = validateDetails();
-    const locationOk = validateLocation();
+  const detailOk   = validateDetails();
+  const locationOk = validateLocation();
 
-    if (!detailOk) { setTab("details");  return; }
-    if (!locationOk) { setTab("location"); return; }
-    if (totalImageCount === 0) {
-      setTab("images");
-      setToast({ type: "error", msg: "At least 1 image is required." });
-      return;
-    }
+  if (!detailOk)   { setTab("details");  return; }
+  if (!locationOk) { setTab("location"); return; }
+  if (totalImageCount === 0) {
+    setTab("images");
+    setToast({ type: "error", msg: "At least 1 image is required." });
+    return;
+  }
 
-    try {
-      setSaving(true);
-      const payload = new FormData();
+  try {
+    setSaving(true);
+    const payload = new FormData();
 
-      /* flat fields */
-      const combined = { ...form, ...loc };
-      Object.entries(combined).forEach(([key, val]) => {
-        if (val !== undefined && val !== null && val !== "") {
-          if (key === "amenities") {
-            payload.append("amenities", JSON.stringify(Array.isArray(val) ? val : []));
-          } else {
-            payload.append(key, val);
-          }
-        }
-      });
+    /* flat fields */
+    const combined = { ...form, ...loc };
+    Object.entries(combined).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== "") {
+       if (
+  key === "amenities" ||
+  key === "allowed_rental_months"
+) {
+  payload.append(
+    key,
+    JSON.stringify(Array.isArray(val) ? val : [])
+  );
+} else {
+  payload.append(key, val);
+}
+      }
+    });
 
-      /* images to delete */
-      existingImages
-        .filter((i) => i.toDelete)
-        .forEach((i) => payload.append("delete_images", i.url));
+    /* images to delete */
+    existingImages
+      .filter((i) => i.toDelete)
+      .forEach((i) => payload.append("delete_images", i.url));
 
-      /* new images */
-      newFiles.forEach((f) => payload.append("property_images", f));
+    /* new images */
+    newFiles.forEach((f) => payload.append("property_images", f));
 
-      const updated = await updateProperty(property.id, payload);
-      setToast({ type: "success", msg: "Property updated successfully!" });
-      const merged = {
-        ...property,
-        ...form,
-        ...loc,
-        status: property.status ?? "Active",
-        images: [
-          ...existingImages.filter((i) => !i.toDelete).map((i) => i.url),
-          ...newPreviews,
-        ],
-      };
-      setTimeout(() => { onUpdated(merged); onClose(); }, 1200);
-    } catch (err) {
-      console.error("Update failed:", err);
-      setToast({ type: "error", msg: "Update failed. Please try again." });
-    } finally {
-      setSaving(false);
-    }
-  };
+    const updated = await updateProperty(property.id, payload);
+
+    setToast({ type: "success", msg: "Property updated successfully!" });
+
+    // Use server-returned images so URLs are real, not revoked blob URLs
+    const mergedImages = updated?.images?.length
+      ? updated.images.map((img) =>
+          typeof img === "string" ? img : normalizeUrl(img.image ?? img.url ?? "")
+        )
+      : existingImages.filter((i) => !i.toDelete).map((i) => i.url);
+
+    const merged = {
+      ...property,
+      ...form,
+      ...loc,
+      status: property.status ?? "Active",
+      images: mergedImages,
+    };
+
+    setTimeout(() => { onUpdated(merged); onClose(); }, 1200);
+  } catch (err) {
+    console.error("Update failed:", err);
+    setToast({ type: "error", msg: "Update failed. Please try again." });
+  } finally {
+    setSaving(false);
+  }
+};
 
   /* ── render ─────────────────────────────────────── */
   return (
@@ -547,7 +597,34 @@ const EditPropertyModal = ({ property, onClose, onUpdated }) => {
                   </div>
                 </motion.div>
               )}
+<div className="form-group full-width">
+  <label>Available Rental Durations</label>
 
+  <div className="rental-duration-grid">
+    {RENTAL_DURATION_OPTIONS.map((months) => (
+      <label
+        key={months}
+        className="rental-duration-option"
+      >
+        <input
+          type="checkbox"
+          checked={
+  (form.allowed_rental_months || []).includes(months)
+}
+          onChange={() => toggleRentalDuration(months)}
+        />
+
+        {months} Months
+      </label>
+    ))}
+  </div>
+
+  {detailErrors.allowed_rental_months &&  (
+    <span className="error-text">
+      {detailErrors.allowed_rental_months}
+    </span>
+  )}
+</div>
               {/* ────────── IMAGES TAB ────────── */}
               {tab === "images" && (
                 <motion.div

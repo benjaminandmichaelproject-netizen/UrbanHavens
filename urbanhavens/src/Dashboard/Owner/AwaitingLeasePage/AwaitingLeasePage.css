@@ -1,0 +1,356 @@
+/* Defines the main awaiting-lease page layout. */
+.awaiting-lease-page {
+  min-height: 100vh;
+  padding: 32px;
+  background: #f6f8f7;
+  color: #18201c;
+}
+
+/* Aligns the page heading and refresh action. */
+.awaiting-lease-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 28px;
+}
+
+.awaiting-lease-header h1 {
+  margin: 4px 0 8px;
+  font-size: clamp(28px, 4vw, 42px);
+}
+
+.awaiting-lease-header p {
+  max-width: 680px;
+  margin: 0;
+  color: #65716a;
+  line-height: 1.6;
+}
+
+/* Styles the small section heading text. */
+.awaiting-lease-eyebrow {
+  color: #117a4b !important;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Styles the page refresh button. */
+.awaiting-lease-refresh {
+  border: 1px solid #d7ded9;
+  border-radius: 10px;
+  padding: 11px 18px;
+  background: #ffffff;
+  color: #18201c;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Displays page feedback messages. */
+.awaiting-lease-alert {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  line-height: 1.5;
+}
+
+.awaiting-lease-error {
+  border: 1px solid #f0b9b9;
+  background: #fff1f1;
+  color: #9c2929;
+}
+
+.awaiting-lease-success {
+  border: 1px solid #afd9bf;
+  background: #eefaf2;
+  color: #17633a;
+}
+
+/* Displays awaiting payment cards responsively. */
+.awaiting-lease-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(310px, 1fr)
+  );
+  gap: 20px;
+}
+
+/* Styles each awaiting-lease payment card. */
+.awaiting-lease-card {
+  display: flex;
+  flex-direction: column;
+  padding: 22px;
+  border: 1px solid #e1e7e3;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(24, 32, 28, 0.06);
+}
+
+.awaiting-lease-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #edf0ee;
+}
+
+.awaiting-lease-card-header h2 {
+  margin: 10px 0 5px;
+  font-size: 20px;
+}
+
+.awaiting-lease-card-header p {
+  margin: 0;
+  color: #65716a;
+}
+
+/* Styles payment status and method labels. */
+.awaiting-lease-status,
+.awaiting-lease-method {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.awaiting-lease-status {
+  padding: 6px 10px;
+  background: #eaf8f0;
+  color: #117a4b;
+}
+
+.awaiting-lease-method {
+  height: fit-content;
+  padding: 7px 10px;
+  background: #f0f2f1;
+  color: #4c5751;
+  white-space: nowrap;
+}
+
+/* Arranges payment details inside each card. */
+.awaiting-lease-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.awaiting-lease-details div {
+  min-width: 0;
+}
+
+.awaiting-lease-details dt {
+  margin-bottom: 5px;
+  color: #7b867f;
+  font-size: 12px;
+}
+
+.awaiting-lease-details dd {
+  margin: 0;
+  color: #202923;
+  font-size: 14px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  text-transform: capitalize;
+}
+
+/* Styles the create lease action. */
+.awaiting-lease-create-button {
+  width: 100%;
+  margin-top: auto;
+  border: 0;
+  border-radius: 10px;
+  padding: 13px 18px;
+  background: #117a4b;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Styles loading and empty page states. */
+.awaiting-lease-state,
+.awaiting-lease-empty {
+  padding: 48px 24px;
+  border: 1px dashed #ccd5cf;
+  border-radius: 16px;
+  background: #ffffff;
+  text-align: center;
+  color: #65716a;
+}
+
+.awaiting-lease-empty h2 {
+  margin-top: 0;
+  color: #202923;
+}
+
+/* Creates the lease form modal backdrop. */
+.awaiting-lease-modal-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(12, 18, 14, 0.62);
+}
+
+/* Styles the lease creation modal. */
+.awaiting-lease-modal {
+  width: min(100%, 620px);
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.22);
+}
+
+.awaiting-lease-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px;
+  border-bottom: 1px solid #e8ece9;
+}
+
+.awaiting-lease-modal-header h2 {
+  margin: 4px 0 6px;
+}
+
+.awaiting-lease-modal-header p {
+  margin: 0;
+  color: #65716a;
+}
+
+/* Styles the modal close action. */
+.awaiting-lease-close-button {
+  border: 0;
+  background: transparent;
+  color: #59635d;
+  font-size: 30px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Styles the lease creation form. */
+.awaiting-lease-form {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+}
+
+.awaiting-lease-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.awaiting-lease-form label {
+  display: grid;
+  gap: 8px;
+  color: #2c352f;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.awaiting-lease-form input,
+.awaiting-lease-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d4dcd6;
+  border-radius: 10px;
+  padding: 12px 13px;
+  background: #ffffff;
+  color: #18201c;
+  font: inherit;
+  outline: none;
+}
+
+.awaiting-lease-form input:focus,
+.awaiting-lease-form textarea:focus {
+  border-color: #117a4b;
+  box-shadow: 0 0 0 3px rgba(17, 122, 75, 0.12);
+}
+
+/* Displays server-controlled lease information. */
+.awaiting-lease-form-summary {
+  padding: 15px;
+  border-radius: 10px;
+  background: #f5f8f6;
+  color: #58645d;
+  font-size: 14px;
+}
+
+.awaiting-lease-form-summary p {
+  margin: 5px 0;
+}
+
+/* Aligns the form action buttons. */
+.awaiting-lease-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.awaiting-lease-cancel-button,
+.awaiting-lease-submit-button {
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.awaiting-lease-cancel-button {
+  border: 1px solid #d4dcd6;
+  background: #ffffff;
+  color: #364039;
+}
+
+.awaiting-lease-submit-button {
+  border: 1px solid #117a4b;
+  background: #117a4b;
+  color: #ffffff;
+}
+
+.awaiting-lease-cancel-button:disabled,
+.awaiting-lease-submit-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+/* Adjusts the page and form for smaller screens. */
+@media (max-width: 680px) {
+  .awaiting-lease-page {
+    padding: 20px 14px;
+  }
+
+  .awaiting-lease-header {
+    flex-direction: column;
+  }
+
+  .awaiting-lease-refresh {
+    width: 100%;
+  }
+
+  .awaiting-lease-card-header {
+    flex-direction: column;
+  }
+
+  .awaiting-lease-details,
+  .awaiting-lease-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .awaiting-lease-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .awaiting-lease-cancel-button,
+  .awaiting-lease-submit-button {
+    width: 100%;
+  }
+}

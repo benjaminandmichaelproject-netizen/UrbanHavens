@@ -1,0 +1,79 @@
+.payment-verify-page{
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    background:#f5f7fa;
+}
+
+.payment-card{
+    width:420px;
+    max-width:95%;
+    background:#fff;
+    border-radius:18px;
+    padding:40px;
+    text-align:center;
+    box-shadow:0 20px 60px rgba(0,0,0,.08);
+}
+
+.loader{
+    width:60px;
+    height:60px;
+    margin:auto;
+    border-radius:50%;
+    border:6px solid #ddd;
+    border-top:6px solid #0f9d58;
+    animation:spin 1s linear infinite;
+}
+
+@keyframes spin{
+    to{
+        transform:rotate(360deg);
+    }
+}
+
+.success-icon{
+    width:80px;
+    height:80px;
+    margin:auto;
+    border-radius:50%;
+    background:#0f9d58;
+    color:white;
+    font-size:40px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.failed-icon{
+    width:80px;
+    height:80px;
+    margin:auto;
+    border-radius:50%;
+    background:#e53935;
+    color:white;
+    font-size:40px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+.payment-card h2{
+    margin-top:25px;
+}
+
+.payment-card p{
+    margin:18px 0;
+    color:#555;
+}
+
+.payment-card button{
+    margin-top:20px;
+    padding:12px 22px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    background:#0f9d58;
+    color:white;
+    font-size:15px;
+}

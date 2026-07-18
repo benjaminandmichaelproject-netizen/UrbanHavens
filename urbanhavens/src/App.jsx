@@ -57,8 +57,18 @@ import Footer from "./components/Footer/Footer";
 import Hostel from "./Pages/PropertyListing/hostelForRent/Hostel";
 import HouseForRent from "./Pages/PropertyListing/houseForRent/HouseForRent";
 // ── AI Assistant ─────────────────────────────────────────────────
- import { AIAssistantButton } from "./components/AIAssistant/AIAssistant";
-
+import { AIAssistantButton } from "./components/AIAssistant/AIAssistant";
+import Bugs from "./Dashboard/Admin/Bugs/Bugs";
+import SchoolsRegion from "./Dashboard/Admin/SchoolsRegion/SchoolsRegion";
+import PaymentVerify from "./Pages/PaymentVerify/PaymentVerify";
+import Payment from "./Dashboard/Owner/payment/Payment";
+import Transactions from "./Dashboard/Tenant/Transactions/Transactions";
+import OnsitePayments from "./Dashboard/Owner/OnsitePayments/OnsitePayments";
+import AwaitingLeasePage from "./Dashboard/Owner/AwaitingLeasePage/AwaitingLeasePage";
+import PaymentReceiptPage from "./Pages/payment/PaymentReceiptPage";
+import OwnerTransactions from "./Dashboard/Owner/OwnerTransactions/OwnerTransactions";
+import LeaseAgreementPage from "./Pages/LeaseAgreementPage/LeaseAgreementPage";
+import OwnerRenewal from "./Dashboard/Owner/OwnerRenewal/OwnerRenewal";
 const AppContent = () => {
   const location = useLocation();
 
@@ -88,11 +98,31 @@ const AppContent = () => {
     "/registration",
     "/register-form",
   ];
+// Detects standalone printable document pages.
+const isDocumentPage =
+  location.pathname.startsWith("/payments/") ||
+  (
+    location.pathname.startsWith("/leases/") &&
+    location.pathname.endsWith("/agreement")
+  );
 
-  const shouldHideNavbar = hideNavbarRoutes.includes(location.pathname);
-  const shouldHideBottomNav = hideBottomNavRoutes.includes(location.pathname);
-  const shouldShowAI = !hideAIRoutes.includes(location.pathname);
 
+// Hides navigation on authentication and document pages.
+const shouldHideNavbar =
+  hideNavbarRoutes.includes(location.pathname) ||
+  isDocumentPage;
+
+
+// Hides mobile navigation on authentication and document pages.
+const shouldHideBottomNav =
+  hideBottomNavRoutes.includes(location.pathname) ||
+  isDocumentPage;
+
+
+// Hides the AI assistant on authentication and document pages.
+const shouldShowAI =
+  !hideAIRoutes.includes(location.pathname) &&
+  !isDocumentPage;
   return (
     <>
       {!isDashboard && !shouldHideNavbar && <Navbar />}
@@ -115,7 +145,21 @@ const AppContent = () => {
         <Route path="/favorites" element={<FavoritePage />} />
         <Route path="/hostel" element={<Hostel />} />
         <Route path="/houseforrent" element={<HouseForRent />} />
+
         <Route
+          path="/payment/verify/:reference"
+          element={<PaymentVerify />}
+        />
+        <Route
+          path="/payments/:paymentId/receipt"
+          element={<PaymentReceiptPage />}
+        />
+        <Route
+          path="/leases/:leaseId/agreement"
+          element={<LeaseAgreementPage />}
+        />
+        <Route
+
           path="/dashboard"
           element={
             <ProtectedRoute allowedRoles={["owner", "tenant", "admin"]}>
@@ -148,10 +192,26 @@ const AppContent = () => {
             }
           />
           <Route
+            path="owner/OwnerRenewal/OwnerRenewal"
+            element={
+              <ProtectedRoute allowedRoles={["owner"]}>
+                <OwnerRenewal />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="owner/my-properties"
             element={
               <ProtectedRoute allowedRoles={["owner"]}>
                 <MyProperties />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="owner/OwnerTransactions/OwnerTransactions"
+            element={
+              <ProtectedRoute allowedRoles={["owner"]}>
+                <OwnerTransactions />
               </ProtectedRoute>
             }
           />
@@ -180,10 +240,26 @@ const AppContent = () => {
             }
           />
           <Route
+            path="owner/OnsitePayments/OnsitePayments"
+            element={
+              <ProtectedRoute allowedRoles={["owner"]}>
+                <OnsitePayments />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="owner/contracts"
             element={
               <ProtectedRoute allowedRoles={["owner"]}>
                 <div>Contracts</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="owner/AwaitingLeasePage/AwaitingLeasePage"
+            element={
+              <ProtectedRoute allowedRoles={["owner"]}>
+                <AwaitingLeasePage />
               </ProtectedRoute>
             }
           />
@@ -203,7 +279,14 @@ const AppContent = () => {
               </ProtectedRoute>
             }
           />
-
+          <Route
+            path="owner/payment"
+            element={
+              <ProtectedRoute allowedRoles={["owner"]}>
+                <Payment />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="tenant"
             element={
@@ -241,6 +324,14 @@ const AppContent = () => {
             element={
               <ProtectedRoute allowedRoles={["tenant"]}>
                 <Lease />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="tenant/Transactions/transactions"
+            element={
+              <ProtectedRoute allowedRoles={["tenant"]}>
+                <Transactions />
               </ProtectedRoute>
             }
           />
@@ -382,6 +473,14 @@ const AppContent = () => {
             }
           />
           <Route
+            path="admin/bugs"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <Bugs />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="admin/documents"
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
@@ -394,6 +493,14 @@ const AppContent = () => {
             element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <div>Notifications</div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="admin/schools-regions"
+            element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <SchoolsRegion />
               </ProtectedRoute>
             }
           />
@@ -419,7 +526,7 @@ const AppContent = () => {
       {/* ── Global overlays ──────────────────────────────────────── */}
       <NotificationToastContainer />
 
-     {shouldShowAI && <AIAssistantButton />} 
+      {shouldShowAI && <AIAssistantButton />}
 
 
       {!isDashboard && !shouldHideBottomNav && <MobileBottomNav />}

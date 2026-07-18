@@ -1,0 +1,69 @@
+.payment-form {
+  margin-top: 1rem;
+}
+
+.payment-form label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.payment-form input,
+.payment-form select {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #ffffff;
+  font-size: 0.95rem;
+  outline: none;
+  color: #111827 !important;
+  transition: all 0.2s ease;
+}
+
+.payment-form input:focus,
+.payment-form select:focus {
+  border-color: #111827;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.08);
+}
+
+.payment-form select {
+  cursor: pointer;
+}
+
+.save-payment-btn {
+  width: 100%;
+  border: none;
+  padding: 0.95rem;
+  border-radius: 10px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.save-payment-btn:hover {
+  background: #000000;
+  transform: translateY(-1px);
+}
+
+.save-payment-btn:active {
+  transform: translateY(0);
+}
+
+.payment-form input::placeholder {
+  color: #9ca3af;
+}
+
+@media (max-width: 576px) {
+  .payment-form input,
+  .payment-form select,
+  .save-payment-btn {
+    padding: 0.8rem;
+  }
+}

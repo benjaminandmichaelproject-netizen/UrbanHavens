@@ -6,11 +6,12 @@ import PropertyLook from "../../Owner/UploadDetails/PropertyLook";
 import PreviewStep from "../../Owner/UploadDetails/PreviewStep";
 import { api } from "../../Owner/UploadDetails/api/api";
 import { getOwners, uploadProperty } from "../../Owner/UploadDetails/api/api";
-import { ADMIN_DEFAULT_FORM_DATA, ADMIN_DEFAULT_FILES,} from "./adminConstants";
+import { ADMIN_DEFAULT_FORM_DATA, ADMIN_DEFAULT_FILES } from "./adminConstants";
 
 import SuccessModal from "../../../components/Modals/SuccessModal";
 import "./AdminAddProperty.css";
 import ErrorModal from "../../../components/Modals/ErrorModal";
+
 const STEPS = [
     { component: OwnerSourceStep, key: "owner_source", label: "Owner Source" },
     { component: PropertyDescription, key: "property", label: "Property" },
@@ -40,7 +41,6 @@ function saveState(formData, step) {
 const AdminAddProperty = () => {
     const saved = loadSavedState();
 
-    // ALL HOOKS MUST STAY HERE
     const [formData, setFormData] = useState(
         saved?.formData ?? ADMIN_DEFAULT_FORM_DATA
     );
@@ -54,18 +54,15 @@ const AdminAddProperty = () => {
     const [errorMessage, setErrorMessage] = useState("");
     const [owners, setOwners] = useState([]);
     const [ownersLoading, setOwnersLoading] = useState(false);
-const [activeSupportSession, setActiveSupportSession] = useState(null);
+    const [activeSupportSession, setActiveSupportSession] = useState(null);
+    const [supportSessionLoading, setSupportSessionLoading] = useState(false);
 
-const [supportSessionLoading, setSupportSessionLoading] = useState(false);
-
-
-
+    // ── Fetch owners list
     useEffect(() => {
         const fetchOwners = async () => {
             try {
                 setOwnersLoading(true);
                 const users = await getOwners();
-
                 const ownerUsers = users.map((user) => ({
                     id: user.id,
                     name:
@@ -74,7 +71,6 @@ const [supportSessionLoading, setSupportSessionLoading] = useState(false);
                     email: user.email,
                     phone: user.phone,
                 }));
-
                 setOwners(ownerUsers);
             } catch (error) {
                 console.error("Failed to fetch owners:", error);
@@ -86,23 +82,39 @@ const [supportSessionLoading, setSupportSessionLoading] = useState(false);
         fetchOwners();
     }, []);
 
+    // ── Persist form state to localStorage
     useEffect(() => {
         saveState(formData, step);
     }, [formData, step]);
-useEffect(() => {
-    const fetchActiveSupportSession = async () => {
+
+    // ── Fetch the current active support session from the server
+    const fetchActiveSupportSession = useCallback(async () => {
         try {
             setSupportSessionLoading(true);
             const res = await api.get("/support/admin/current/");
-            setActiveSupportSession(res.data || null);
+            const session = res.data || null;
+            setActiveSupportSession(session);
 
-            if (res.data?.owner) {
+            if (session?.owner) {
+                // Session is active — lock the owner field to the invited owner
                 setFormData((prev) => ({
                     ...prev,
                     owner_source: {
                         ...prev.owner_source,
                         owner_mode: "existing",
-                        owner_user_id: String(res.data.owner),
+                        owner_user_id: String(session.owner),
+                    },
+                }));
+            } else {
+                // No active session — reset owner selection so the dropdown clears
+                setFormData((prev) => ({
+                    ...prev,
+                    owner_source: {
+                        ...prev.owner_source,
+                        owner_mode: prev.owner_source.owner_mode === "existing"
+                            ? "external"   // fall back to external if no session
+                            : prev.owner_source.owner_mode,
+                        owner_user_id: "",
                     },
                 }));
             }
@@ -112,13 +124,30 @@ useEffect(() => {
         } finally {
             setSupportSessionLoading(false);
         }
-    };
+    }, []);
 
-    fetchActiveSupportSession();
-}, []);
+    // ── Initial fetch on mount
+    useEffect(() => {
+        fetchActiveSupportSession();
+    }, [fetchActiveSupportSession]);
 
+    // ── Listen for live support session events from the WebSocket
+    //    (dispatched by NotificationContext when the backend pushes a message)
+    useEffect(() => {
+        const handleSupportEvent = async (e) => {
+            const data = e.detail;
+            if (!data?.event) return;
 
+            // Re-fetch whenever any support session changes so the UI
+            // stays in sync without the admin having to refresh
+            if (typeof data.event === "string" && data.event.startsWith("support_")) {
+                await fetchActiveSupportSession();
+            }
+        };
 
+        window.addEventListener("support_event", handleSupportEvent);
+        return () => window.removeEventListener("support_event", handleSupportEvent);
+    }, [fetchActiveSupportSession]);
 
     const nextStep = useCallback(() => {
         setStep((prev) => Math.min(prev + 1, STEPS.length));
@@ -171,8 +200,8 @@ useEffect(() => {
             if (owner_source.owner_user_id) {
                 formPayload.append("owner_user_id", owner_source.owner_user_id);
                 if (activeSupportSession?.id) {
-            formPayload.append("support_session_id", activeSupportSession.id);
-        }
+                    formPayload.append("support_session_id", activeSupportSession.id);
+                }
             }
         } else {
             if (owner_source.external_full_name) {
@@ -260,20 +289,21 @@ useEffect(() => {
             );
         }
 
-     return (
-  <Component
-    data={formData[key] ?? {}}
-    update={(data) => updateSection(key, data)}
-    files={files[key] ?? {}}
-    setFile={(k, f) => updateFile(key, k, f)}
-    next={nextStep}
-    prev={prevStep}
-    owners={owners}
-    ownersLoading={ownersLoading}
-    activeSupportSession={activeSupportSession}
-    supportSessionLoading={supportSessionLoading}
-  />
-)}
+        return (
+            <Component
+                data={formData[key] ?? {}}
+                update={(data) => updateSection(key, data)}
+                files={files[key] ?? {}}
+                setFile={(k, f) => updateFile(key, k, f)}
+                next={nextStep}
+                prev={prevStep}
+                owners={owners}
+                ownersLoading={ownersLoading}
+                activeSupportSession={activeSupportSession}
+                supportSessionLoading={supportSessionLoading}
+            />
+        );
+    };
 
     const progressPercent = Math.round((step / STEPS.length) * 100);
 

@@ -1,0 +1,186 @@
+.direct-payment-lease-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 23, 18, 0.65);
+  backdrop-filter: blur(5px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 30px;
+  z-index: 9999;
+}
+
+.direct-payment-lease-modal {
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 30px 80px rgba(0,0,0,.25);
+}
+
+.direct-payment-lease-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 28px 30px;
+  border-bottom: 1px solid #edf1ef;
+}
+
+.direct-payment-lease-header h2 {
+  margin: 0;
+  color: #173d2e;
+}
+
+.direct-payment-lease-header p {
+  margin-top: 8px;
+  color: #667b72;
+}
+
+.direct-payment-lease-close {
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  background: #f3f5f4;
+  font-size: 22px;
+}
+
+.direct-payment-summary {
+  margin: 25px 30px;
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 18px;
+}
+
+.direct-payment-summary div {
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid #dce8e1;
+  background: #f9fbfa;
+}
+
+.direct-payment-summary span {
+  display: block;
+  font-size: 12px;
+  color: #74877e;
+  margin-bottom: 8px;
+}
+
+.direct-payment-summary strong {
+  color: #173d2e;
+  font-size: 17px;
+}
+
+.direct-payment-lease-form {
+  padding: 0 30px 30px;
+}
+
+.direct-payment-lease-grid {
+  display: grid;
+  grid-template-columns: repeat(2,1fr);
+  gap: 22px;
+}
+
+.direct-payment-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.direct-payment-field label {
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #244b39;
+}
+
+.direct-payment-field input,
+.direct-payment-field textarea {
+  padding: 13px 15px;
+  border: 1px solid #cfded6;
+  border-radius: 10px;
+  font-size: 15px;
+  outline: none;
+  color:#000000;
+}
+
+.direct-payment-field input:focus,
+.direct-payment-field textarea:focus {
+  border-color: #1b7548;
+}
+
+.direct-payment-field textarea {
+  margin-top: 20px;
+  min-height: 120px;
+  resize: vertical;
+}
+
+.direct-payment-field small {
+  margin-top: 6px;
+  color: #d32f2f;
+}
+
+.direct-payment-hint {
+  color: #5c6f67 !important;
+}
+
+.direct-payment-warning {
+  margin-top: 25px;
+  padding: 16px;
+  border-radius: 10px;
+  background: #fff7d8;
+  border-left: 4px solid #e0a800;
+  color: #725500;
+}
+
+.direct-payment-lease-actions {
+  margin-top: 30px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 15px;
+}
+
+.direct-payment-cancel-btn {
+  padding: 12px 26px;
+  border-radius: 10px;
+  border: 1px solid #ccd9d3;
+  background: white;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.direct-payment-confirm-btn {
+  padding: 12px 28px;
+  border: none;
+  border-radius: 10px;
+  background: #166534;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.direct-payment-confirm-btn:hover {
+  background: #14532d;
+}
+
+@media (max-width:768px){
+
+.direct-payment-summary{
+grid-template-columns:1fr;
+}
+
+.direct-payment-lease-grid{
+grid-template-columns:1fr;
+}
+
+.direct-payment-lease-actions{
+flex-direction:column;
+}
+
+.direct-payment-confirm-btn,
+.direct-payment-cancel-btn{
+width:100%;
+}
+
+}

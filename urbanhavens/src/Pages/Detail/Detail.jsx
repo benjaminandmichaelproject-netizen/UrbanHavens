@@ -570,6 +570,61 @@ const Detail = () => {
               </MapContainer>
             </motion.div>
           )}
+          {/* ✅ TWO BUTTONS SIDE BY SIDE */}
+    <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
+
+      {/* Get Directions */}
+      <button
+        onClick={() => {
+          const dest = `${property.lat},${property.lng}`;
+          const url = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`;
+          window.open(url, "_blank");
+        }}
+        style={{
+          flex: 1,
+          padding: "12px",
+          backgroundColor: "#10b981",
+          color: "white",
+          border: "none",
+          borderRadius: "8px",
+          fontSize: "0.95rem",
+          fontWeight: "600",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px",
+        }}
+      >
+        <FaMapMarkerAlt /> Get Directions
+      </button>
+
+      {/* Open in Google Maps */}
+      <button
+        onClick={() => {
+          const url = `https://www.google.com/maps?q=${property.lat},${property.lng}`;
+          window.open(url, "_blank");
+        }}
+        style={{
+          flex: 1,
+          padding: "12px",
+          backgroundColor: "#ffffff",
+          color: "#374151",
+          border: "2px solid #e5e7eb",
+          borderRadius: "8px",
+          fontSize: "0.95rem",
+          fontWeight: "600",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px",
+        }}
+      >
+        <FaMapMarkerAlt style={{ color: "#ef4444" }} /> Open in Google Maps
+      </button>
+
+    </div>
         </div>
 
         <div className="dt-right">

@@ -369,4 +369,162 @@ justify-content: center;
     grid-template-columns: 1fr;
     gap: 0;
   }
+}.booking-warning-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #fff8e8;
+  border: 1px solid #f2d38b;
+  color: #6f4e00;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.booking-warning-icon-wrap {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(232, 168, 56, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.booking-warning-icon {
+  font-size: 1rem;
+}
+
+.booking-warning-text strong {
+  display: block;
+  font-size: 0.95rem;
+  margin-bottom: 4px;
+}
+
+.booking-warning-text p {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.booking-inline-safety {
+  margin: 10px 0 16px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #8a6708;
+  background: rgba(255, 248, 232, 0.9);
+  border-left: 4px solid #e8a838;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+.booking-report-box {
+  border: 0.5px solid rgba(26, 122, 64, 0.2);
+  border-radius: 12px;
+  overflow: hidden;
+  padding: 10px;
+}
+
+.report-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 0.5px solid rgba(26, 122, 64, 0.15);
+}
+
+.report-header-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #e8f5ee;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.custom-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.custom-select {
+  width: 100%;
+  padding: 10px 40px 10px 14px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(26, 122, 64, 0.3);
+  background: #e8f5ee;
+  color: #0f5c2e;
+  font-size: 14px;
+  font-weight: 500;
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.custom-select:hover {
+  border-color: #1a7a40;
+  background: #d6eede;
+}
+
+.custom-select:focus {
+  border-color: #1a7a40;
+  box-shadow: 0 0 0 3px rgba(26, 122, 64, 0.15);
+  background: #fff;
+}
+
+.custom-select-arrow {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+.booking-report-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.booking-report-cancel-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(26, 122, 64, 0.3);
+  background: transparent;
+  color: #1a7a40;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.booking-report-btn{
+flex: 1;
+width: 100%;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1.5px solid rgba(26, 122, 64, 0.3);
+  background: transparent;
+  color: #1a7a40;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin: 1% 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.booking-report-cancel-btn:hover {
+  background: #e8f5ee;
+  border-color: #1a7a40;
+}
+
+.booking-report-submit-btn {
+  flex: 2;
 }

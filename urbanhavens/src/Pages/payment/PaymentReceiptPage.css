@@ -1,0 +1,314 @@
+/* Defines the receipt page background and spacing. */
+.payment-receipt-page {
+  min-height: 100vh;
+  padding: 32px;
+  background: #eef2ef;
+  color: #1d2821;
+}
+
+/* Styles the loading and error states. */
+.payment-receipt-state {
+  max-width: 720px;
+  margin: 80px auto;
+  padding: 28px;
+  border-radius: 14px;
+  background: #ffffff;
+  text-align: center;
+}
+
+.payment-receipt-state.error {
+  color: #a32929;
+}
+
+/* Aligns the receipt action buttons. */
+.payment-receipt-actions {
+  display: flex;
+  justify-content: flex-end;
+  max-width: 900px;
+  margin: 0 auto 18px;
+}
+
+.payment-receipt-actions button {
+  border: 0;
+  border-radius: 10px;
+  padding: 12px 18px;
+  background: #117a4b;
+  color: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* Creates the formal printable receipt document. */
+.payment-receipt-document {
+  position: relative;
+  max-width: 900px;
+  margin: 0 auto;
+  overflow: hidden;
+  padding: 54px;
+  border: 1px solid #d8dfda;
+  background: #ffffff;
+  box-shadow: 0 18px 50px rgba(16, 28, 20, 0.09);
+}
+
+/* Displays the large UrbanHavens background watermark. */
+.payment-receipt-watermark {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  z-index: 0;
+  transform: translate(-50%, -50%) rotate(-30deg);
+  color: #117a4b;
+  font-size: clamp(70px, 12vw, 150px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  opacity: 0.055;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Keeps receipt content above the watermark. */
+.payment-receipt-document > *:not(
+  .payment-receipt-watermark
+) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Aligns the receipt heading and references. */
+.payment-receipt-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 30px;
+  padding-bottom: 24px;
+  border-bottom: 3px solid #117a4b;
+}
+
+.payment-receipt-header h1 {
+  margin: 0;
+  color: #117a4b;
+  font-size: 32px;
+  letter-spacing: 0.05em;
+}
+
+.payment-receipt-header p {
+  margin: 7px 0 0;
+  color: #69756e;
+}
+
+.payment-receipt-reference {
+  display: grid;
+  gap: 4px;
+  text-align: right;
+}
+
+.payment-receipt-reference span {
+  color: #748078;
+  font-size: 12px;
+}
+
+.payment-receipt-reference strong {
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+/* Styles the document title block. */
+.payment-receipt-title {
+  padding: 28px 0 10px;
+  text-align: center;
+}
+
+.payment-receipt-title h2 {
+  margin: 0;
+  font-size: 28px;
+}
+
+.payment-receipt-title p {
+  margin: 8px 0 0;
+  color: #6d7771;
+}
+
+/* Defines each receipt information section. */
+.payment-receipt-section {
+  margin-top: 28px;
+}
+
+.payment-receipt-section h3 {
+  margin: 0 0 14px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #dfe5e1;
+  color: #117a4b;
+  font-size: 16px;
+}
+
+/* Displays tenant and landlord details. */
+.payment-receipt-two-column {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+
+.payment-receipt-two-column > div {
+  padding: 16px;
+  border: 1px solid #e1e6e3;
+  background: rgba(248, 250, 249, 0.9);
+}
+
+.payment-receipt-two-column span,
+.payment-receipt-grid span,
+.payment-receipt-table span {
+  display: block;
+  margin-bottom: 5px;
+  color: #78837c;
+  font-size: 12px;
+}
+
+.payment-receipt-two-column p {
+  margin: 5px 0 0;
+  color: #667169;
+  font-size: 13px;
+}
+
+/* Displays property details responsively. */
+.payment-receipt-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.payment-receipt-grid > div {
+  padding: 14px;
+  border: 1px solid #e2e7e4;
+  background: rgba(250, 251, 250, 0.92);
+}
+
+/* Displays financial details as a receipt table. */
+.payment-receipt-table {
+  border: 1px solid #dce3de;
+}
+
+.payment-receipt-table > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  padding: 13px 16px;
+  border-bottom: 1px solid #e4e8e5;
+}
+
+.payment-receipt-table > div:last-child {
+  border-bottom: 0;
+}
+
+.payment-receipt-table strong {
+  text-align: right;
+}
+
+/* Highlights full, part, and overpaid statuses. */
+.payment-receipt-status.full {
+  color: #147548;
+}
+
+.payment-receipt-status.part {
+  color: #a46700;
+}
+
+.payment-receipt-status.overpaid {
+  color: #176ea2;
+}
+
+.payment-receipt-status.unpaid {
+  color: #a52d2d;
+}
+
+/* Styles the official confirmation statement. */
+.payment-receipt-statement {
+  margin-top: 30px;
+  padding: 20px;
+  border-left: 4px solid #117a4b;
+  background: rgba(242, 248, 244, 0.92);
+  line-height: 1.75;
+}
+
+.payment-receipt-statement p {
+  margin: 0 0 8px;
+}
+
+.payment-receipt-statement p:last-child {
+  margin-bottom: 0;
+}
+
+/* Aligns the formal receipt footer. */
+.payment-receipt-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 42px;
+  padding-top: 20px;
+  border-top: 1px solid #dce3de;
+  color: #69746d;
+}
+
+.payment-receipt-footer p {
+  margin: 5px 0 0;
+  font-size: 13px;
+}
+
+.payment-receipt-footer > div:last-child {
+  text-align: right;
+}
+
+/* Adjusts the document for small screens. */
+@media (max-width: 680px) {
+  .payment-receipt-page {
+    padding: 14px;
+  }
+
+  .payment-receipt-document {
+    padding: 26px 18px;
+  }
+
+  .payment-receipt-header {
+    flex-direction: column;
+  }
+
+  .payment-receipt-reference {
+    text-align: left;
+  }
+
+  .payment-receipt-two-column,
+  .payment-receipt-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-receipt-footer {
+    flex-direction: column;
+  }
+
+  .payment-receipt-footer > div:last-child {
+    text-align: left;
+  }
+}
+
+/* Produces a clean printable receipt or PDF. */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .payment-receipt-page {
+    min-height: auto;
+    padding: 0;
+    background: #ffffff;
+  }
+
+  .payment-receipt-document {
+    max-width: none;
+    margin: 0;
+    padding: 30px;
+    border: 0;
+    box-shadow: none;
+  }
+
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}

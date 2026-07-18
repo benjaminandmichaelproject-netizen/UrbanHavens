@@ -10,10 +10,12 @@ urlpatterns = [
     path("api/", include("bookings.urls")),
     path("api/", include("notifications.urls")),
     path("api/", include("leases.urls")),
-    path("api/", include("schools.urls")),       
+   path("api/schools/", include("schools.urls")),    
      path("api/assistant/", include("assistant.urls")),
      path("api/reports/", include("reports.urls")),
      path("api/support/", include("support.urls")),
+      path("api/", include("system_logs.urls")),
+       path("api/payments/", include("payments.urls")),
 ]
 
 if settings.DEBUG:

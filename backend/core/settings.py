@@ -26,21 +26,18 @@ def env_list(name: str, default: str = ""):
     value = os.getenv(name, default)
     return [item.strip() for item in value.split(",") if item.strip()]
 
-
 ALLOWED_HOSTS = env_list(
     "ALLOWED_HOSTS",
-    "127.0.0.1,localhost,.onrender.com,172.20.10.3"
-    
+    "127.0.0.1,localhost,.onrender.com"
 )
-
 CSRF_TRUSTED_ORIGINS = env_list(
     "CSRF_TRUSTED_ORIGINS",
-    "http://127.0.0.1:5173,http://localhost:5173,http://172.20.10.3:5173"
+    "http://127.0.0.1:5173,http://localhost:5173"
 )
 
 CORS_ALLOWED_ORIGINS = env_list(
     "CORS_ALLOWED_ORIGINS",
-    "http://127.0.0.1:5173,http://localhost:5173,http://172.20.10.3:5173"
+    "http://127.0.0.1:5173,http://localhost:5173"
 )
 
 
@@ -75,7 +72,9 @@ INSTALLED_APPS = [
     "schools",
     "assistant",
     "reports",
-    "support"
+    "support",
+    "system_logs",
+     "payments",
 ]
 
 MIDDLEWARE = [
@@ -88,6 +87,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "system_logs.middleware.APIErrorLoggingMiddleware",
+
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -135,6 +136,9 @@ else:
             "PASSWORD": os.getenv("DB_PASSWORD", ""),
             "HOST": os.getenv("DB_HOST", ""),
             "PORT": os.getenv("DB_PORT", ""),
+            "OPTIONS": {
+            "timeout": 30,
+        },
         }
     }
 
@@ -162,7 +166,7 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
@@ -223,6 +227,12 @@ AUTHENTICATION_BACKENDS = [
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 
+PAYSTACK_PUBLIC_KEY = os.getenv("PAYSTACK_PUBLIC_KEY", "")
+PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "http://localhost:5173"
+)
 # Security settings
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 X_FRAME_OPTIONS = "DENY"

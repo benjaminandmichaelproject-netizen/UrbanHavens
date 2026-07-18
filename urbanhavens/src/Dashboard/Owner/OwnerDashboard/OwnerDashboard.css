@@ -88,6 +88,7 @@
   white-space: nowrap;
   transition: background 0.2s;
   flex-shrink: 0;
+  margin: 2%;
 }
 
 .od-banner-btn:hover { background: #25c965; }

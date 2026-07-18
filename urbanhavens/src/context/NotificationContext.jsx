@@ -12,6 +12,15 @@ import { api, refreshAccessToken } from "../Dashboard/Owner/UploadDetails/api/ap
 
 const NotificationContext = createContext(null);
 
+// ── Human-readable messages for each support event ─────────────────────────
+const SUPPORT_EVENT_MESSAGES = {
+  support_invite_received:  "An owner has requested your assistance.",
+  support_invite_accepted:  "An admin has accepted your support invite. Session is now live.",
+  support_invite_declined:  "Your support invite was declined by the admin.",
+  support_session_terminated: "The support session has been ended.",
+  support_session_expired:  "The support session has expired.",
+};
+
 export const NotificationProvider = ({ children }) => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -21,14 +30,15 @@ export const NotificationProvider = ({ children }) => {
   const socketRef = useRef(null);
   const reconnectTimerRef = useRef(null);
   const isMountedRef = useRef(true);
+  // Tracks support event keys already toasted in this session to prevent duplicates
+  const processedSupportEventsRef = useRef(new Set());
 
   const removeToast = (toastId) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== toastId));
   };
 
-  // ─── Fetch notifications (always refresh token first) ──────────────────────
+  // ─── Fetch notifications ───────────────────────────────────────────────────
   const fetchNotifications = useCallback(async () => {
-    // Refresh token before making the request so we never hit a stale token
     const token = await refreshAccessToken();
 
     if (!token) {
@@ -50,22 +60,19 @@ export const NotificationProvider = ({ children }) => {
     }
   }, []);
 
-  // ─── Connect WebSocket (always refresh token first) ────────────────────────
+  // ─── Connect WebSocket ─────────────────────────────────────────────────────
   const connectSocket = useCallback(async () => {
-    // Clear any pending reconnect timer
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current);
       reconnectTimerRef.current = null;
     }
 
-    // Close any existing socket cleanly before opening a new one
     if (socketRef.current) {
-      socketRef.current.onclose = null; // prevent triggering reconnect on manual close
+      socketRef.current.onclose = null;
       socketRef.current.close();
       socketRef.current = null;
     }
 
-    // Always get a fresh token before connecting
     const token = await refreshAccessToken();
 
     if (!token || !isMountedRef.current) {
@@ -97,8 +104,6 @@ export const NotificationProvider = ({ children }) => {
       setSocketConnected(false);
       console.log("Notification socket disconnected, code:", event.code);
 
-      // code 4001 = rejected by consumer (bad/expired token) — still retry
-      // Don't retry only if the component has unmounted
       reconnectTimerRef.current = setTimeout(() => {
         if (isMountedRef.current) {
           console.log("Attempting socket reconnect...");
@@ -113,17 +118,62 @@ export const NotificationProvider = ({ children }) => {
 
     socket.onmessage = (event) => {
       if (!isMountedRef.current) return;
+
       try {
         const data = JSON.parse(event.data);
+        if (!data || typeof data !== "object") return;
 
+        // ── Support events ────────────────────────────────────────────────
+        if (typeof data.event === "string" && data.event.startsWith("support_")) {
+          // Stable key: event name + session_id (no timestamp) so the Set
+          // deduplication works even if the message arrives more than once
+          const toastKey = `${data.event}_${data.session_id || ""}`;
+
+          if (!processedSupportEventsRef.current.has(toastKey)) {
+            processedSupportEventsRef.current.add(toastKey);
+
+            // Dispatch for dashboards / AdminAddProperty to re-fetch session state
+            window.dispatchEvent(new CustomEvent("support_event", { detail: data }));
+
+            // Show a toast
+            const message =
+              SUPPORT_EVENT_MESSAGES[data.event] ||
+              "A support session update occurred.";
+
+            const syntheticToast = {
+              id: toastKey,
+              message,
+              is_read: true,
+              notification_type: "support",
+              related_property_id: null,
+            };
+
+            setToasts((prev) => {
+              if (prev.some((t) => t.id === syntheticToast.id)) return prev;
+              return [syntheticToast, ...prev];
+            });
+
+            new Audio(notificationSound).play().catch(() => {});
+
+            // Clear the key after 10 s so the same event can toast again
+            // if it legitimately re-occurs in a future session
+            setTimeout(() => {
+              processedSupportEventsRef.current.delete(toastKey);
+            }, 10_000);
+          }
+
+          return;
+        }
+
+        // ── Unread counter update ─────────────────────────────────────────
         if (data.event === "notification_counter_update") {
           setUnreadCount(data.unread_count);
           return;
         }
 
+        // ── Regular notification ──────────────────────────────────────────
         if (!data.id || !data.created_at) return;
 
-        // Deduplicate — don't add if already in the list
         setNotifications((prev) => {
           if (prev.some((n) => n.id === data.id)) return prev;
           return [data, ...prev];
@@ -131,7 +181,6 @@ export const NotificationProvider = ({ children }) => {
 
         setUnreadCount((prev) => prev + 1);
 
-        // Deduplicate toasts too
         setToasts((prev) => {
           if (prev.some((t) => t.id === data.id)) return prev;
           return [data, ...prev];
@@ -144,7 +193,7 @@ export const NotificationProvider = ({ children }) => {
     };
   }, []);
 
-  // ─── Boot on mount, clean up on unmount ────────────────────────────────────
+  // ─── Boot on mount, clean up on unmount ───────────────────────────────────
   useEffect(() => {
     isMountedRef.current = true;
 
@@ -159,7 +208,7 @@ export const NotificationProvider = ({ children }) => {
       }
 
       if (socketRef.current) {
-        socketRef.current.onclose = null; // prevent reconnect on intentional unmount
+        socketRef.current.onclose = null;
         socketRef.current.close();
         socketRef.current = null;
       }

@@ -31,6 +31,7 @@ class ExternalLandlordAdmin(admin.ModelAdmin):
         "is_verified",
         "created_by",
         "created_at",
+        
     )
     list_filter = ("is_verified", "document_type", "created_at")
     search_fields = ("full_name", "phone", "email", "id_number", "business_name")
@@ -57,6 +58,9 @@ class PropertyAdmin(admin.ModelAdmin):
         "security_flagged",
         "security_flag_type",
         "security_under_review",
+        "reported_count",
+"report_flag_status",
+"report_flagged",
     )
     list_filter = (
         "category",
