@@ -409,3 +409,229 @@ def send_rent_payment_received_sms(payment):
         message=message,
         booking_id=payment.booking_id,
     )
+
+
+# ---------------------------------------------------------------------------
+# Lease lifecycle SMS helpers
+# ---------------------------------------------------------------------------
+
+def _get_user_phone(user) -> Optional[str]:
+    """
+    Returns a user's saved phone number without raising an error.
+    """
+    return getattr(user, "phone", None)
+
+
+def _get_user_name(user) -> str:
+    """
+    Returns the user's full name with a safe username fallback.
+    """
+    full_name = user.get_full_name().strip()
+
+    return full_name or getattr(user, "username", "User")
+
+
+def _get_lease_room_text(lease) -> str:
+    """
+    Returns the hostel room text when the lease has a room.
+    """
+    if not getattr(lease, "room_id", None):
+        return ""
+
+    return f", Room {lease.room.room_number}"
+
+
+def send_tenant_lease_expiry_reminder_sms(
+    lease,
+    days_remaining: int,
+) -> Optional[Dict[str, Any]]:
+    """
+    Reminds the tenant that their active lease is approaching expiry.
+    """
+    phone = _get_user_phone(lease.tenant)
+
+    if not phone:
+        print(
+            "LEASE SMS SKIPPED: Tenant has no phone number.",
+            flush=True,
+        )
+        return None
+
+    room_text = _get_lease_room_text(lease)
+
+    message = (
+        f"UrbanHavens: Your lease for "
+        f"{lease.property.property_name}{room_text} "
+        f"expires in {days_remaining} days on "
+        f"{lease.lease_end_date}. Submit a renewal request "
+        f"before expiry if you want to continue renting."
+    )
+
+    return send_sms(
+        phone=phone,
+        message=message,
+        booking_id=lease.booking_id,
+    )
+
+
+def send_landlord_lease_expiry_reminder_sms(
+    lease,
+    days_remaining: int,
+) -> Optional[Dict[str, Any]]:
+    """
+    Reminds the landlord that a tenant's lease is approaching expiry.
+    """
+    phone = _get_user_phone(lease.landlord)
+
+    if not phone:
+        print(
+            "LEASE SMS SKIPPED: Landlord has no phone number.",
+            flush=True,
+        )
+        return None
+
+    room_text = _get_lease_room_text(lease)
+    tenant_name = _get_user_name(lease.tenant)
+
+    message = (
+        f"UrbanHavens: The lease for "
+        f"{lease.property.property_name}{room_text}, held by "
+        f"{tenant_name}, expires in {days_remaining} days on "
+        f"{lease.lease_end_date}."
+    )
+
+    return send_sms(
+        phone=phone,
+        message=message,
+        booking_id=lease.booking_id,
+    )
+
+
+def send_tenant_renewal_protection_sms(
+    lease,
+    renewal,
+) -> Optional[Dict[str, Any]]:
+    """
+    Tells the tenant that the expired lease space remains reserved
+    because an open renewal request exists.
+    """
+    phone = _get_user_phone(lease.tenant)
+
+    if not phone:
+        print(
+            "LEASE SMS SKIPPED: Tenant has no phone number.",
+            flush=True,
+        )
+        return None
+
+    room_text = _get_lease_room_text(lease)
+
+    message = (
+        f"UrbanHavens: Your lease for "
+        f"{lease.property.property_name}{room_text} has reached "
+        f"its end date, but the space remains reserved because "
+        f"your renewal request is "
+        f"{renewal.get_status_display().lower()}."
+    )
+
+    return send_sms(
+        phone=phone,
+        message=message,
+        booking_id=lease.booking_id,
+    )
+
+
+def send_landlord_renewal_protection_sms(
+    lease,
+    renewal,
+) -> Optional[Dict[str, Any]]:
+    """
+    Tells the landlord that an expired lease space remains reserved
+    because an open renewal request exists.
+    """
+    phone = _get_user_phone(lease.landlord)
+
+    if not phone:
+        print(
+            "LEASE SMS SKIPPED: Landlord has no phone number.",
+            flush=True,
+        )
+        return None
+
+    room_text = _get_lease_room_text(lease)
+
+    message = (
+        f"UrbanHavens: The lease for "
+        f"{lease.property.property_name}{room_text} has reached "
+        f"its end date. The space remains reserved because renewal "
+        f"request #{renewal.id} is "
+        f"{renewal.get_status_display().lower()}."
+    )
+
+    return send_sms(
+        phone=phone,
+        message=message,
+        booking_id=lease.booking_id,
+    )
+
+
+def send_tenant_lease_expired_sms(
+    lease,
+) -> Optional[Dict[str, Any]]:
+    """
+    Notifies the tenant after their lease is automatically ended.
+    """
+    phone = _get_user_phone(lease.tenant)
+
+    if not phone:
+        print(
+            "LEASE SMS SKIPPED: Tenant has no phone number.",
+            flush=True,
+        )
+        return None
+
+    room_text = _get_lease_room_text(lease)
+
+    message = (
+        f"UrbanHavens: Your lease for "
+        f"{lease.property.property_name}{room_text} expired on "
+        f"{lease.lease_end_date} and has been marked as ended."
+    )
+
+    return send_sms(
+        phone=phone,
+        message=message,
+        booking_id=lease.booking_id,
+    )
+
+
+def send_landlord_lease_expired_sms(
+    lease,
+) -> Optional[Dict[str, Any]]:
+    """
+    Notifies the landlord after a tenant's lease is automatically ended.
+    """
+    phone = _get_user_phone(lease.landlord)
+
+    if not phone:
+        print(
+            "LEASE SMS SKIPPED: Landlord has no phone number.",
+            flush=True,
+        )
+        return None
+
+    room_text = _get_lease_room_text(lease)
+    tenant_name = _get_user_name(lease.tenant)
+
+    message = (
+        f"UrbanHavens: The lease for "
+        f"{lease.property.property_name}{room_text}, held by "
+        f"{tenant_name}, expired on {lease.lease_end_date} and "
+        f"has been marked as ended."
+    )
+
+    return send_sms(
+        phone=phone,
+        message=message,
+        booking_id=lease.booking_id,
+    )

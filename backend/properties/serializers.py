@@ -1,7 +1,7 @@
 import hashlib
 import json
 import logging
-
+from .utils.image_compression import compress_property_image
 from django.db import transaction
 from django.utils import timezone
 from urllib3 import request
@@ -802,15 +802,25 @@ class PropertySerializer(serializers.ModelSerializer):
         return property_obj
 
     def _save_property_images(self, request, property_obj):
-        if not request:
-            return
-        for image in request.FILES.getlist("property_images"):
-            image_hash = _generate_file_hash(image)
-            PropertyImage.objects.create(
-                property=property_obj,
-                image=image,
-                image_hash=image_hash,
-            )
+            """
+            Compress every uploaded property image before saving it.
+            """
+            if not request:
+                return
+
+            for image in request.FILES.getlist("property_images"):
+                # Compress the uploaded image before storing it.
+                compressed_image = compress_property_image(image)
+
+                # Generate the hash from the compressed image.
+                image_hash = _generate_file_hash(compressed_image)
+
+                # Save the compressed image.
+                PropertyImage.objects.create(
+                    property=property_obj,
+                    image=compressed_image,
+                    image_hash=image_hash,
+                )
 
     def update(self, instance, validated_data):
         protected_fields = [

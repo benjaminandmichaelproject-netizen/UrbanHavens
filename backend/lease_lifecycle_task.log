@@ -1,0 +1,10 @@
+C:\Users\HP\Desktop\UrbanHavens\backend\venv\Lib\site-packages\rest_framework\fields.py:992: UserWarning: min_value should be an integer or Decimal instance.
+  warnings.warn("min_value should be an integer or Decimal instance.")
+Lease lifecycle processed for 2026-07-17.
+Reminders: checked=0, sent=0, already_sent=0, sms_failures=0
+Expiries: checked=0, ended=0, blocked_by_renewal=0, already_processed=0, release_warnings=0, sms_failures=0
+C:\Users\HP\Desktop\UrbanHavens\backend\venv\Lib\site-packages\rest_framework\fields.py:992: UserWarning: min_value should be an integer or Decimal instance.
+  warnings.warn("min_value should be an integer or Decimal instance.")
+Lease lifecycle processed for 2026-07-17.
+Reminders: checked=0, sent=0, already_sent=0, sms_failures=0
+Expiries: checked=0, ended=0, blocked_by_renewal=0, already_processed=0, release_warnings=0, sms_failures=0
