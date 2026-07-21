@@ -150,9 +150,9 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   background: var(--ab-dark);
-          /* break out of section padding          */
+          
   padding: 0 15%;  
-  border-radius: 10px;         /* restore padding inside                */
+  border-radius: 10px;       
   box-sizing: content-box;
   margin-bottom: 5%;
 }

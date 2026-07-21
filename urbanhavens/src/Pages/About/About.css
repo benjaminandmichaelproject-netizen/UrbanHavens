@@ -2,7 +2,7 @@
 .ab2-wrapper {
   width: 100%;
   overflow-x: hidden;
-  font-family: "DM Sans", "Segoe UI", sans-serif;
+
 }
 
 /* ── Shared tokens ────────────────────────────────────────────────── */
@@ -79,14 +79,14 @@
   z-index: 0;
 }
 
-.ab2-texture {
+/* .ab2-texture {
   position: absolute;
   inset: 0;
   background-image: radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
   background-size: 28px 28px;
   pointer-events: none;
   z-index: 1;
-}
+} */
 
 .ab2-hero-inner {
   position: relative;
@@ -174,7 +174,7 @@
   overflow: hidden;
 }
 
-.ab2-story-texture {
+/* .ab2-story-texture {
   position: absolute;
   inset: 0;
   background-image:
@@ -183,7 +183,7 @@
   background-size: 40px 40px;
   pointer-events: none;
   z-index: 0;
-}
+} */
 
 /* Section header — shared */
 .ab2-section-header {

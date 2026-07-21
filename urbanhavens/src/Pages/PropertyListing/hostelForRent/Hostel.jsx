@@ -1,66 +1,82 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import RentalCard from "../../../components/FeaturedRentals/RentalCard";
-import "./Hostel.css";
 import Footer from "../../../components/Footer/Footer";
+import {
+  api,
+  clearAuthStorage,
+} from "../../../Dashboard/Owner/UploadDetails/api/api";
+
+import "./Hostel.css";
+
 const Hostel = () => {
   const navigate = useNavigate();
+
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [favoriteIds, setFavoriteIds] = useState([]);
 
+  // Determine whether a property is currently available.
   const getAvailability = (property) => {
-    if (typeof property?.is_available === "boolean") return property.is_available;
+    if (typeof property?.is_available === "boolean") {
+      return property.is_available;
+    }
 
     const status = String(property?.status || "")
       .toLowerCase()
       .trim();
 
-    if (
-      ["unavailable", "not available", "occupied", "booked", "rented"].includes(
-        status
-      )
-    ) {
-      return false;
-    }
+    const unavailableStatuses = [
+      "unavailable",
+      "not available",
+      "occupied",
+      "booked",
+      "rented",
+    ];
 
-    return true;
+    return !unavailableStatuses.includes(status);
   };
 
+  // Return the first available property image.
   const getImageUrl = (property) => {
     if (property?.images?.length && property.images[0]?.image) {
       return property.images[0].image;
     }
 
-    if (property?.image) {
-      return property.image;
-    }
-
-    return "";
+    return property?.image || "";
   };
 
+  // Return a maximum of three amenities for the card.
   const getAmenitiesPreview = (amenities) => {
-    if (!amenities) return [];
+    if (!amenities) {
+      return [];
+    }
 
-    let parsed = amenities;
+    let parsedAmenities = amenities;
 
     if (typeof amenities === "string") {
       try {
-        parsed = JSON.parse(amenities);
+        parsedAmenities = JSON.parse(amenities);
       } catch {
-        parsed = amenities
+        parsedAmenities = amenities
           .split(",")
           .map((item) => item.trim())
           .filter(Boolean);
       }
     }
 
-    return Array.isArray(parsed) ? parsed.slice(0, 3) : [];
+    return Array.isArray(parsedAmenities)
+      ? parsedAmenities.slice(0, 3)
+      : [];
   };
 
+  // Load the authenticated user's favorite property IDs.
   const fetchFavorites = useCallback(async () => {
-    const token = localStorage.getItem("access");
+    const token =
+      localStorage.getItem("access") ||
+      localStorage.getItem("token");
 
     if (!token) {
       setFavoriteIds([]);
@@ -68,32 +84,37 @@ const Hostel = () => {
     }
 
     try {
-      const res = await fetch("/api/favorites/", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.get("/favorites/");
+      const data = response.data;
 
-      if (!res.ok) {
-        setFavoriteIds([]);
-        return;
-      }
+      const favoriteResults = Array.isArray(data)
+        ? data
+        : data.results || [];
 
-      const data = await res.json();
-
-      const ids = Array.isArray(data)
-        ? data.map((item) => item.property?.id).filter(Boolean)
-        : [];
+      const ids = favoriteResults
+        .map((item) => item.property?.id)
+        .filter(Boolean);
 
       setFavoriteIds(ids);
     } catch (err) {
-      console.error("Failed to fetch favorites:", err);
+      console.error(
+        "Failed to fetch favorites:",
+        err.response?.data || err.message
+      );
+
+      if (err.response?.status === 401) {
+        clearAuthStorage();
+      }
+
       setFavoriteIds([]);
     }
   }, []);
 
+  // Add or remove a hostel from the user's favorites.
   const toggleFavorite = async (propertyId) => {
-    const token = localStorage.getItem("access");
+    const token =
+      localStorage.getItem("access") ||
+      localStorage.getItem("token");
 
     if (!token) {
       navigate("/login");
@@ -103,65 +124,63 @@ const Hostel = () => {
     const isAlreadyFavorited = favoriteIds.includes(propertyId);
 
     try {
-      const res = await fetch(
-        isAlreadyFavorited
-          ? `/api/favorites/remove/${propertyId}/`
-          : "/api/favorites/add/",
-        {
-          method: isAlreadyFavorited ? "DELETE" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: isAlreadyFavorited
-            ? null
-            : JSON.stringify({ property_id: propertyId }),
-        }
-      );
-
-      if (res.status === 401) {
-        localStorage.removeItem("access");
-        localStorage.removeItem("refresh");
-        localStorage.removeItem("role");
-        localStorage.removeItem("username");
-        localStorage.removeItem("userId");
-        navigate("/login");
-        return;
+      if (isAlreadyFavorited) {
+        await api.delete(`/favorites/remove/${propertyId}/`);
+      } else {
+        await api.post("/favorites/add/", {
+          property_id: propertyId,
+        });
       }
 
-      if (!res.ok) {
-        throw new Error("Failed to update favorite.");
-      }
-
-      setFavoriteIds((prev) =>
+      setFavoriteIds((previousIds) =>
         isAlreadyFavorited
-          ? prev.filter((id) => id !== propertyId)
-          : [...prev, propertyId]
+          ? previousIds.filter((id) => id !== propertyId)
+          : [...previousIds, propertyId]
       );
     } catch (err) {
-      console.error("Favorite toggle failed:", err);
+      console.error(
+        "Favorite toggle failed:",
+        err.response?.data || err.message
+      );
+
+      if (err.response?.status === 401) {
+        clearAuthStorage();
+        navigate("/login");
+      }
     }
   };
 
+  // Load hostel properties from the backend.
   useEffect(() => {
     const fetchHostels = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const res = await fetch("/api/properties/?category=hostel");
+        const response = await api.get(
+          "/properties/?category=hostel"
+        );
 
-        if (!res.ok) {
-          throw new Error("Failed to fetch hostels.");
-        }
+        const data = response.data;
 
-        const data = await res.json();
-        const results = Array.isArray(data) ? data : data.results || [];
+        const results = Array.isArray(data)
+          ? data
+          : data.results || [];
 
         setProperties(results);
       } catch (err) {
-        setError(err.message || "Something went wrong.");
+        console.error(
+          "Failed to fetch hostels:",
+          err.response?.data || err.message
+        );
+
         setProperties([]);
+
+        setError(
+          err.response?.data?.detail ||
+            err.message ||
+            "Something went wrong."
+        );
       } finally {
         setLoading(false);
       }
@@ -175,13 +194,15 @@ const Hostel = () => {
   }, [fetchFavorites]);
 
   const handleBook = (property) => {
-    navigate(`/detail/${property.id}`, { state: { property } });
+    navigate(`/detail/${property.id}`, {
+      state: { property },
+    });
   };
 
   return (
     <div className="hostel-page">
       <section className="hostel-banner">
-        <div className="hostel-banner-overlay"></div>
+        <div className="hostel-banner-overlay" />
 
         <div className="hostel-banner-content">
           <span className="hostel-badge">
@@ -211,12 +232,22 @@ const Hostel = () => {
       </section>
 
       <section className="hostel-list-section">
-        {loading && <p className="hostel-message">Loading hostels...</p>}
+        {loading && (
+          <p className="hostel-message">
+            Loading hostels...
+          </p>
+        )}
 
-        {error && <p className="hostel-message hostel-error">{error}</p>}
+        {error && (
+          <p className="hostel-message hostel-error">
+            {error}
+          </p>
+        )}
 
-        {!loading && !error && !properties.length && (
-          <p className="hostel-message">No hostels available.</p>
+        {!loading && !error && properties.length === 0 && (
+          <p className="hostel-message">
+            No hostels available.
+          </p>
         )}
 
         {!loading && !error && properties.length > 0 && (
@@ -230,17 +261,24 @@ const Hostel = () => {
                 region={property.region}
                 category={property.category}
                 price={property.price}
-                amenities={getAmenitiesPreview(property.amenities)}
+                amenities={getAmenitiesPreview(
+                  property.amenities
+                )}
                 onBook={() => handleBook(property)}
                 isAvailable={getAvailability(property)}
-                isFavorited={favoriteIds.includes(property.id)}
-                onFavorite={() => toggleFavorite(property.id)}
+                isFavorited={favoriteIds.includes(
+                  property.id
+                )}
+                onFavorite={() =>
+                  toggleFavorite(property.id)
+                }
               />
             ))}
           </div>
         )}
       </section>
-         <Footer/>
+
+      <Footer />
     </div>
   );
 };

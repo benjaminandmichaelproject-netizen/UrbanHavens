@@ -7,6 +7,7 @@ import {
 } from "react-icons/fa";
 import RentalCard from "../../components/FeaturedRentals/RentalCard";
 import "./LandLord.css";
+import { api} from "../../Dashboard/Owner/UploadDetails/api/api";
 
 const fadeUp  = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
@@ -49,52 +50,88 @@ const Landlord = () => {
     }
     return [];
   };
+useEffect(() => {
+  const fetchLandlordProfile = async () => {
+    try {
+      setLoading(true);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const types = landlordType ? [landlordType] : ["registered", "external"];
+      const types = landlordType
+        ? [landlordType]
+        : ["registered", "external"];
 
-        let landlordData = null;
-        let listingData  = [];
+      let landlordData = null;
+      let listingData = [];
 
-        for (const t of types) {
-          const base = t === "registered"
-            ? `/api/registered-landlords/${id}/`
-            : `/api/external-landlords/${id}/`;
+      for (const currentType of types) {
+        const baseEndpoint =
+          currentType === "registered"
+            ? `/registered-landlords/${id}/`
+            : `/external-landlords/${id}/`;
 
-          const res = await fetch(base);
-          if (!res.ok) continue;
+        try {
+          const landlordResponse = await api.get(baseEndpoint);
 
-          landlordData = { ...(await res.json()), owner_source: t };
+          landlordData = {
+            ...landlordResponse.data,
+            owner_source: currentType,
+          };
 
-          const resL = await fetch(base.replace(/\/$/, "") + "/properties/");
-          if (resL.ok) {
-            const lj = await resL.json();
-            listingData = Array.isArray(lj) ? lj : lj.results || [];
+          try {
+            const listingsResponse = await api.get(
+              `${baseEndpoint}properties/`
+            );
+
+            const data = listingsResponse.data;
+
+            listingData = Array.isArray(data)
+              ? data
+              : data.results || [];
+          } catch (listingError) {
+            console.error(
+              "Failed to fetch landlord properties:",
+              listingError
+            );
+
+            listingData = [];
           }
+
           break;
+        } catch (profileError) {
+          if (profileError.response?.status !== 404) {
+            console.error(
+              "Failed to fetch landlord profile:",
+              profileError
+            );
+          }
         }
+      }
 
-        if (!landlordData) { setLandlord(null); return; }
+      if (!landlordData) {
+        setLandlord(null);
+        setListings([]);
+        return;
+      }
 
-        setLandlord({
-          ...landlordData,
-          title: landlordData.owner_source === "external"
+      setLandlord({
+        ...landlordData,
+        title:
+          landlordData.owner_source === "external"
             ? "External Property Owner"
             : landlordData.title || "Property Owner",
-        });
-        setListings(listingData);
-      } catch (err) {
-        console.error(err);
-        setLandlord(null);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [id, landlordType]);
+      });
 
+      setListings(listingData);
+    } catch (error) {
+      console.error("Landlord page error:", error);
+      setLandlord(null);
+      setListings([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchLandlordProfile();
+}, [id, landlordType]);
   const handleContact = () => {
     if (!token) { navigate("/login", { state: { message: "Please log in to contact the landlord." } }); return; }
     if (landlord?.phone) { window.location.href = `tel:${landlord.phone}`; return; }

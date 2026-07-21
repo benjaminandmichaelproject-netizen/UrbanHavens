@@ -45,7 +45,7 @@ const AboutSection = () => (
       whileInView="show"
       viewport={{ once: true, margin: "-60px" }}
     >
-      <motion.p className="ab-eyebrow" variants={fadeUp}>WHO WE ARE</motion.p>
+      {/* <motion.p className="ab-eyebrow" variants={fadeUp}>WHO WE ARE</motion.p> */}
       <motion.h1 className="ab-title" variants={fadeUp}>
         About <span className="ab-accent">UrbanHavens</span>
       </motion.h1>

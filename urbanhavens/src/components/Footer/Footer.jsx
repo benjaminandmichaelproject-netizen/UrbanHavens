@@ -10,7 +10,7 @@ import {
   FaArrowUp,
 } from "react-icons/fa";
 import "./Footer.css";
-
+import URBANHAVENSLOGO from "../../assets/images/URBANHAVENSLOGO.png";
 const Footer = () => {
   const scrollToTop = () => {
     window.scrollTo({
@@ -25,7 +25,7 @@ const Footer = () => {
         <div className="uh-footer-top">
           <div className="uh-footer-brand">
             <div className="uh-footer-logo-wrap">
-              <div className="uh-footer-logo">UH</div>
+              <img src={URBANHAVENSLOGO} alt="UrbanHavens Logo" className="uh-footer-logo" />
               <div>
                 <h2 className="uh-footer-title">UrbanHavens</h2>
                 <p className="uh-footer-tag">Find trusted homes with ease</p>
@@ -46,12 +46,13 @@ const Footer = () => {
 
               <div className="uh-footer-contact-item">
                 <FaPhoneAlt className="uh-footer-icon" />
-                <span>+233 55 000 0000</span>
+                <span>+233 55 125 4645</span>
               </div>
 
               <div className="uh-footer-contact-item">
                 <FaEnvelope className="uh-footer-icon" />
-                <span>support@urbanhavens.com</span>
+                <span>benjaminandmichaelproject@gmail.com
+</span>
               </div>
             </div>
 

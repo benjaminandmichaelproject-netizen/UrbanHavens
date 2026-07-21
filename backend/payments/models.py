@@ -38,12 +38,12 @@ class OwnerPaymentAccount(models.Model):
         max_length=15,
         validators=[
             RegexValidator(
-                regex=r"^0\\d{9}$",
+                regex=r"^0\d{9}$",
                 message=(
                     "Enter a valid Ghana phone number. "
-                    "Example: 0541234567"
+                    "Example: 0541254645"
                 ),
-            )
+            ) 
         ],
         help_text="Mobile money number",
     )

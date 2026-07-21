@@ -1,195 +1,288 @@
-/* Navbar */
-:root{
-    --bluecolor:#0f2c5d;
-    --secondary-color: #f0f0f0;
-    --text-color: #333;
-    --background-color: #fff;
-    --black-color: #000;
-    --Yellow-color: 
-#e8b10a;
-    --text-color2: #ffffff66;
-    --secondary-color2: #111116;
-    --secondary-color3: #101014;
-    --seconYellow:#d38b09;
+:root {
+  --bluecolor: #0f2c5d;
+  --secondary-color: #f0f0f0;
+  --text-color: #333;
+  --background-color: #fff;
+  --black-color: #000;
+  --yellow-color: #e8b10a;
+  --text-color2: #ffffff66;
+  --secondary-color2: #111116;
+  --secondary-color3: #101014;
+  --second-yellow: #d38b09;
 }
 
-
+/* Main navigation bar */
 .navbar {
   position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  height: 10vh;
+  min-height: 72px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 15% !important;
+  box-sizing: border-box;
   transition: background 0.3s ease;
   z-index: 1000;
 }
 
-
-
-.logo  {
-  color: white;
-  font-size: 22px;
-  font-weight: bold;
-  text-decoration: none;
+/* UrbanHavens logo */
+.logo {
+  display: flex;
+  align-items: center;
 }
 
+.logo a {
+  display: flex;
+  align-items: center;
+}
+
+.logo img {
+  width: 50px;
+  height: auto;
+  display: block;
+}
+
+/* Desktop navigation links */
 .nav-links {
   list-style: none;
   display: flex;
+  align-items: center;
   gap: 25px;
+  margin: 0;
+  padding: 0;
 }
 
 .nav-links li a {
   color: white;
   text-decoration: none;
-  transition: 0.3s;
+  transition: color 0.3s ease;
 }
 
 .nav-links li a:hover {
   color: #38bdf8;
 }
 
-/* Account Dropdown */
-
-.account-menu{
+/* Account dropdown */
+.account-menu {
   position: relative;
 }
 
-.account-btn{
+.account-btn {
+  border: none;
+  background: transparent;
   color: white;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
+  font: inherit;
+  padding: 0;
 }
 
-.account-btn:hover{
+.account-btn:hover {
   color: #38bdf8;
 }
 
-/* Dropdown Menu */
-
-.dropdown-menus{
+/* Desktop account dropdown */
+.dropdown-menus {
   position: absolute;
   top: 40px;
   right: 0;
-  background: var(--Yellow-color);
-  border-radius: 8px;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+  min-width: 170px;
   display: flex;
   flex-direction: column;
-  min-width: 170px;
   overflow: hidden;
-
-  /* Animation start state */
+  background: var(--yellow-color);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
   opacity: 0;
   transform: translateY(-10px) scale(0.95);
   animation: dropdownFade 0.25s ease forwards;
+  z-index: 1200;
 }
 
-/* Dropdown links */
+.dropdown-menus a,
+.dropdown-menus button {
+  width: 100%;
+  padding: 12px 15px;
+  border: none;
+  background: transparent;
+  color: #1e293b;
+  text-align: left;
+  text-decoration: none;
+  font-size: 14px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
 
 .dropdown-menus a,
-.dropdown-menus button{
-  padding: 12px 15px;
-  text-decoration: none;
-  border: none;
-  background: none;
-  cursor: pointer;
-  text-align: left;
-  color: #1e293b;
-  font-size: 14px;
+.dropdown-menus button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .dropdown-menus a:hover,
-.dropdown-menus button:hover{
+.dropdown-menus button:hover {
   background: #f1f5f9;
 }
 
-/* Animation */
-
-@keyframes dropdownFade{
-  to{
+@keyframes dropdownFade {
+  to {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
 }
 
-
-
-/* Mobile Toggle */
-.menu-toggle {
+/* Hidden on desktop */
+.mobile-navbar-actions {
   display: none;
-  font-size: 26px;
+}
+
+.menu-toggle {
+  border: none;
+  background: transparent;
   color: white;
+  font-size: 28px;
+  line-height: 1;
   cursor: pointer;
 }
-/* Mobile Styles */
+
+/* Mobile navigation */
 @media (max-width: 768px) {
-.nav-links {
-    position: absolute;
-    top: 10vh;
-    right: 0;
-    width: 100%;
-    background: var(--black-color);
-    flex-direction: column;
-    padding: 20px 15px; /* horizontal padding added */
-    box-sizing: border-box; /* ensures padding is counted inside width */
-    opacity: 0;
-    transform: translateY(-20px);
-    transition: 0.4s ease;
-    pointer-events: none;
-    z-index: 999;
-    overflow: visible;
-}
-.menu-toggle{
-  display: block;
-}
-  .nav-links.active {
-    opacity: 1;
-    transform: translateY(0);
-    pointer-events: auto;
+  .navbar {
+    min-height: 64px;
+    padding: 7px 5% !important;
   }
 
-  .account-menu {
+  .logo img {
+    width: 44px;
+  }
+
+  /* Account stays outside the hidden mobile menu */
+  .desktop-account-menu {
+    display: none;
+  }
+
+  .mobile-navbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+  }
+
+  /* Hidden navigation links */
+  .nav-links {
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    padding: 18px 5%;
+    margin: 0;
+    background: #061b10;
+    box-sizing: border-box;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(-15px);
+    transition:
+      opacity 0.3s ease,
+      transform 0.3s ease,
+      visibility 0.3s ease;
+    z-index: 999;
+  }
+
+  .nav-links.active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
+  }
+
+  .nav-links li {
+    width: 100%;
+  }
+
+  .nav-links li a {
+    display: block;
+    width: 100%;
+    padding: 13px 0;
+    border-bottom: 1px solid
+      rgba(255, 255, 255, 0.08);
+  }
+
+  /* Mobile account icon */
+  .mobile-account-menu {
     position: relative;
   }
 
-  .dropdown-menus {
-    position: relative; /* part of the nav flow */
-    top: 0;
-    left: 0;
-    min-width: 100%;
-    background: transparent; /* no background */
-    box-shadow: none;
-    border-radius: 0;
-    margin-top: 2px; /* small gap under mother link */
-    opacity: 1;
-    transform: none;
-    pointer-events: auto;
+  .mobile-account-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid
+      rgba(255, 255, 255, 0.18);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    cursor: pointer;
+  }
+
+  /* Account dropdown below the mobile icon */
+  .mobile-account-dropdown {
+    position: absolute;
+    top: 46px;
+    right: 0;
+    width: 180px;
     display: flex;
     flex-direction: column;
+    overflow: hidden;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 12px 35px
+      rgba(0, 0, 0, 0.24);
+    animation: dropdownFade 0.2s ease forwards;
+    z-index: 1300;
   }
 
-  .dropdown-menus a,
-  .dropdown-menus button {
-    color: white;
-    padding: 10px 20px;
-    display: block;
+  .mobile-account-dropdown a,
+  .mobile-account-dropdown button {
+    width: 100%;
+    padding: 13px 15px;
+    border: none;
+    background: transparent;
+    color: #10291b;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+    text-decoration: none;
+    font-size: 14px;
+    cursor: pointer;
+    box-sizing: border-box;
   }
 
-  .dropdown-menus a:hover,
-  .dropdown-menus button:hover {
-    background: rgba(255, 255, 255, 0.1);
+  .mobile-account-dropdown a:hover,
+  .mobile-account-dropdown button:hover {
+    background: #edf7f0;
   }
-.navbar{
-  padding: 7px 5% !important;
-}
-  .logo{
-    font-size: 15px;
-  }
-
 }

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import "./AddAdmin.css";
-
+import { api } from "../../Owner/UploadDetails/api/api";
 const EyeIcon = ({ open }) =>
   open ? (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}
@@ -97,7 +97,7 @@ const AddAdmin = () => {
     setLoading(true);
 
     try {
-      const token = localStorage.getItem("token");
+  
 
       // Register action uses MultiPartParser — send FormData, not JSON
       const formData = new FormData();
@@ -105,36 +105,41 @@ const AddAdmin = () => {
         formData.append(key, val);
       });
 
-      const response = await fetch("/api/users/register/", {
-        method: "POST",
-        headers: {
-          ...(token && { Authorization: `Bearer ${token}` }),
-          // Do NOT set Content-Type — browser sets it with boundary for FormData
-        },
-        body: formData,
-      });
+      const response = await api.post(
+  "/users/register/",
+  formData,
+  {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  }
+);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Map DRF field errors back onto the form
-        // e.g. { email: ["An account with this email already exists."] }
-        const fieldErrors = {};
-        Object.entries(data).forEach(([key, val]) => {
-          fieldErrors[key] = Array.isArray(val) ? val[0] : val;
-        });
-        setErrors(fieldErrors);
-        return;
-      }
+const data = response.data;
 
       // Success
       setSuccess(true);
       setForm(INITIAL);
       setTimeout(() => setSuccess(false), 3500);
 
-    } catch (err) {
-      setErrors({ non_field_errors: "Network error. Please try again." });
-    } finally {
+   } catch (err) {
+  if (err.response?.data) {
+    const fieldErrors = {};
+
+    Object.entries(err.response.data).forEach(([key, value]) => {
+      fieldErrors[key] = Array.isArray(value)
+        ? value[0]
+        : value;
+    });
+
+    setErrors(fieldErrors);
+  } else {
+    setErrors({
+      non_field_errors:
+        "Unable to connect to the server. Please try again.",
+    });
+  }
+} finally {
       setLoading(false);
     }
   };

@@ -1,92 +1,238 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import "./Navbar.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faUserCircle, faTachometerAlt, faSignOutAlt } from "@fortawesome/free-solid-svg-icons";
-import { clearAuthStorage } from "../../Dashboard/Owner/UploadDetails/api/api";
-const Navbar = () => {
+import {
+  faUserCircle,
+  faTachometerAlt,
+  faSignOutAlt,
+} from "@fortawesome/free-solid-svg-icons";
 
+import "./Navbar.css";
+import {
+  clearAuthStorage,
+} from "../../Dashboard/Owner/UploadDetails/api/api";
+import URBANHAVENSLOGO from "../../assets/images/URBANHAVENSLOGO.png";
+
+const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [desktopDropdownOpen, setDesktopDropdownOpen] =
+    useState(false);
+  const [mobileDropdownOpen, setMobileDropdownOpen] =
+    useState(false);
 
   const navigate = useNavigate();
 
   const role = localStorage.getItem("role");
-  const dashboardPath = role ? `/dashboard/${role}` : null;
-const handleLogout = () => {
-  clearAuthStorage();
-  setDropdownOpen(false);
-  setMenuOpen(false);
-  navigate("/", { replace: true });
-};
+  const dashboardPath = role
+    ? `/dashboard/${role}`
+    : null;
+
+  // Clears authentication and returns the user home.
+  const handleLogout = () => {
+    clearAuthStorage();
+    setDesktopDropdownOpen(false);
+    setMobileDropdownOpen(false);
+    setMenuOpen(false);
+    navigate("/", { replace: true });
+  };
+
+  // Closes the mobile navigation after selecting a page.
+  const closeMobileMenu = () => {
+    setMenuOpen(false);
+  };
+
   return (
     <nav className="navbar">
-
       <div className="logo">
-        <h2>UrbanHavens</h2>
+        <Link to="/">
+          <img
+            src={URBANHAVENSLOGO}
+            alt="UrbanHavens Logo"
+          />
+        </Link>
       </div>
 
-      <ul className={`nav-links ${menuOpen ? "active" : ""}`}>
-        <li><Link to="/" onClick={() => setMenuOpen(false)}>Home</Link></li>
-        <li><Link to="/about" onClick={() => setMenuOpen(false)}>About</Link></li>
-        <li><Link to="/contact" onClick={() => setMenuOpen(false)}>Contact</Link></li>
-        <li><Link to="/propertylisting" onClick={() => setMenuOpen(false)}>Property</Link></li>
+      <ul
+        className={`nav-links ${
+          menuOpen ? "active" : ""
+        }`}
+      >
+        <li>
+          <Link to="/" onClick={closeMobileMenu}>
+            Home
+          </Link>
+        </li>
 
-        {/* ACCOUNT DROPDOWN */}
-        <li className="account-menu">
+        <li>
+          <Link to="/about" onClick={closeMobileMenu}>
+            About
+          </Link>
+        </li>
 
-          <div
-            className="account-btn"
-            onClick={() => setDropdownOpen(!dropdownOpen)}
+        <li>
+          <Link to="/contact" onClick={closeMobileMenu}>
+            Contact
+          </Link>
+        </li>
+
+        <li>
+          <Link
+            to="/propertylisting"
+            onClick={closeMobileMenu}
           >
-            <FontAwesomeIcon icon={faUserCircle} /> Account
-          </div>
+            Property
+          </Link>
+        </li>
 
-          {dropdownOpen && (
+        {/* Desktop account dropdown */}
+        <li className="account-menu desktop-account-menu">
+          <button
+            type="button"
+            className="account-btn"
+            onClick={() =>
+              setDesktopDropdownOpen(
+                (previous) => !previous
+              )
+            }
+          >
+            <FontAwesomeIcon icon={faUserCircle} />
+            Account
+          </button>
+
+          {desktopDropdownOpen && (
             <div className="dropdown-menus">
-
-              {!role && (
+              {!role ? (
                 <>
-                  <Link to="/login" onClick={() => setDropdownOpen(false)}>
+                  <Link
+                    to="/login"
+                    onClick={() =>
+                      setDesktopDropdownOpen(false)
+                    }
+                  >
                     Login
                   </Link>
 
-                  <Link to="/registration" onClick={() => setDropdownOpen(false)}>
+                  <Link
+                    to="/registration"
+                    onClick={() =>
+                      setDesktopDropdownOpen(false)
+                    }
+                  >
                     Registration
                   </Link>
                 </>
-              )}
-
-              {role && (
+              ) : (
                 <>
                   <Link
                     to={dashboardPath}
-                    onClick={() => setDropdownOpen(false)}
+                    onClick={() =>
+                      setDesktopDropdownOpen(false)
+                    }
                   >
-                    <FontAwesomeIcon icon={faTachometerAlt} /> Dashboard
+                    <FontAwesomeIcon
+                      icon={faTachometerAlt}
+                    />
+                    Dashboard
                   </Link>
 
-                  <button onClick={handleLogout}>
-                    <FontAwesomeIcon icon={faSignOutAlt} /> Logout
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                  >
+                    <FontAwesomeIcon
+                      icon={faSignOutAlt}
+                    />
+                    Logout
                   </button>
                 </>
               )}
-
             </div>
           )}
-
         </li>
-
       </ul>
 
-      {/* Mobile Hamburger */}
-      <div
-        className={`menu-toggle ${menuOpen ? "open" : ""}`}
-        onClick={() => setMenuOpen(!menuOpen)}
-      >
-        ☰
-      </div>
+      {/* Mobile account and hamburger controls */}
+      <div className="mobile-navbar-actions">
+        <div className="mobile-account-menu">
+          <button
+            type="button"
+            className="mobile-account-btn"
+            onClick={() => {
+              setMobileDropdownOpen(
+                (previous) => !previous
+              );
+              setMenuOpen(false);
+            }}
+            aria-label="Open account menu"
+          >
+            <FontAwesomeIcon icon={faUserCircle} />
+          </button>
 
+          {mobileDropdownOpen && (
+            <div className="mobile-account-dropdown">
+              {!role ? (
+                <>
+                  <Link
+                    to="/login"
+                    onClick={() =>
+                      setMobileDropdownOpen(false)
+                    }
+                  >
+                    Login
+                  </Link>
+
+                  <Link
+                    to="/registration"
+                    onClick={() =>
+                      setMobileDropdownOpen(false)
+                    }
+                  >
+                    Registration
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    to={dashboardPath}
+                    onClick={() =>
+                      setMobileDropdownOpen(false)
+                    }
+                  >
+                    <FontAwesomeIcon
+                      icon={faTachometerAlt}
+                    />
+                    Dashboard
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                  >
+                    <FontAwesomeIcon
+                      icon={faSignOutAlt}
+                    />
+                    Logout
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className={`menu-toggle ${
+            menuOpen ? "open" : ""
+          }`}
+          onClick={() => {
+            setMenuOpen((previous) => !previous);
+            setMobileDropdownOpen(false);
+          }}
+          aria-label="Open navigation menu"
+        >
+          ☰
+        </button>
+      </div>
     </nav>
   );
 };

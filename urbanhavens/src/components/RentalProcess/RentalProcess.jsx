@@ -23,19 +23,19 @@ const steps = [
     number: "01",
     title:  "Search For A Room",
     desc:   "Browse available houses, hostels, and rooms to find the one that fits your needs and budget.",
-    icon:   "🔍",
+
   },
   {
     number: "02",
     title:  "Contact The Owner",
     desc:   "Send a message or call the landlord to ask questions and confirm availability.",
-    icon:   "💬",
+ 
   },
   {
     number: "03",
     title:  "Move In",
     desc:   "Complete the booking, receive confirmation, sign your lease and move into your new home.",
-    icon:   "🏠",
+  
   },
 ];
 
@@ -79,7 +79,7 @@ const RentalProcess = () => (
           <span className="rp-card-num">{step.number}</span>
 
           {/* Icon */}
-          <div className="rp-card-icon">{step.icon}</div>
+          {/* <div className="rp-card-icon">{step.icon}</div> */}
 
           <h3 className="rp-card-title">{step.title}</h3>
           <p className="rp-card-desc">{step.desc}</p>

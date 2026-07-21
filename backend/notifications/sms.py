@@ -7,22 +7,26 @@ from typing import Any, Dict, Optional
 # Configuration
 # ---------------------------------------------------------------------------
 
-# SMS gateway endpoint; defaults to mNotify's quick-send API
-BMS_SMS_URL = os.getenv("BMS_SMS_URL", "https://api.mnotify.com/api/sms/quick")
+BMS_SMS_URL = os.getenv(
+    "BMS_SMS_URL",
+    "https://api.mnotify.com/api/sms/quick",
+)
 
-# API key for authenticating with the SMS provider — must be set in the
-# environment before any SMS can be sent
 BMS_API_KEY = os.getenv("BMS_API_KEY")
 
-# Sender ID displayed to the recipient; defaults to the platform brand name
-BMS_SENDER_ID = os.getenv("BMS_SENDER_ID", "Urbanhavens")
+BMS_SENDER_ID = os.getenv(
+    "BMS_SENDER_ID",
+    "Urbanhavens",
+)
 
-# Maximum seconds to wait for the SMS API to respond before timing out
-BMS_TIMEOUT = int(os.getenv("BMS_TIMEOUT", "20"))
+BMS_TIMEOUT = int(
+    os.getenv("BMS_TIMEOUT", "20")
+)
 
-# Base URL of the application, used to build property deep-links in messages
-BASE_URL = os.getenv("BASE_URL", "http://127.0.0.1:8000")
-
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "http://localhost:5173",
+).rstrip("/")
 
 # ---------------------------------------------------------------------------
 # Custom exception
@@ -224,7 +228,7 @@ def send_booking_created_sms(booking) -> Optional[Dict[str, Any]]:
         or booking.tenant.username
     )
     property_name = booking.property.property_name
-    property_link = f"{BASE_URL}/properties/{booking.property.id}/"
+    property_link = f"{FRONTEND_URL}/detail/{booking.property.id}"
 
     message = (
         f"UrbanHavens: New booking for {property_name} "
@@ -243,7 +247,9 @@ def send_booking_rejected_sms(booking) -> Optional[Dict[str, Any]]:
         return None
 
     property_name = booking.property.property_name
-    property_link = f"{BASE_URL}/properties/{booking.property.id}/"
+    # property_link = f"{BASE_URL}/properties/{booking.property.id}/"
+    # Link to the property details page on the React frontend.
+    property_link = f"{FRONTEND_URL}/detail/{booking.property.id}"
 
     message = (
         f"UrbanHavens: Your booking for {property_name} was rejected. "
@@ -262,7 +268,9 @@ def send_booking_approved_sms(booking) -> Optional[Dict[str, Any]]:
         return None
 
     property_name = booking.property.property_name
-    property_link = f"{BASE_URL}/properties/{booking.property.id}/"
+    # property_link = f"{BASE_URL}/properties/{booking.property.id}/"
+    # Link to the property details page on the React frontend.
+    property_link = f"{FRONTEND_URL}/detail/{booking.property.id}"
 
     message = (
         f"UrbanHavens: Your booking for {property_name} was approved! "
@@ -285,7 +293,9 @@ def send_booking_cancelled_sms(booking) -> Optional[Dict[str, Any]]:
         or booking.tenant.username
     )
     property_name = booking.property.property_name
-    property_link = f"{BASE_URL}/properties/{booking.property.id}/"
+    # property_link = f"{BASE_URL}/properties/{booking.property.id}/"
+    # Link to the property details page on the React frontend.
+    property_link = f"{FRONTEND_URL}/detail/{booking.property.id}"
 
     message = (
         f"UrbanHavens: Booking for {property_name} "
@@ -311,7 +321,9 @@ def send_meeting_scheduled_sms(meeting) -> Optional[Dict[str, Any]]:
         return None
 
     property_name = meeting.booking.property.property_name
-    property_link = f"{BASE_URL}/properties/{meeting.booking.property.id}/"
+    # property_link = f"{BASE_URL}/properties/{meeting.booking.property.id}/"
+    # Link to the inspected property on the React frontend.
+    property_link = ( f"{FRONTEND_URL}/detail/"f"{meeting.booking.property.id}")
     formatted_date = meeting.date.strftime("%d %b %Y") if meeting.date else "N/A"
     formatted_time = meeting.time.strftime("%H:%M") if meeting.time else "N/A"
 
@@ -341,7 +353,9 @@ def send_meeting_updated_sms(meeting) -> Optional[Dict[str, Any]]:
         return None
 
     property_name = meeting.booking.property.property_name
-    property_link = f"{BASE_URL}/properties/{meeting.booking.property.id}/"
+    # property_link = f"{BASE_URL}/properties/{meeting.booking.property.id}/"
+    # Link to the inspected property on the React frontend.
+    property_link = ( f"{FRONTEND_URL}/detail/"f"{meeting.booking.property.id}")
     formatted_date = meeting.date.strftime("%d %b %Y") if meeting.date else "N/A"
     formatted_time = meeting.time.strftime("%H:%M") if meeting.time else "N/A"
 

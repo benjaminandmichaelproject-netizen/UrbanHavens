@@ -61,7 +61,6 @@
   width: 58px;
   height: 58px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--h3-green), var(--h3-accent));
   color: var(--h3-white);
   display: flex;
   align-items: center;
@@ -69,7 +68,6 @@
   font-size: 20px;
   font-weight: 800;
   letter-spacing: 1px;
-  box-shadow: 0 10px 30px rgba(45, 222, 114, 0.18);
 }
 
 .uh-footer-title {
