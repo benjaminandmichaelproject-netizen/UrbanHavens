@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import axios from "axios";
+import { api } from "../../Dashboard/Owner/UploadDetails/api/api";
 import { FaArrowRight, FaEnvelope, FaLock } from "react-icons/fa";
 import "./Login.css";
 
