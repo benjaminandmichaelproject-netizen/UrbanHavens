@@ -57,7 +57,7 @@ import Footer from "./components/Footer/Footer";
 import Hostel from "./Pages/PropertyListing/hostelForRent/Hostel";
 import HouseForRent from "./Pages/PropertyListing/houseForRent/HouseForRent";
 // ── AI Assistant ─────────────────────────────────────────────────
-import { AIAssistantButton } from "./components/AIAssistant/AIAssistant";
+import { AIAssistantButton } from "./components/Aiassistant/AiAssistant";
 import Bugs from "./Dashboard/Admin/Bugs/Bugs";
 import SchoolsRegion from "./Dashboard/Admin/SchoolsRegion/SchoolsRegion";
 import PaymentVerify from "./Pages/PaymentVerify/PaymentVerify";
