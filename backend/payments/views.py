@@ -632,15 +632,10 @@ class VerifyPaymentView(APIView):
 
         # Locks all affected records to prevent double reservation.
         with transaction.atomic():
+                        # Locks only the payment row.
+            # Related records are locked separately below.
             locked_payment = (
                 Payment.objects.select_for_update()
-                .select_related(
-                    "booking",
-                    "property",
-                    "tenant",
-                    "landlord",
-                    "room",
-                )
                 .get(pk=payment.pk)
             )
 
@@ -1065,15 +1060,10 @@ class ConfirmDirectPaymentView(APIView):
         with transaction.atomic():
             try:
                 # Locks the payment to prevent duplicate confirmation.
+             # Locks only the payment row.
+                    # Booking, property, and room are locked separately below.
                 payment = (
                     Payment.objects.select_for_update()
-                    .select_related(
-                        "booking",
-                        "property",
-                        "tenant",
-                        "landlord",
-                        "room",
-                    )
                     .get(
                         id=payment_id,
                         landlord=user,
@@ -1359,13 +1349,9 @@ class RejectDirectPaymentView(APIView):
         with transaction.atomic():
 
             try:
+                            # Locks only the payment row.
                 payment = (
                     Payment.objects.select_for_update()
-                    .select_related(
-                        "booking",
-                        "tenant",
-                        "property",
-                    )
                     .get(
                         id=payment_id,
                         landlord=user,

@@ -9,49 +9,85 @@ function PaymentVerify() {
 
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState(false);
-  const [message, setMessage] = useState("Verifying your payment...");
+  const [message, setMessage] = useState(
+    "Verifying your payment..."
+  );
 
   useEffect(() => {
-    verifyPayment();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const verifyPayment = async () => {
-    try {
-      const response = await api.get(
-        `/payments/verify/${reference}/`
-      );
-
-      console.log("Payment verification:", response.data);
-
-      setSuccess(true);
-
-      setMessage(
-        response.data.detail ||
-          "Payment verified successfully."
-      );
-
-      setTimeout(() => {
-        navigate("/dashboard/tenant/TenantBooking/TenantBooking");
-      }, 3000);
-    } catch (error) {
-      console.error(error);
-
-      setSuccess(false);
-
-      setMessage(
-        error?.response?.data?.detail ||
-          "Payment verification failed."
-      );
-    } finally {
+    if (!reference) {
       setLoading(false);
+      setSuccess(false);
+      setMessage(
+        "Invalid payment reference. Please contact support."
+      );
+      return;
     }
-  };
+
+    const verifyPayment = async () => {
+      try {
+        const response = await api.get(
+          `/payments/verify/${reference}/`
+        );
+
+        console.log(
+          "Payment verification successful:",
+          response.data
+        );
+
+        setSuccess(true);
+
+        setMessage(
+          response.data?.detail ||
+            "Payment verified successfully."
+        );
+
+        setTimeout(() => {
+          navigate(
+            "/dashboard/tenant/TenantBooking/TenantBooking",
+            {
+              replace: true,
+            }
+          );
+        }, 3000);
+      } catch (error) {
+        console.error(
+          "Payment verification failed:",
+          error?.response?.status,
+          error?.response?.data,
+          error
+        );
+
+        setSuccess(false);
+
+        if (error?.response?.status === 401) {
+          setMessage(
+            "Your session has expired. Please log in again. If your account has already been charged, do not make another payment."
+          );
+        } else if (error?.response?.status === 404) {
+          setMessage(
+            "Payment record not found. Please contact support before making another payment."
+          );
+        } else if (error?.response?.status >= 500) {
+          setMessage(
+            "Your payment may have been received, but we could not complete verification. Please do not pay again. Contact support with your payment reference."
+          );
+        } else {
+          setMessage(
+            error?.response?.data?.detail ||
+              "We could not verify your payment. Please do not pay again until support confirms your transaction."
+          );
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    verifyPayment();
+  }, [reference, navigate]);
 
   return (
     <div className="payment-verify-page">
       <div className="payment-card">
-
         {loading ? (
           <>
             <div className="loader"></div>
@@ -62,9 +98,7 @@ function PaymentVerify() {
           </>
         ) : success ? (
           <>
-            <div className="success-icon">
-              ✓
-            </div>
+            <div className="success-icon">✓</div>
 
             <h2>Payment Successful</h2>
 
@@ -76,22 +110,17 @@ function PaymentVerify() {
           </>
         ) : (
           <>
-            <div className="failed-icon">
-              ✕
-            </div>
+            <div className="failed-icon">✕</div>
 
-            <h2>Payment Failed</h2>
+            <h2>Verification Pending</h2>
 
             <p>{message}</p>
 
-            <button
-              onClick={() => navigate(-1)}
-            >
+            <button onClick={() => navigate(-1)}>
               Go Back
             </button>
           </>
         )}
-
       </div>
     </div>
   );
