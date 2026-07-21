@@ -190,7 +190,6 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-
 if DEBUG:
     # Keep uploaded files inside backend/media during local development.
     STORAGES = {
@@ -208,6 +207,7 @@ else:
     SUPABASE_S3_BUCKET_NAME = os.getenv("SUPABASE_S3_BUCKET_NAME")
     SUPABASE_S3_ENDPOINT_URL = os.getenv("SUPABASE_S3_ENDPOINT_URL")
     SUPABASE_S3_REGION_NAME = os.getenv("SUPABASE_S3_REGION_NAME")
+    SUPABASE_PROJECT_ID = os.getenv("SUPABASE_PROJECT_ID")
 
     required_storage_variables = {
         "SUPABASE_S3_ACCESS_KEY_ID": SUPABASE_S3_ACCESS_KEY_ID,
@@ -215,6 +215,7 @@ else:
         "SUPABASE_S3_BUCKET_NAME": SUPABASE_S3_BUCKET_NAME,
         "SUPABASE_S3_ENDPOINT_URL": SUPABASE_S3_ENDPOINT_URL,
         "SUPABASE_S3_REGION_NAME": SUPABASE_S3_REGION_NAME,
+        "SUPABASE_PROJECT_ID": SUPABASE_PROJECT_ID,
     }
 
     missing_storage_variables = [
@@ -227,39 +228,32 @@ else:
             + ", ".join(missing_storage_variables)
         )
 
-    # Store user-uploaded media in the Supabase S3-compatible bucket.
- # Store user-uploaded media in the Supabase S3-compatible bucket.
-STORAGES = {
-    "default": {
-        "BACKEND": "storages.backends.s3.S3Storage",
-        "OPTIONS": {
-            "access_key": SUPABASE_S3_ACCESS_KEY_ID,
-            "secret_key": SUPABASE_S3_SECRET_ACCESS_KEY,
-            "bucket_name": SUPABASE_S3_BUCKET_NAME,
-            "endpoint_url": SUPABASE_S3_ENDPOINT_URL,
-
-            # Return public Supabase URLs for images displayed in browsers.
-            "custom_domain": (
-                f"{SUPABASE_PROJECT_ID}.supabase.co"
-                f"/storage/v1/object/public/{SUPABASE_S3_BUCKET_NAME}"
-            ),
-
-            "region_name": SUPABASE_S3_REGION_NAME,
-            "signature_version": "s3v4",
-            "addressing_style": "path",
-            "default_acl": None,
-
-            # Public bucket URLs do not require temporary signatures.
-            "querystring_auth": False,
-
-            "file_overwrite": False,
-            "location": "media",
+    # Store uploaded media through Supabase S3 and return public URLs.
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                "access_key": SUPABASE_S3_ACCESS_KEY_ID,
+                "secret_key": SUPABASE_S3_SECRET_ACCESS_KEY,
+                "bucket_name": SUPABASE_S3_BUCKET_NAME,
+                "endpoint_url": SUPABASE_S3_ENDPOINT_URL,
+                "custom_domain": (
+                    f"{SUPABASE_PROJECT_ID}.supabase.co"
+                    f"/storage/v1/object/public/{SUPABASE_S3_BUCKET_NAME}"
+                ),
+                "region_name": SUPABASE_S3_REGION_NAME,
+                "signature_version": "s3v4",
+                "addressing_style": "path",
+                "default_acl": None,
+                "querystring_auth": False,
+                "file_overwrite": False,
+                "location": "media",
+            },
         },
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
-}
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
