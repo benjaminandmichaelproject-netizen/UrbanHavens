@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { api } from "../../Dashboard/Owner/UploadDetails/api/api";
 import {
   faSearch,
   faChevronDown,
@@ -55,31 +56,36 @@ const PropertyListing = () => {
   const [showFavAlert, setShowFavAlert] = useState(false);
   const [favAlertMessage, setFavAlertMessage] = useState("");
   const [favAlertType, setFavAlertType] = useState("success");
+useEffect(() => {
+  const loadProperties = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        setError("");
+      const res = await api.get("/properties/");
+      const data = res.data;
 
-        const res = await fetch("/api/properties/");
-        if (!res.ok) throw new Error("Failed to fetch properties.");
+      const results = Array.isArray(data)
+        ? data
+        : data.results || [];
 
-        const data = await res.json();
-        const results = Array.isArray(data) ? data : data.results || [];
+      setProperties(results);
+      setDisplayed(results);
+    } catch (err) {
+      setError(
+        err.response?.data?.detail ||
+        err.message ||
+        "Something went wrong."
+      );
+      setProperties([]);
+      setDisplayed([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        setProperties(results);
-        setDisplayed(results);
-      } catch (err) {
-        setError(err.message || "Something went wrong.");
-        setProperties([]);
-        setDisplayed([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
-
+  loadProperties();
+}, []);
   const getImageUrl = (property) =>
     property?.images?.[0]?.image || property?.image || "/default-house.jpg";
 
@@ -120,33 +126,27 @@ const PropertyListing = () => {
     return true;
   };
 
-  const fetchFavorites = useCallback(async () => {
-    const token = localStorage.getItem("access");
+ const fetchFavorites = useCallback(async () => {
+  const token = localStorage.getItem("access");
 
-    if (!token) {
-      setFavoriteIds([]);
-      return;
-    }
+  if (!token) {
+    setFavoriteIds([]);
+    return;
+  }
 
-    try {
-      const res = await fetch("/api/favorites/", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+  try {
+    const res = await api.get("/favorites/");
+    const data = res.data;
 
-      if (!res.ok) return;
+    const ids = Array.isArray(data)
+      ? data.map((item) => item.property?.id).filter(Boolean)
+      : [];
 
-      const data = await res.json();
-      const ids = Array.isArray(data)
-        ? data.map((item) => item.property?.id).filter(Boolean)
-        : [];
-
-      setFavoriteIds(ids);
-    } catch {
-      setFavoriteIds([]);
-    }
-  }, []);
+    setFavoriteIds(ids);
+  } catch {
+    setFavoriteIds([]);
+  }
+}, []);
 
   useEffect(() => {
     fetchFavorites();
@@ -162,48 +162,42 @@ const PropertyListing = () => {
 
     const isAlreadyFavorited = favoriteIds.includes(propertyId);
 
-    try {
-      const res = await fetch(
-        isAlreadyFavorited
-          ? `/api/favorites/remove/${propertyId}/`
-          : "/api/favorites/add/",
-        {
-          method: isAlreadyFavorited ? "DELETE" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: isAlreadyFavorited
-            ? null
-            : JSON.stringify({ property_id: propertyId }),
-        }
-      );
+ try {
+  if (isAlreadyFavorited) {
+    await api.delete(`/favorites/remove/${propertyId}/`);
+  } else {
+    await api.post("/favorites/add/", {
+      property_id: propertyId,
+    });
+  }
 
-      if (res.status === 401) {
-        localStorage.removeItem("access");
-        localStorage.removeItem("refresh");
-        navigate("/login");
-        return;
-      }
+  setFavoriteIds((prev) =>
+    isAlreadyFavorited
+      ? prev.filter((id) => id !== propertyId)
+      : [...prev, propertyId]
+  );
 
-      if (!res.ok) throw new Error("Failed to update favorite.");
+  setFavAlertMessage(
+    isAlreadyFavorited
+      ? "Property removed from favorites."
+      : "Property added to favorites."
+  );
 
-      setFavoriteIds((prev) =>
-        isAlreadyFavorited
-          ? prev.filter((id) => id !== propertyId)
-          : [...prev, propertyId]
-      );
+  setFavAlertType(isAlreadyFavorited ? "error" : "success");
+  setShowFavAlert(true);
+} catch (err) {
+  if (err.response?.status === 401) {
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    navigate("/login");
+    return;
+  }
 
-      setFavAlertMessage(
-        isAlreadyFavorited
-          ? "Property removed from favorites."
-          : "Property added to favorites."
-      );
-      setFavAlertType(isAlreadyFavorited ? "error" : "success");
-      setShowFavAlert(true);
-    } catch (err) {
-      console.error(err);
-    }
+  console.error(
+    "Favorite update failed:",
+    err.response?.data || err.message
+  );
+}
   };
 
   const filtered = useMemo(() => {
@@ -357,9 +351,8 @@ const PropertyListing = () => {
               <div className="pl-view-toggle">
                 <button
                   type="button"
-                  className={`pl-toggle-btn ${
-                    viewMode === "grid" ? "active" : ""
-                  }`}
+                  className={`pl-toggle-btn ${viewMode === "grid" ? "active" : ""
+                    }`}
                   onClick={() => setView("grid")}
                   title="Grid view"
                 >
@@ -368,9 +361,8 @@ const PropertyListing = () => {
 
                 <button
                   type="button"
-                  className={`pl-toggle-btn ${
-                    viewMode === "list" ? "active" : ""
-                  }`}
+                  className={`pl-toggle-btn ${viewMode === "list" ? "active" : ""
+                    }`}
                   onClick={() => setView("list")}
                   title="List view"
                 >
@@ -388,9 +380,8 @@ const PropertyListing = () => {
             <p className="pl-result-count">
               {filterLoading
                 ? "Searching..."
-                : `${displayed.length} propert${
-                    displayed.length === 1 ? "y" : "ies"
-                  } found`}
+                : `${displayed.length} propert${displayed.length === 1 ? "y" : "ies"
+                } found`}
             </p>
           )}
         </motion.div>
@@ -436,11 +427,10 @@ const PropertyListing = () => {
           ) : displayed.length > 0 ? (
             <motion.div
               key={`results-${viewMode}`}
-              className={`pl-cards ${
-                viewMode === "list"
+              className={`pl-cards ${viewMode === "list"
                   ? "pl-cards-list"
                   : "featured-rentals-grid pl-cards-grid"
-              }`}
+                }`}
               variants={stagger}
               initial="hidden"
               animate="show"
@@ -448,9 +438,8 @@ const PropertyListing = () => {
               {displayed.map((property) => (
                 <div
                   key={property.id}
-                  className={`pl-card-shell ${
-                    viewMode === "list" ? "pl-card-shell-list" : ""
-                  }`}
+                  className={`pl-card-shell ${viewMode === "list" ? "pl-card-shell-list" : ""
+                    }`}
                 >
                   <RentalCard
                     image={getImageUrl(property)}

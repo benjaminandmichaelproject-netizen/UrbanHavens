@@ -12,7 +12,7 @@ import {
 import PropertyModal from "../../../components/Modals/PropertyModal";
 import ConfirmModal from "../../../components/Modals/ConfirmModal";
 import "./Allproperties.css";
-
+import { api } from "../../Owner/UploadDetails/api/api";
 const Allproperties = () => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
@@ -23,7 +23,7 @@ const Allproperties = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const token = localStorage.getItem("token");
+  
 
   const formatCategory = (category) => {
     if (category === "house_rent") return "House for Rent";
@@ -71,36 +71,32 @@ const Allproperties = () => {
     amenities: parseAmenities(property.amenities),
     featured: property.is_featured,
   });
+const fetchProperties = async () => {
+  try {
+    setLoading(true);
+    setError("");
 
-  const fetchProperties = async () => {
-    try {
-      setLoading(true);
-      setError("");
+    const res = await api.get("/properties/admin-list/");
 
-      const res = await fetch("/api/properties/admin-list/", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    const data = res.data;
 
-      if (!res.ok) {
-        if (res.status === 401 || res.status === 403) {
-          throw new Error("You are not authorized to view admin properties.");
-        }
-        throw new Error("Failed to fetch properties.");
-      }
+    const results = Array.isArray(data)
+      ? data
+      : data.results || [];
 
-      const data = await res.json();
-      const results = Array.isArray(data) ? data : data.results || [];
-      setProperties(results);
-    } catch (err) {
-      console.error("Error fetching admin properties:", err);
-      setProperties([]);
-      setError(err.message || "Something went wrong.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    setProperties(results);
+  } catch (err) {
+    console.error("Error fetching admin properties:", err);
+    setProperties([]);
+    setError(
+      err.response?.data?.detail ||
+      err.message ||
+      "Something went wrong."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchProperties();
@@ -125,31 +121,17 @@ const Allproperties = () => {
     });
   }, [properties, search, filter]);
 
-  const sendPropertyAction = async (propertyId, endpoint, method = "POST") => {
-    const res = await fetch(`/api/properties/${propertyId}/${endpoint}/`, {
-      method,
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!res.ok) {
-      let message = "Action failed.";
-      try {
-        const data = await res.json();
-        message = data.detail || message;
-      } catch {
-        // ignore bad json
-      }
-      throw new Error(message);
-    }
-
-    if (method !== "DELETE") {
-      return res.json();
-    }
-
-    return null;
-  };
+ const sendPropertyAction = async (
+  propertyId,
+  endpoint,
+  method = "POST"
+) => {
+  if (method === "DELETE") {
+    await api.delete(`/properties/${propertyId}/${endpoint}/`);
+  } else {
+    await api.post(`/properties/${propertyId}/${endpoint}/`);
+  }
+};
 
   const handleApprove = async (property) => {
     await sendPropertyAction(property.id, "approve");
@@ -166,26 +148,9 @@ const Allproperties = () => {
     );
   };
 
-  const handleDelete = async (property) => {
-    const res = await fetch(`/api/properties/${property.id}/`, {
-      method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!res.ok) {
-      let message = "Delete failed.";
-      try {
-        const data = await res.json();
-        message = data.detail || message;
-      } catch {
-        // ignore bad json
-      }
-      throw new Error(message);
-    }
-  };
-
+ const handleDelete = async (property) => {
+  await api.delete(`/properties/${property.id}/`);
+};
   const getConfirmMessage = () => {
     if (!confirmAction) return "";
 
@@ -234,7 +199,11 @@ const Allproperties = () => {
       await fetchProperties();
     } catch (err) {
       console.error("Property action failed:", err);
-      setError(err.message || "Action failed.");
+      setError(
+  err.response?.data?.detail ||
+  err.message ||
+  "Action failed."
+);
     } finally {
       setActionLoading(false);
     }
