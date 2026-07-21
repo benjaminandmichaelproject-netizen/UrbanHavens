@@ -26,7 +26,8 @@ const Login = () => {
     e.preventDefault();
     try {
       setLoading(true);
-      const res      = await axios.post("/api/users/login/", formData);
+      const res = await api.post("/users/login/", formData);
+      // const res      = await axios.post("/api/users/login/", formData);
       const { access, refresh, id, username, role } = res.data;
       const userRole = role.toLowerCase();
 
