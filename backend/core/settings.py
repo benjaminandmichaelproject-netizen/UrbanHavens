@@ -19,27 +19,24 @@ if not SECRET_KEY:
     if DEBUG:
         SECRET_KEY = "django-insecure-dev-key"
     else:
-        raise ValueError("DJANGO_SECRET_KEY is not set. Production requires a real secret key.")
+        raise ValueError(
+            "DJANGO_SECRET_KEY is not set. Production requires a real secret key."
+        )
 
 
 def env_list(name: str, default: str = ""):
     value = os.getenv(name, default)
     return [item.strip() for item in value.split(",") if item.strip()]
 
-ALLOWED_HOSTS = env_list(
-    "ALLOWED_HOSTS",
-    "127.0.0.1,localhost,.onrender.com"
-)
+
+ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "127.0.0.1,localhost,.onrender.com")
 CSRF_TRUSTED_ORIGINS = env_list(
-    "CSRF_TRUSTED_ORIGINS",
-    "http://127.0.0.1:5173,http://localhost:5173"
+    "CSRF_TRUSTED_ORIGINS", "http://127.0.0.1:5173,http://localhost:5173"
 )
 
 CORS_ALLOWED_ORIGINS = env_list(
-    "CORS_ALLOWED_ORIGINS",
-    "http://127.0.0.1:5173,http://localhost:5173"
+    "CORS_ALLOWED_ORIGINS", "http://127.0.0.1:5173,http://localhost:5173"
 )
-
 
 
 CORS_ALLOW_HEADERS = list(default_headers) + [
@@ -51,19 +48,16 @@ CORS_ALLOW_CREDENTIALS = True
 INSTALLED_APPS = [
     "daphne",
     "storages",
-
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-
     "channels",
     "rest_framework",
     "rest_framework_simplejwt",
     "corsheaders",
-
     "users",
     "rentals",
     "properties",
@@ -75,7 +69,7 @@ INSTALLED_APPS = [
     "reports",
     "support",
     "system_logs",
-     "payments",
+    "payments",
 ]
 
 MIDDLEWARE = [
@@ -89,7 +83,6 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "system_logs.middleware.APIErrorLoggingMiddleware",
-
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -112,10 +105,8 @@ TEMPLATES = [
 WSGI_APPLICATION = "core.wsgi.application"
 ASGI_APPLICATION = "core.asgi.application"
 
-
 # Database
-# Preferred for Render: set DATABASE_URL if using PostgreSQL.
-# Fallback stays available for local dev.
+# Uses Render PostgreSQL in production and SQLite locally.
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if DATABASE_URL:
@@ -124,26 +115,35 @@ if DATABASE_URL:
     DATABASES = {
         "default": dj_database_url.parse(
             DATABASE_URL,
-            conn_max_age=600,
+            # Close the connection after each request.
+            # This prevents Render PostgreSQL connection exhaustion under ASGI.
+            conn_max_age=0,
             ssl_require=not DEBUG,
         )
     }
+
+    # Verify stale connections before Django reuses them.
+    DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
 else:
     DATABASES = {
         "default": {
-            "ENGINE": os.getenv("DB_ENGINE", "django.db.backends.sqlite3"),
-            "NAME": os.getenv("DB_NAME", str(BASE_DIR / "db.sqlite3")),
+            "ENGINE": os.getenv(
+                "DB_ENGINE",
+                "django.db.backends.sqlite3",
+            ),
+            "NAME": os.getenv(
+                "DB_NAME",
+                str(BASE_DIR / "db.sqlite3"),
+            ),
             "USER": os.getenv("DB_USER", ""),
             "PASSWORD": os.getenv("DB_PASSWORD", ""),
             "HOST": os.getenv("DB_HOST", ""),
             "PORT": os.getenv("DB_PORT", ""),
             "OPTIONS": {
-            "timeout": 30,
-        },
+                "timeout": 30,
+            },
         }
     }
-
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
@@ -218,9 +218,7 @@ else:
     }
 
     missing_storage_variables = [
-        name
-        for name, value in required_storage_variables.items()
-        if not value
+        name for name, value in required_storage_variables.items() if not value
     ]
 
     if missing_storage_variables:
@@ -253,16 +251,11 @@ else:
     }
 
 
-
-
-
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.AllowAny",
-    ),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.AllowAny",),
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 12,
 }
@@ -291,8 +284,7 @@ else:
 AUTH_USER_MODEL = "users.User"
 
 EMAIL_BACKEND = os.getenv(
-    "EMAIL_BACKEND",
-    "django.core.mail.backends.console.EmailBackend"
+    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
 )
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "webmaster@localhost")
 
@@ -305,10 +297,7 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 PAYSTACK_PUBLIC_KEY = os.getenv("PAYSTACK_PUBLIC_KEY", "")
 PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "")
-FRONTEND_URL = os.getenv(
-    "FRONTEND_URL",
-    "http://localhost:5173"
-)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 # Security settings
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 X_FRAME_OPTIONS = "DENY"
