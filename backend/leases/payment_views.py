@@ -5,6 +5,7 @@ from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from bookings.models import Booking
 from notifications.utils import send_notification
 from payments.models import Payment
 from properties.models import Property, Room
@@ -17,7 +18,10 @@ from .serializers import (
 
 
 class AwaitingLeaseListView(generics.ListAPIView):
-    # Returns successful payments that are waiting for lease creation.
+    """
+    Returns successful payments that are waiting for lease creation.
+    """
+
     serializer_class = TenantLeaseSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -44,7 +48,7 @@ class AwaitingLeaseListView(generics.ListAPIView):
         user = request.user
         role = getattr(user, "role", None)
 
-        # Loads successful payments whose booking awaits lease creation.
+        # Loads successful payments whose bookings await lease creation.
         payments = (
             Payment.objects.select_related(
                 "tenant",
@@ -57,14 +61,22 @@ class AwaitingLeaseListView(generics.ListAPIView):
                 status="success",
                 booking__status="payment_completed",
             )
-            .order_by("-verified_at", "-created_at")
+            .order_by(
+                "-verified_at",
+                "-created_at",
+            )
         )
 
-        # Limits owners to payments belonging to their properties.
-        if not (user.is_superuser or role == "admin"):
-            payments = payments.filter(landlord=user)
+        # Limits regular owners to payments belonging to them.
+        if not (
+            user.is_superuser
+            or role == "admin"
+        ):
+            payments = payments.filter(
+                landlord=user
+            )
 
-        # Excludes any payment whose booking already has a lease.
+        # Excludes payments whose bookings already have leases.
         payments = payments.exclude(
             booking__tenant_lease__isnull=False
         )
@@ -75,66 +87,90 @@ class AwaitingLeaseListView(generics.ListAPIView):
             property_obj = payment.property
             room_obj = payment.room
 
-            # Builds a safe response for the awaiting-lease dashboard.
+            # Uses the room price override for hostels when available.
+            monthly_rent = (
+                room_obj.price_override
+                if (
+                    room_obj
+                    and room_obj.price_override is not None
+                )
+                else property_obj.price
+            )
+
+            tenant_name = (
+                payment.tenant.get_full_name()
+                or payment.tenant.username
+                or payment.tenant.email
+            )
+
             results.append(
                 {
                     "payment_id": payment.id,
                     "booking_id": payment.booking_id,
                     "tenant_id": payment.tenant_id,
-                    "tenant_name": (
-                        payment.tenant.get_full_name()
-                        or payment.tenant.username
-                        or payment.tenant.email
-                    ),
+                    "tenant_name": tenant_name,
                     "tenant_email": payment.tenant.email,
                     "property_id": property_obj.id,
-                    "property_name": property_obj.property_name,
-                    "property_category": property_obj.category,
-                    "room_id": room_obj.id if room_obj else None,
+                    "property_name": (
+                        property_obj.property_name
+                    ),
+                    "property_category": (
+                        property_obj.category
+                    ),
+                    "room_id": (
+                        room_obj.id
+                        if room_obj
+                        else None
+                    ),
                     "room_number": (
                         room_obj.room_number
                         if room_obj
                         else None
                     ),
-                    "duration_months": payment.duration_months,
-                    "monthly_rent": str(
-                        room_obj.price_override
-                        if (
-                            room_obj
-                            and room_obj.price_override is not None
-                        )
-                        else property_obj.price
+                    "duration_months": (
+                        payment.duration_months
                     ),
+                    "monthly_rent": str(monthly_rent),
                     "amount_paid": str(payment.amount),
-                    "payment_method": payment.payment_method,
-                    "payment_type": payment.payment_type,
+                    "payment_method": (
+                        payment.payment_method
+                    ),
+                    "payment_type": (
+                        payment.payment_type
+                    ),
                     "payment_date": (
                         payment.verified_at
                         or payment.created_at
                     ),
-                    "booking_status": payment.booking.status,
+                    "booking_status": (
+                        payment.booking.status
+                    ),
                 }
             )
 
-        return Response(results, status=status.HTTP_200_OK)
+        return Response(
+            results,
+            status=status.HTTP_200_OK,
+        )
 
 
 class CreateLeaseFromPaymentView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, payment_id):
-        # Validates only landlord-controlled lease preparation fields.
+        # Validates landlord-controlled lease preparation fields.
         serializer = CreateLeaseFromPaymentSerializer(
             data=request.data
         )
         serializer.is_valid(raise_exception=True)
 
         user = request.user
+        user_role = getattr(user, "role", None)
 
         # Restricts lease creation to owners and administrators.
         if not (
             user.is_superuser
-            or getattr(user, "role", None) in [
+            or user_role in [
                 "owner",
                 "landlord",
                 "admin",
@@ -157,16 +193,10 @@ class CreateLeaseFromPaymentView(APIView):
 
         with transaction.atomic():
             try:
-                # Locks the payment and related records against duplicates.
+                # Locks only the payment row.
+                # Nullable related records are locked separately.
                 payment = (
                     Payment.objects.select_for_update()
-                    .select_related(
-                        "booking",
-                        "tenant",
-                        "landlord",
-                        "property",
-                        "room",
-                    )
                     .get(
                         id=payment_id,
                         status="success",
@@ -185,7 +215,7 @@ class CreateLeaseFromPaymentView(APIView):
             # Prevents an owner from using another owner's payment.
             if not (
                 user.is_superuser
-                or getattr(user, "role", None) == "admin"
+                or user_role == "admin"
                 or payment.landlord_id == user.id
             ):
                 return Response(
@@ -198,7 +228,22 @@ class CreateLeaseFromPaymentView(APIView):
                     status=status.HTTP_403_FORBIDDEN,
                 )
 
-            booking = payment.booking
+            try:
+                # Locks the booking while converting it into a lease.
+                booking = (
+                    Booking.objects.select_for_update()
+                    .get(pk=payment.booking_id)
+                )
+            except Booking.DoesNotExist:
+                return Response(
+                    {
+                        "detail": (
+                            "The booking linked to this payment "
+                            "could not be found."
+                        )
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
 
             # Allows lease creation only from the awaiting-lease stage.
             if booking.status != "payment_completed":
@@ -212,7 +257,7 @@ class CreateLeaseFromPaymentView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Prevents duplicate lease creation for the same booking.
+            # Prevents duplicate lease creation for the booking.
             if TenantLease.objects.filter(
                 booking=booking
             ).exists():
@@ -225,10 +270,34 @@ class CreateLeaseFromPaymentView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            property_obj = (
-                Property.objects.select_for_update()
-                .get(id=payment.property_id)
-            )
+            try:
+                # Locks the property during lease creation.
+                property_obj = (
+                    Property.objects.select_for_update()
+                    .get(id=payment.property_id)
+                )
+            except Property.DoesNotExist:
+                return Response(
+                    {
+                        "detail": (
+                            "The property linked to this payment "
+                            "could not be found."
+                        )
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # Confirms that the payment owner matches the property owner.
+            if property_obj.owner_id != payment.landlord_id:
+                return Response(
+                    {
+                        "detail": (
+                            "The payment landlord does not match "
+                            "the property owner."
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             room_obj = None
 
@@ -244,21 +313,24 @@ class CreateLeaseFromPaymentView(APIView):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-                # Locks the reserved room before converting its space.
-                room_obj = (
-                    Room.objects.select_for_update()
-                    .get(id=payment.room_id)
-                )
-
-                if room_obj.property_id != property_obj.id:
+                try:
+                    # Locks the reserved hostel room.
+                    room_obj = (
+                        Room.objects.select_for_update()
+                        .get(
+                            id=payment.room_id,
+                            property=property_obj,
+                        )
+                    )
+                except Room.DoesNotExist:
                     return Response(
                         {
                             "detail": (
-                                "The reserved room does not belong "
-                                "to this hostel."
+                                "The reserved hostel room "
+                                "could not be found."
                             )
                         },
-                        status=status.HTTP_400_BAD_REQUEST,
+                        status=status.HTTP_404_NOT_FOUND,
                     )
 
                 if room_obj.reserved_spaces <= 0:
@@ -266,15 +338,21 @@ class CreateLeaseFromPaymentView(APIView):
                         {
                             "detail": (
                                 "This room no longer has a reserved "
-                                "space for the payment."
+                                "space for this payment."
                             )
                         },
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-                # Converts one reservation into one occupied hostel space.
+                # Converts one reserved hostel space into occupancy.
                 room_obj.reserved_spaces -= 1
                 room_obj.occupied_spaces += 1
+
+                # Updates room availability based on remaining capacity.
+                room_obj.is_available = (
+                    room_obj.available_spaces() > 0
+                )
+
                 room_obj.save(
                     update_fields=[
                         "reserved_spaces",
@@ -285,23 +363,25 @@ class CreateLeaseFromPaymentView(APIView):
                 )
 
             else:
-                # Ensures house leases cannot receive hostel rooms.
+                # Prevents a house payment from containing a room.
                 if payment.room_id:
                     return Response(
                         {
                             "detail": (
                                 "House payments cannot contain "
-                                "a room."
+                                "a hostel room."
                             )
                         },
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-                # Keeps the reserved house unavailable after conversion.
+                # Keeps the reserved house unavailable.
                 if property_obj.is_available:
                     property_obj.is_available = False
                     property_obj.save(
-                        update_fields=["is_available"]
+                        update_fields=[
+                            "is_available",
+                        ]
                     )
 
             monthly_rent = (
@@ -321,12 +401,12 @@ class CreateLeaseFromPaymentView(APIView):
                 )
             )
 
-            # Creates the active lease from server-controlled payment data.
+            # Creates the active lease from trusted payment data.
             lease = TenantLease.objects.create(
                 booking=booking,
                 property=property_obj,
-                tenant=payment.tenant,
-                landlord=payment.landlord,
+                tenant_id=payment.tenant_id,
+                landlord_id=payment.landlord_id,
                 room=room_obj,
                 lease_start_date=lease_start_date,
                 lease_end_date=lease_end_date,
@@ -346,7 +426,11 @@ class CreateLeaseFromPaymentView(APIView):
 
             # Marks the booking as fully converted into a lease.
             booking.status = "converted"
-            booking.save(update_fields=["status"])
+            booking.save(
+                update_fields=[
+                    "status",
+                ]
+            )
 
         try:
             # Notifies the tenant after successful lease creation.
@@ -367,7 +451,6 @@ class CreateLeaseFromPaymentView(APIView):
                 flush=True,
             )
 
-        # Returns the newly created lease.
         return Response(
             TenantLeaseSerializer(
                 lease,
