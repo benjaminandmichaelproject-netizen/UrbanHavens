@@ -5,3 +5,19 @@ backend/venv/
 **/__pycache__/
 backend/db.sqlite3
 backend/media/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+
+# Django generated files
+staticfiles/
+media/
+
+# Local environment variables
+.env
+.env.*
+
+# Virtual environment
+venv/
+.venv/

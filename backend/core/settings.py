@@ -50,6 +50,7 @@ CORS_ALLOW_CREDENTIALS = True
 
 INSTALLED_APPS = [
     "daphne",
+    "storages",
 
     "django.contrib.admin",
     "django.contrib.auth",
@@ -164,20 +165,95 @@ USE_I18N = True
 USE_TZ = True
 
 
+# STATIC_URL = "/static/"
+# STATIC_ROOT = BASE_DIR / "staticfiles"
+# STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# STORAGES = {
+#     "default": {
+#         "BACKEND": "django.core.files.storage.FileSystemStorage",
+#     },
+#     "staticfiles": {
+#         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+#     },
+# }
+
+# MEDIA_URL = "/media/"
+# MEDIA_ROOT = BASE_DIR / "media"
+
+
+# Static files are collected by Django and served through WhiteNoise.
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
-STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-    },
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
-    },
-}
 
+
+# Local development media configuration.
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+
+if DEBUG:
+    # Keep uploaded files inside backend/media during local development.
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+else:
+    # Supabase Storage S3 credentials used only in production.
+    SUPABASE_S3_ACCESS_KEY_ID = os.getenv("SUPABASE_S3_ACCESS_KEY_ID")
+    SUPABASE_S3_SECRET_ACCESS_KEY = os.getenv("SUPABASE_S3_SECRET_ACCESS_KEY")
+    SUPABASE_S3_BUCKET_NAME = os.getenv("SUPABASE_S3_BUCKET_NAME")
+    SUPABASE_S3_ENDPOINT_URL = os.getenv("SUPABASE_S3_ENDPOINT_URL")
+    SUPABASE_S3_REGION_NAME = os.getenv("SUPABASE_S3_REGION_NAME")
+
+    required_storage_variables = {
+        "SUPABASE_S3_ACCESS_KEY_ID": SUPABASE_S3_ACCESS_KEY_ID,
+        "SUPABASE_S3_SECRET_ACCESS_KEY": SUPABASE_S3_SECRET_ACCESS_KEY,
+        "SUPABASE_S3_BUCKET_NAME": SUPABASE_S3_BUCKET_NAME,
+        "SUPABASE_S3_ENDPOINT_URL": SUPABASE_S3_ENDPOINT_URL,
+        "SUPABASE_S3_REGION_NAME": SUPABASE_S3_REGION_NAME,
+    }
+
+    missing_storage_variables = [
+        name
+        for name, value in required_storage_variables.items()
+        if not value
+    ]
+
+    if missing_storage_variables:
+        raise ValueError(
+            "Missing Supabase Storage environment variables: "
+            + ", ".join(missing_storage_variables)
+        )
+
+    # Store user-uploaded media in the Supabase S3-compatible bucket.
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                "access_key": SUPABASE_S3_ACCESS_KEY_ID,
+                "secret_key": SUPABASE_S3_SECRET_ACCESS_KEY,
+                "bucket_name": SUPABASE_S3_BUCKET_NAME,
+                "endpoint_url": SUPABASE_S3_ENDPOINT_URL,
+                "region_name": SUPABASE_S3_REGION_NAME,
+                "signature_version": "s3v4",
+                "addressing_style": "path",
+                "default_acl": None,
+                "querystring_auth": False,
+                "file_overwrite": False,
+                "location": "media",
+            },
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
+
+
+
 
 
 REST_FRAMEWORK = {
