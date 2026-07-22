@@ -14,8 +14,8 @@ import {
   FaImage,
 } from "react-icons/fa";
 import "./FlaggedProperty.css";
+import {api} from "../../../api/api";
 
-const API_BASE = "http://127.0.0.1:8000";
 
 const getAuthToken = () => {
   return localStorage.getItem("token") || "";
@@ -38,112 +38,96 @@ const FlaggedProperty = () => {
   const [confirmAction, setConfirmAction] = useState(null);
   const [search, setSearch] = useState("");
 
-  const fetchFlaggedProperties = async () => {
-    try {
-      setLoading(true);
-      setError("");
+const fetchFlaggedProperties = async () => {
+  try {
+    setLoading(true);
+    setError("");
 
-      const response = await fetch(`${API_BASE}/api/properties/admin-list/`, {
-        method: "GET",
-        headers: authHeaders(),
-      });
+    const response = await api.get("/properties/admin-list/");
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch flagged properties.");
-      }
+    const data = response.data;
+    const results = Array.isArray(data) ? data : data.results || [];
 
-      const data = await response.json();
-      const results = Array.isArray(data) ? data : data.results || [];
+    const flaggedOnly = results.filter(
+      (property) => property.security_flagged === true
+    );
 
-      const flaggedOnly = results.filter(
-        (property) => property.security_flagged === true
-      );
-
-      setProperties(flaggedOnly);
-    } catch (err) {
-      console.error(err);
-      setError(err.message || "Something went wrong while fetching flagged properties.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
+    setProperties(flaggedOnly);
+  } catch (err) {
+    console.error(err);
+    setError(
+      err.response?.data?.detail ||
+      err.message ||
+      "Something went wrong while fetching flagged properties."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
   useEffect(() => {
     fetchFlaggedProperties();
   }, []);
 
-  const handleApprove = async (propertyId) => {
-    try {
-      setActionLoading(`approve-${propertyId}`);
+const handleApprove = async (propertyId) => {
+  try {
+    setActionLoading(`approve-${propertyId}`);
 
-      const response = await fetch(`${API_BASE}/api/properties/${propertyId}/approve/`, {
-        method: "POST",
-        headers: authHeaders(),
-      });
+    await api.post(`/properties/${propertyId}/approve/`);
 
-      if (!response.ok) {
-        throw new Error("Failed to approve property.");
-      }
+    await fetchFlaggedProperties();
 
-      await fetchFlaggedProperties();
-      if (selectedProperty?.id === propertyId) setSelectedProperty(null);
-      setConfirmAction(null);
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "Approve failed.");
-    } finally {
-      setActionLoading(null);
+    if (selectedProperty?.id === propertyId) {
+      setSelectedProperty(null);
     }
-  };
 
-  const handleReject = async (propertyId) => {
-    try {
-      setActionLoading(`reject-${propertyId}`);
+    setConfirmAction(null);
+  } catch (err) {
+    console.error(err);
+    alert(err.response?.data?.detail || "Approve failed.");
+  } finally {
+    setActionLoading(null);
+  }
+};
+const handleReject = async (propertyId) => {
+  try {
+    setActionLoading(`reject-${propertyId}`);
 
-      const response = await fetch(`${API_BASE}/api/properties/${propertyId}/reject/`, {
-        method: "POST",
-        headers: authHeaders(),
-      });
+    await api.post(`/properties/${propertyId}/reject/`);
 
-      if (!response.ok) {
-        throw new Error("Failed to reject property.");
-      }
+    await fetchFlaggedProperties();
 
-      await fetchFlaggedProperties();
-      if (selectedProperty?.id === propertyId) setSelectedProperty(null);
-      setConfirmAction(null);
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "Reject failed.");
-    } finally {
-      setActionLoading(null);
+    if (selectedProperty?.id === propertyId) {
+      setSelectedProperty(null);
     }
-  };
 
-  const handleDelete = async (propertyId) => {
-    try {
-      setActionLoading(`delete-${propertyId}`);
+    setConfirmAction(null);
+  } catch (err) {
+    console.error(err);
+    alert(err.response?.data?.detail || "Reject failed.");
+  } finally {
+    setActionLoading(null);
+  }
+};
+const handleDelete = async (propertyId) => {
+  try {
+    setActionLoading(`delete-${propertyId}`);
 
-      const response = await fetch(`${API_BASE}/api/properties/${propertyId}/`, {
-        method: "DELETE",
-        headers: authHeaders(),
-      });
+    await api.delete(`/properties/${propertyId}/`);
 
-      if (!response.ok) {
-        throw new Error("Failed to delete property.");
-      }
+    await fetchFlaggedProperties();
 
-      await fetchFlaggedProperties();
-      if (selectedProperty?.id === propertyId) setSelectedProperty(null);
-      setConfirmAction(null);
-    } catch (err) {
-      console.error(err);
-      alert(err.message || "Delete failed.");
-    } finally {
-      setActionLoading(null);
+    if (selectedProperty?.id === propertyId) {
+      setSelectedProperty(null);
     }
-  };
 
+    setConfirmAction(null);
+  } catch (err) {
+    console.error(err);
+    alert(err.response?.data?.detail || "Delete failed.");
+  } finally {
+    setActionLoading(null);
+  }
+};
   const filteredProperties = useMemo(() => {
     const query = search.trim().toLowerCase();
 
