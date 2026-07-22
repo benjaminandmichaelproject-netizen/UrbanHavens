@@ -51,7 +51,7 @@ import Lease from "./Dashboard/Tenant/Lease/Lease";
 import TenantNotification from "./Dashboard/Tenant/TenantNotification/TenantNotification";
 import Report from "./Dashboard/Tenant/Report/Report";
 import AdminReport from "./Dashboard/Admin/AdminReport";
-import FlaggedProperty from "./Dashboard/Owner/FlaggedProperty/FlaggedProperty";
+import FlaggedProperty from "./Dashboard/Admin/FlaggedProperty/FlaggedProperty";
 import Addmin from "./Dashboard/Admin/Addmin/Addmin";
 import Footer from "./components/Footer/Footer";
 import Hostel from "./Pages/PropertyListing/hostelForRent/Hostel";

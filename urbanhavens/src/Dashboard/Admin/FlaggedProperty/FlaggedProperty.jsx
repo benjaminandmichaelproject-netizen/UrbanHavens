@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+
 import {
   FaEye,
   FaCheck,
@@ -13,10 +14,12 @@ import {
   FaShieldAlt,
   FaImage,
 } from "react-icons/fa";
+
 import "./FlaggedProperty.css";
-import {api} from "../../../api/api";
 
-
+// Import the shared Axios client from the Owner API folder.
+// Import the shared Axios client from the UploadDetails API folder.
+import { api } from "../../Owner/UploadDetails/api/api";
 const getAuthToken = () => {
   return localStorage.getItem("token") || "";
 };
@@ -159,7 +162,7 @@ const handleDelete = async (propertyId) => {
         <div>
           <h2>Flagged Properties</h2>
           <p>
-            Review suspicious listings, inspect owner details, and take action.
+            Review suspicious listings, inspect owner details, and txfdfdfake action.
           </p>
         </div>
 
