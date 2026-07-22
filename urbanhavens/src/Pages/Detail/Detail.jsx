@@ -15,6 +15,7 @@ import {
   FaLayerGroup,
   FaExclamationTriangle,
   FaRedo,
+  FaShareAlt,
 } from "react-icons/fa";
 import { MapContainer, TileLayer, Marker } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -72,7 +73,48 @@ const Detail = () => {
   const [loading, setLoading] = useState(!fallbackProperty);
 
   const [fetchError, setFetchError] = useState("");
+
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  // Shares the server-rendered property URL so social platforms show the property preview.
+  const handleShareProperty = async () => {
+    const shareUrl = `${window.location.origin}/share/property/${id}`;
+
+    const shareData = {
+      title: property?.property_name || "UrbanHavens Property",
+      text: property
+        ? `View ${property.property_name} on UrbanHavens`
+        : "View this property on UrbanHavens",
+      url: shareUrl,
+    };
+
+    try {
+      // Opens the phone or browser's native sharing menu when supported.
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      // Copies the share link when native sharing is unavailable.
+      await navigator.clipboard.writeText(shareUrl);
+      window.alert("Property link copied.");
+    } catch (error) {
+      // Ignore cancellation when the user closes the native sharing window.
+      if (error?.name === "AbortError") {
+        return;
+      }
+
+      console.error("Could not share property:", error);
+
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        window.alert("Property link copied.");
+      } catch (clipboardError) {
+        console.error("Could not copy property link:", clipboardError);
+        window.alert(`Copy this link: ${shareUrl}`);
+      }
+    }
+  };
+
 
   useEffect(() => {
     // ✅ FIX 2: Added `fallbackProperty` to the dependency array.
@@ -104,7 +146,7 @@ const Detail = () => {
         setLoading(false);
       }
     })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
   // Note: fallbackProperty is intentionally excluded from deps here.
   // It comes from location.state which is stable for the lifetime of this
@@ -245,13 +287,24 @@ const Detail = () => {
           initial="hidden"
           animate="show"
         >
-          <motion.button
-            className="dt-back-btn"
+          <motion.div
+            className="dt-hero-actions"
             variants={fadeUp}
-            onClick={() => navigate(-1)}
           >
-            <FaArrowLeft /> Back
-          </motion.button>
+            <button
+              className="dt-back-btn"
+              onClick={() => navigate(-1)}
+            >
+              <FaArrowLeft /> Back
+            </button>
+
+            <button
+              className="dt-share-btn"
+              onClick={handleShareProperty}
+            >
+              <FaShareAlt /> Share Property
+            </button>
+          </motion.div>
 
           <motion.span className="dt-eyebrow" variants={fadeUp}>
             {formatCat(property.category)}
@@ -327,9 +380,8 @@ const Detail = () => {
                     {images.map((_, i) => (
                       <button
                         key={i}
-                        className={`dt-slider-dot ${
-                          i === currentImageIndex ? "active" : ""
-                        }`}
+                        className={`dt-slider-dot ${i === currentImageIndex ? "active" : ""
+                          }`}
                         onClick={() => setCurrentImageIndex(i)}
                       />
                     ))}
@@ -571,60 +623,60 @@ const Detail = () => {
             </motion.div>
           )}
           {/* ✅ TWO BUTTONS SIDE BY SIDE */}
-    <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
+          <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
 
-      {/* Get Directions */}
-      <button
-        onClick={() => {
-          const dest = `${property.lat},${property.lng}`;
-          const url = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`;
-          window.open(url, "_blank");
-        }}
-        style={{
-          flex: 1,
-          padding: "12px",
-          backgroundColor: "#10b981",
-          color: "white",
-          border: "none",
-          borderRadius: "8px",
-          fontSize: "0.95rem",
-          fontWeight: "600",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "8px",
-        }}
-      >
-        <FaMapMarkerAlt /> Get Directions
-      </button>
+            {/* Get Directions */}
+            <button
+              onClick={() => {
+                const dest = `${property.lat},${property.lng}`;
+                const url = `https://www.google.com/maps/dir/?api=1&destination=${dest}&travelmode=driving`;
+                window.open(url, "_blank");
+              }}
+              style={{
+                flex: 1,
+                padding: "12px",
+                backgroundColor: "#10b981",
+                color: "white",
+                border: "none",
+                borderRadius: "8px",
+                fontSize: "0.95rem",
+                fontWeight: "600",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+              }}
+            >
+              <FaMapMarkerAlt /> Get Directions
+            </button>
 
-      {/* Open in Google Maps */}
-      <button
-        onClick={() => {
-          const url = `https://www.google.com/maps?q=${property.lat},${property.lng}`;
-          window.open(url, "_blank");
-        }}
-        style={{
-          flex: 1,
-          padding: "12px",
-          backgroundColor: "#ffffff",
-          color: "#374151",
-          border: "2px solid #e5e7eb",
-          borderRadius: "8px",
-          fontSize: "0.95rem",
-          fontWeight: "600",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "8px",
-        }}
-      >
-        <FaMapMarkerAlt style={{ color: "#ef4444" }} /> Open in Google Maps
-      </button>
+            {/* Open in Google Maps */}
+            <button
+              onClick={() => {
+                const url = `https://www.google.com/maps?q=${property.lat},${property.lng}`;
+                window.open(url, "_blank");
+              }}
+              style={{
+                flex: 1,
+                padding: "12px",
+                backgroundColor: "#ffffff",
+                color: "#374151",
+                border: "2px solid #e5e7eb",
+                borderRadius: "8px",
+                fontSize: "0.95rem",
+                fontWeight: "600",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+              }}
+            >
+              <FaMapMarkerAlt style={{ color: "#ef4444" }} /> Open in Google Maps
+            </button>
 
-    </div>
+          </div>
         </div>
 
         <div className="dt-right">
