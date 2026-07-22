@@ -42,7 +42,7 @@ const ConfirmResetCode = () => {
             Check your <span className="lg-accent">Email</span>
           </motion.h1>
           <motion.p className="lg-hero-sub" variants={fadeUp}>
-            We sent a reset code to {email || "your inbox"}.
+            If an account exists for {email || "your inbox"} you will receive an email with a reset code. Please check your inbox and enter the code below to proceed with resetting your password.
           </motion.p>
         </motion.div>
       </section>
