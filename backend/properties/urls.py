@@ -13,7 +13,7 @@ from .views import (
     remove_favorite,
 )
 from .nearby_views import NearbyPropertiesView
-
+from .share_views import property_share_view
 router = DefaultRouter()
 router.register(r"properties", PropertyViewSet, basename="property")
 router.register(r"rooms", RoomViewSet, basename="room")
@@ -44,4 +44,10 @@ urlpatterns = [
         external_landlord_properties,
         name="external-landlord-properties",
     ),
+    
+    path(
+    "share/property/<int:property_id>/",
+    property_share_view,
+    name="property-share",
+),
 ]
