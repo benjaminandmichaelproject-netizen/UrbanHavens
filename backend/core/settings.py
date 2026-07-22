@@ -282,34 +282,48 @@ else:
             "BACKEND": "channels.layers.InMemoryChannelLayer",
         },
     }
+# ------------------------------------------------------------------
+# Brevo transactional email configuration
+# ------------------------------------------------------------------
 
+# Private API key used by the backend to send emails through Brevo.
+BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
 
-AUTH_USER_MODEL = "users.User"
-
-# Email configuration
-if DEBUG:
-    # Local development: display emails in the terminal.
-    EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
-else:
-    # Production: send real emails through Gmail SMTP.
-    EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-
-EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587"))
-EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
-
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
-
-DEFAULT_FROM_EMAIL = os.getenv(
-    "DEFAULT_FROM_EMAIL",
-    EMAIL_HOST_USER,
+# The email address shown as the sender.
+# This address must be verified inside the Brevo dashboard.
+BREVO_SENDER_EMAIL = os.getenv(
+    "BREVO_SENDER_EMAIL",
+    "",
 )
 
-# Prevents email requests from hanging indefinitely.
-EMAIL_TIMEOUT = int(os.getenv("EMAIL_TIMEOUT", "20"))
+# The name recipients will see beside the sender email.
+BREVO_SENDER_NAME = os.getenv(
+    "BREVO_SENDER_NAME",
+    "UrbanHavens",
+)
 
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "webmaster@localhost")
+# Stop production from starting when required Brevo settings are missing.
+if not DEBUG:
+    required_brevo_variables = {
+        "BREVO_API_KEY": BREVO_API_KEY,
+        "BREVO_SENDER_EMAIL": BREVO_SENDER_EMAIL,
+    }
+
+    missing_brevo_variables = [
+        name
+        for name, value in required_brevo_variables.items()
+        if not value
+    ]
+
+    if missing_brevo_variables:
+        raise ValueError(
+            "Missing Brevo environment variables: "
+            + ", ".join(missing_brevo_variables)
+        )
+
+
+# Tell Django to use the custom User model from the users application.
+AUTH_USER_MODEL = "users.User"
 
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
