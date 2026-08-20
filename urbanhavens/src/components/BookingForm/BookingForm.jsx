@@ -43,6 +43,30 @@ const BookingForm = ({ property }) => {
 
   const isLoggedIn = Boolean(accessToken);
   const isHostel = property?.category === "hostel";
+  // Multi-unit apartments use unit-level pricing. The booking itself
+  // remains attached to the parent property until unit selection at payment.
+  const isMultiUnitApartment =
+    property?.category === "apartment" &&
+    property?.apartment_listing_type === "multi_unit";
+
+  const bookingDisplayPrice = isMultiUnitApartment
+    ? property?.starting_price
+    : property?.price;
+
+  const hasBookingDisplayPrice =
+    bookingDisplayPrice !== null &&
+    bookingDisplayPrice !== undefined &&
+    bookingDisplayPrice !== "";
+
+  const propertyTypeLabel = isHostel
+    ? "Hostel"
+    : isMultiUnitApartment
+    ? "Multi-unit Apartment"
+    : property?.category === "apartment"
+    ? "Single Apartment"
+    : "House Rent";
+
+
 
   const totalAvailableSpaces = useMemo(() => {
     if (!isHostel) return null;
@@ -313,17 +337,27 @@ const BookingForm = ({ property }) => {
               <FaHome className="booking-summary-icon" />
               <div>
                 <strong>{property.property_name}</strong>
-                <span>
-                  {property.category === "hostel" ? "Hostel" : "House Rent"}
-                </span>
+               <span>{propertyTypeLabel}</span>
               </div>
             </div>
 
             <div className="booking-summary-item">
               <FaBed className="booking-summary-icon" />
               <div>
-                <strong>GHS {formatMoney(property.price)}</strong>
-                <span>Starting monthly rent</span>
+               <strong>
+  {hasBookingDisplayPrice
+    ? `${isMultiUnitApartment ? "From " : ""}GHS ${formatMoney(
+        bookingDisplayPrice
+      )}`
+    : isMultiUnitApartment
+    ? "Unit pricing unavailable"
+    : "Price unavailable"}
+</strong>
+<span>
+  {isMultiUnitApartment
+    ? "Starting unit monthly rent"
+    : "Starting monthly rent"}
+</span>
               </div>
             </div>
 

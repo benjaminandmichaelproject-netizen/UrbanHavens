@@ -224,7 +224,14 @@ def check_duplicate_property(property_instance):
                 weak_score += 1
                 reasons.append("same bathrooms")
 
-        if is_similar_price(property_instance.price, other.price):
+        if (
+            property_instance.price is not None
+            and other.price is not None
+            and is_similar_price(
+                property_instance.price,
+                other.price,
+            )
+        ):
             weak_score += 1
             reasons.append("similar price")
 

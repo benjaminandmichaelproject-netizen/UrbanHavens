@@ -1,7 +1,9 @@
+from decimal import Decimal
+
 from rest_framework import serializers
 
 from bookings.models import Booking
-from properties.models import Room
+from properties.models import ApartmentUnit, Room
 
 from .models import (
     OwnerPaymentAccount,
@@ -71,6 +73,13 @@ class InitializePaymentSerializer(serializers.Serializer):
         allow_null=True,
     )
 
+    # Identifies the selected unit for a multi-unit apartment.
+    apartment_unit_id = serializers.IntegerField(
+        min_value=1,
+        required=False,
+        allow_null=True,
+    )
+
     # Restricts payments to supported payment methods.
     payment_method = serializers.ChoiceField(
         choices=[
@@ -79,7 +88,7 @@ class InitializePaymentSerializer(serializers.Serializer):
         ],
     )
 
-    # Validates booking ownership and secure room selection.
+    # Validates booking ownership and the selected rentable resource.
     def validate(self, attrs):
         request = self.context.get("request")
 
@@ -95,6 +104,7 @@ class InitializePaymentSerializer(serializers.Serializer):
 
         booking_id = attrs["booking_id"]
         room_id = attrs.get("room_id")
+        apartment_unit_id = attrs.get("apartment_unit_id")
 
         try:
             # Loads only a booking belonging to the authenticated tenant.
@@ -118,12 +128,23 @@ class InitializePaymentSerializer(serializers.Serializer):
         property_obj = booking.property
 
         if property_obj.category == "hostel":
-            if not room_id:
+            # Hostel payments must select a room only.
+            if room_id is None:
                 raise serializers.ValidationError(
                     {
                         "room_id": (
                             "Select a room before continuing with "
                             "hostel payment."
+                        )
+                    }
+                )
+
+            if apartment_unit_id is not None:
+                raise serializers.ValidationError(
+                    {
+                        "apartment_unit_id": (
+                            "Apartment-unit selection is not allowed "
+                            "for hostel payments."
                         )
                     }
                 )
@@ -160,16 +181,82 @@ class InitializePaymentSerializer(serializers.Serializer):
             # Makes the verified room available to the payment view.
             attrs["_resolved_room"] = room
 
-        elif room_id is not None:
-            # Prevents attaching hostel rooms to house payments.
-            raise serializers.ValidationError(
-                {
-                    "room_id": (
-                        "Room selection is only allowed for hostel "
-                        "payments."
-                    )
-                }
-            )
+        elif (
+            property_obj.category == "apartment"
+            and property_obj.apartment_listing_type == "multi_unit"
+        ):
+            # Multi-unit apartment payments must select one exact unit.
+            if apartment_unit_id is None:
+                raise serializers.ValidationError(
+                    {
+                        "apartment_unit_id": (
+                            "Select an apartment unit before continuing "
+                            "with payment."
+                        )
+                    }
+                )
+
+            if room_id is not None:
+                raise serializers.ValidationError(
+                    {
+                        "room_id": (
+                            "Hostel-room selection is not allowed for "
+                            "apartment payments."
+                        )
+                    }
+                )
+
+            try:
+                # Ensures the unit belongs to the booking's apartment.
+                apartment_unit = ApartmentUnit.objects.get(
+                    id=apartment_unit_id,
+                    property=property_obj,
+                )
+            except ApartmentUnit.DoesNotExist:
+                raise serializers.ValidationError(
+                    {
+                        "apartment_unit_id": (
+                            "The selected apartment unit does not belong "
+                            "to this property."
+                        )
+                    }
+                )
+
+            # Only currently available apartment units can enter payment.
+            if apartment_unit.status != "available":
+                raise serializers.ValidationError(
+                    {
+                        "apartment_unit_id": (
+                            "The selected apartment unit is no longer "
+                            "available."
+                        )
+                    }
+                )
+
+            # Makes the verified unit available to the payment view.
+            attrs["_resolved_apartment_unit"] = apartment_unit
+
+        else:
+            # Houses and single apartments use the parent Property directly.
+            if room_id is not None:
+                raise serializers.ValidationError(
+                    {
+                        "room_id": (
+                            "Room selection is only allowed for hostel "
+                            "payments."
+                        )
+                    }
+                )
+
+            if apartment_unit_id is not None:
+                raise serializers.ValidationError(
+                    {
+                        "apartment_unit_id": (
+                            "Apartment-unit selection is only allowed "
+                            "for multi-unit apartment payments."
+                        )
+                    }
+                )
 
         # Makes the verified booking available to the payment view.
         attrs["_resolved_booking"] = booking
@@ -182,7 +269,7 @@ class ConfirmDirectPaymentSerializer(serializers.Serializer):
     amount_received = serializers.DecimalField(
         max_digits=12,
         decimal_places=2,
-        min_value=0.01,
+        min_value=Decimal("0.01"),
     )
 
     # Stores an optional note about the direct payment.
@@ -205,10 +292,17 @@ class PaymentSerializer(serializers.ModelSerializer):
         read_only=True,
     )
 
-    # Returns the property category for house or hostel display.
+    # Returns the property category for rental-type display.
     property_category = serializers.CharField(
         source="property.category",
         read_only=True,
+    )
+
+    # Returns the apartment listing type when the property is an apartment.
+    apartment_listing_type = serializers.CharField(
+        source="property.apartment_listing_type",
+        read_only=True,
+        allow_null=True,
     )
 
     # Returns selected hostel room details when applicable.
@@ -219,6 +313,40 @@ class PaymentSerializer(serializers.ModelSerializer):
     )
     room_type = serializers.CharField(
         source="room.room_type",
+        read_only=True,
+        allow_null=True,
+    )
+
+    # Returns selected apartment-unit details when applicable.
+    apartment_unit_number = serializers.CharField(
+        source="apartment_unit.unit_number",
+        read_only=True,
+        allow_null=True,
+    )
+    apartment_unit_floor = serializers.CharField(
+        source="apartment_unit.floor",
+        read_only=True,
+        allow_null=True,
+    )
+    apartment_unit_bedrooms = serializers.IntegerField(
+        source="apartment_unit.bedrooms",
+        read_only=True,
+        allow_null=True,
+    )
+    apartment_unit_bathrooms = serializers.IntegerField(
+        source="apartment_unit.bathrooms",
+        read_only=True,
+        allow_null=True,
+    )
+    apartment_unit_price = serializers.DecimalField(
+        source="apartment_unit.price",
+        max_digits=12,
+        decimal_places=2,
+        read_only=True,
+        allow_null=True,
+    )
+    apartment_unit_status = serializers.CharField(
+        source="apartment_unit.status",
         read_only=True,
         allow_null=True,
     )
@@ -244,9 +372,17 @@ class PaymentSerializer(serializers.ModelSerializer):
             "property",
             "property_name",
             "property_category",
+            "apartment_listing_type",
             "room",
             "room_number",
             "room_type",
+            "apartment_unit",
+            "apartment_unit_number",
+            "apartment_unit_floor",
+            "apartment_unit_bedrooms",
+            "apartment_unit_bathrooms",
+            "apartment_unit_price",
+            "apartment_unit_status",
             "payment_type",
             "payment_method",
             "duration_months",

@@ -6,7 +6,7 @@ from django.db import models
 from django.utils import timezone
 
 from bookings.models import Booking
-from properties.models import Property, Room
+from properties.models import ApartmentUnit, Property, Room
 
 
 class TenantLease(models.Model):
@@ -57,6 +57,15 @@ class TenantLease(models.Model):
     # Stores the selected hostel room when applicable.
     room = models.ForeignKey(
         Room,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="leases",
+    )
+
+    # Stores the selected apartment unit for a multi-unit apartment lease.
+    apartment_unit = models.ForeignKey(
+        ApartmentUnit,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -128,7 +137,7 @@ class TenantLease(models.Model):
         # Displays the newest leases first.
         ordering = ["-created_at"]
 
-        # Improves common tenant, landlord, and property queries.
+        # Improves common tenant, landlord, property, and unit queries.
         indexes = [
             models.Index(
                 fields=["tenant", "status"],
@@ -141,6 +150,9 @@ class TenantLease(models.Model):
             ),
             models.Index(
                 fields=["room", "status"],
+            ),
+            models.Index(
+                fields=["apartment_unit", "status"],
             ),
         ]
 
@@ -158,6 +170,14 @@ class TenantLease(models.Model):
     # Returns the assigned hostel room number.
     def get_room_number(self):
         return self.room.room_number if self.room else None
+
+    # Returns the assigned apartment unit number.
+    def get_apartment_unit_number(self):
+        return (
+            self.apartment_unit.unit_number
+            if self.apartment_unit
+            else None
+        )
 
     # Generates a unique agreement reference.
     def generate_agreement_number(self):
@@ -186,7 +206,8 @@ class TenantLease(models.Model):
             and self.lease_end_date < self.lease_start_date
         ):
             errors["lease_end_date"] = (
-                "Lease end date cannot be earlier " "than lease start date."
+                "Lease end date cannot be earlier "
+                "than lease start date."
             )
 
         # Prevents move-in before the lease begins.
@@ -196,7 +217,8 @@ class TenantLease(models.Model):
             and self.move_in_date < self.lease_start_date
         ):
             errors["move_in_date"] = (
-                "Move-in date cannot be earlier " "than lease start date."
+                "Move-in date cannot be earlier "
+                "than lease start date."
             )
 
         # Prevents negative rent values.
@@ -209,21 +231,33 @@ class TenantLease(models.Model):
 
         if self.booking_id:
             # Ensures the booking property matches the lease.
-            if self.property_id and self.booking.property_id != self.property_id:
+            if (
+                self.property_id
+                and self.booking.property_id != self.property_id
+            ):
                 errors["booking"] = (
-                    "Selected booking does not belong " "to the selected property."
+                    "Selected booking does not belong "
+                    "to the selected property."
                 )
 
             # Ensures the booking tenant matches the lease.
-            if self.tenant_id and self.booking.tenant_id != self.tenant_id:
+            if (
+                self.tenant_id
+                and self.booking.tenant_id != self.tenant_id
+            ):
                 errors["tenant"] = (
-                    "Selected tenant does not match " "the booking tenant."
+                    "Selected tenant does not match "
+                    "the booking tenant."
                 )
 
             # Ensures the booking owner matches the landlord.
-            if self.landlord_id and self.booking.owner_id != self.landlord_id:
+            if (
+                self.landlord_id
+                and self.booking.owner_id != self.landlord_id
+            ):
                 errors["landlord"] = (
-                    "Selected landlord does not match " "the booking owner."
+                    "Selected landlord does not match "
+                    "the booking owner."
                 )
 
             # Allows lease creation only after payment completion.
@@ -232,31 +266,86 @@ class TenantLease(models.Model):
                 "converted",
             ]:
                 errors["booking"] = (
-                    "A lease can only be created after " "payment has been completed."
+                    "A lease can only be created after "
+                    "payment has been completed."
                 )
 
         if self.property_id:
-            # Requires a valid room for hostel leases.
-            if self.property.category == "hostel":
-                if not self.room_id:
-                    errors["room"] = "A room is required for hostel leases."
+            property_obj = self.property
 
-                elif self.room and self.room.property_id != self.property_id:
+            if property_obj.category == "hostel":
+                # Hostel leases require a room and cannot use an
+                # apartment unit.
+                if not self.room_id:
+                    errors["room"] = (
+                        "A room is required for hostel leases."
+                    )
+                elif (
+                    self.room
+                    and self.room.property_id != self.property_id
+                ):
                     errors["room"] = (
                         "Selected room does not belong "
                         "to the selected hostel property."
                     )
 
-            # Prevents room assignment for house rentals.
-            elif self.property.category == "house_rent":
+                if self.apartment_unit_id:
+                    errors["apartment_unit"] = (
+                        "An apartment unit cannot be assigned "
+                        "to a hostel lease."
+                    )
+
+            elif (
+                property_obj.category == "apartment"
+                and property_obj.apartment_listing_type == "multi_unit"
+            ):
+                # Multi-unit apartment leases require the exact unit and
+                # cannot use a hostel room.
+                if not self.apartment_unit_id:
+                    errors["apartment_unit"] = (
+                        "An apartment unit is required for "
+                        "multi-unit apartment leases."
+                    )
+                elif (
+                    self.apartment_unit
+                    and self.apartment_unit.property_id
+                    != self.property_id
+                ):
+                    errors["apartment_unit"] = (
+                        "Selected apartment unit does not belong "
+                        "to the selected apartment property."
+                    )
+
                 if self.room_id:
-                    errors["room"] = "House rentals should not have " "a room assigned."
+                    errors["room"] = (
+                        "A hostel room cannot be assigned "
+                        "to an apartment lease."
+                    )
+
+            else:
+                # Houses and single apartments are rented directly from
+                # the parent Property and must not use child resources.
+                if self.room_id:
+                    errors["room"] = (
+                        "A room can only be assigned "
+                        "to a hostel lease."
+                    )
+
+                if self.apartment_unit_id:
+                    errors["apartment_unit"] = (
+                        "An apartment unit can only be assigned "
+                        "to a multi-unit apartment lease."
+                    )
 
         # Ensures the landlord owns the property.
         if self.property_id and self.landlord_id:
-            if self.property.owner_id and self.property.owner_id != self.landlord_id:
+            if (
+                self.property.owner_id
+                and self.property.owner_id != self.landlord_id
+            ):
                 errors["landlord"] = (
-                    "Landlord must match the property's " "registered owner."
+                    "Landlord must match the property's "
+                    "registered owner."
                 )
 
         if errors:
@@ -280,7 +369,9 @@ class TenantLease(models.Model):
         update_fields = kwargs.get("update_fields")
 
         if update_fields is not None:
-            kwargs["update_fields"] = list(set(update_fields) | set(generated_fields))
+            kwargs["update_fields"] = list(
+                set(update_fields) | set(generated_fields)
+            )
 
         self.full_clean()
 
@@ -288,9 +379,20 @@ class TenantLease(models.Model):
 
     # Returns a readable lease description.
     def __str__(self):
-        room_text = f" (Room {self.room.room_number})" if self.room else ""
+        resource_text = ""
 
-        return f"{self.tenant} - " f"{self.property}" f"{room_text}"
+        if self.room:
+            resource_text = f" (Room {self.room.room_number})"
+        elif self.apartment_unit:
+            resource_text = (
+                f" (Unit {self.apartment_unit.unit_number})"
+            )
+
+        return (
+            f"{self.tenant} - "
+            f"{self.property}"
+            f"{resource_text}"
+        )
 
 
 class LeaseRenewalRequest(models.Model):
@@ -335,6 +437,15 @@ class LeaseRenewalRequest(models.Model):
     # Preserves the tenant's current hostel room where applicable.
     room = models.ForeignKey(
         Room,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="lease_renewal_requests",
+    )
+
+    # Preserves the tenant's apartment unit for multi-unit renewals.
+    apartment_unit = models.ForeignKey(
+        ApartmentUnit,
         on_delete=models.PROTECT,
         null=True,
         blank=True,
@@ -418,12 +529,13 @@ class LeaseRenewalRequest(models.Model):
         # Displays the newest renewal requests first.
         ordering = ["-created_at"]
 
-        # Improves common owner, tenant, and status queries.
+        # Improves common owner, tenant, property, and unit queries.
         indexes = [
             models.Index(fields=["tenant", "status"]),
             models.Index(fields=["landlord", "status"]),
             models.Index(fields=["current_lease", "status"]),
             models.Index(fields=["property", "status"]),
+            models.Index(fields=["apartment_unit", "status"]),
         ]
 
         # Prevents multiple open renewals for the same lease.
@@ -449,42 +561,109 @@ class LeaseRenewalRequest(models.Model):
         if self.current_lease_id:
             current_lease = self.current_lease
 
-            if self.tenant_id and current_lease.tenant_id != self.tenant_id:
+            if (
+                self.tenant_id
+                and current_lease.tenant_id != self.tenant_id
+            ):
                 errors["tenant"] = (
                     "Renewal tenant must match the current lease tenant."
                 )
 
-            if self.landlord_id and current_lease.landlord_id != self.landlord_id:
+            if (
+                self.landlord_id
+                and current_lease.landlord_id != self.landlord_id
+            ):
                 errors["landlord"] = (
                     "Renewal landlord must match the current lease landlord."
                 )
 
-            if self.property_id and current_lease.property_id != self.property_id:
+            if (
+                self.property_id
+                and current_lease.property_id != self.property_id
+            ):
                 errors["property"] = (
                     "Renewal property must match the current lease property."
                 )
 
+            # Preserves the exact rentable child resource from the
+            # current lease throughout the renewal workflow.
             if current_lease.room_id:
                 if not self.room_id:
                     errors["room"] = (
-                        "A hostel renewal must keep the tenant's current room."
+                        "A hostel renewal must keep the tenant's "
+                        "current room."
                     )
                 elif current_lease.room_id != self.room_id:
                     errors["room"] = (
-                        "Renewal room must match the tenant's current hostel room."
+                        "Renewal room must match the tenant's "
+                        "current hostel room."
                     )
-            elif self.room_id:
-                errors["room"] = (
-                    "A house renewal cannot have a hostel room."
-                )
+
+                if self.apartment_unit_id:
+                    errors["apartment_unit"] = (
+                        "A hostel renewal cannot have an "
+                        "apartment unit."
+                    )
+
+            elif current_lease.apartment_unit_id:
+                if not self.apartment_unit_id:
+                    errors["apartment_unit"] = (
+                        "A multi-unit apartment renewal must keep "
+                        "the tenant's current apartment unit."
+                    )
+                elif (
+                    current_lease.apartment_unit_id
+                    != self.apartment_unit_id
+                ):
+                    errors["apartment_unit"] = (
+                        "Renewal apartment unit must match the "
+                        "tenant's current apartment unit."
+                    )
+
+                if self.room_id:
+                    errors["room"] = (
+                        "An apartment renewal cannot have "
+                        "a hostel room."
+                    )
+
+            else:
+                if self.room_id:
+                    errors["room"] = (
+                        "This renewal cannot have a hostel room."
+                    )
+
+                if self.apartment_unit_id:
+                    errors["apartment_unit"] = (
+                        "This renewal cannot have an apartment unit."
+                    )
 
             if (
                 self.proposed_start_date
                 and current_lease.lease_end_date
-                and self.proposed_start_date <= current_lease.lease_end_date
+                and self.proposed_start_date
+                <= current_lease.lease_end_date
             ):
                 errors["proposed_start_date"] = (
-                    "The renewed lease must start after the current lease ends."
+                    "The renewed lease must start after "
+                    "the current lease ends."
+                )
+
+        # A selected child resource must belong to the renewal property.
+        if self.room_id and self.property_id:
+            if self.room.property_id != self.property_id:
+                errors["room"] = (
+                    "Renewal room does not belong to "
+                    "the selected property."
+                )
+
+        if self.apartment_unit_id and self.property_id:
+            if (
+                self.apartment_unit.property_id
+                != self.property_id
+            ):
+                errors["apartment_unit"] = (
+                    "Renewal apartment unit does not belong "
+                    "to the selected property."
                 )
 
         if (
@@ -493,7 +672,8 @@ class LeaseRenewalRequest(models.Model):
             and self.proposed_end_date < self.proposed_start_date
         ):
             errors["proposed_end_date"] = (
-                "Renewal end date cannot be earlier than the renewal start date."
+                "Renewal end date cannot be earlier than "
+                "the renewal start date."
             )
 
         if (
@@ -508,20 +688,32 @@ class LeaseRenewalRequest(models.Model):
             try:
                 allowed_durations = [
                     int(months)
-                    for months in (self.property.allowed_rental_months or [])
+                    for months in (
+                        self.property.allowed_rental_months or []
+                    )
                 ]
             except (TypeError, ValueError):
                 allowed_durations = []
 
-            if allowed_durations and self.requested_duration_months not in allowed_durations:
+            if (
+                allowed_durations
+                and self.requested_duration_months
+                not in allowed_durations
+            ):
                 errors["requested_duration_months"] = (
-                    "The selected renewal duration is not approved for this property."
+                    "The selected renewal duration is not approved "
+                    "for this property."
                 )
 
         if self.monthly_rent is not None and self.monthly_rent < 0:
-            errors["monthly_rent"] = "Monthly rent cannot be negative."
+            errors["monthly_rent"] = (
+                "Monthly rent cannot be negative."
+            )
 
-        if self.expected_amount is not None and self.expected_amount < 0:
+        if (
+            self.expected_amount is not None
+            and self.expected_amount < 0
+        ):
             errors["expected_amount"] = (
                 "Expected renewal amount cannot be negative."
             )
@@ -532,12 +724,14 @@ class LeaseRenewalRequest(models.Model):
             and self.expected_amount is not None
         ):
             calculated_amount = (
-                self.monthly_rent * self.requested_duration_months
+                self.monthly_rent
+                * self.requested_duration_months
             )
 
             if self.expected_amount != calculated_amount:
                 errors["expected_amount"] = (
-                    "Expected amount must equal monthly rent multiplied by the renewal duration."
+                    "Expected amount must equal monthly rent "
+                    "multiplied by the renewal duration."
                 )
 
         if errors:

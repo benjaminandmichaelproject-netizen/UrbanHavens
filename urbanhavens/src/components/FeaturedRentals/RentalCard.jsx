@@ -22,6 +22,7 @@ const cardVariant = {
 const CATEGORY_LABELS = {
   hostel: "Hostel",
   house_rent: "House for Rent",
+  apartment: "Apartment",
 };
 
 const RentalCard = ({
@@ -31,14 +32,23 @@ const RentalCard = ({
   region,
   category,
   price,
+  isMultiUnitApartment = false,
   amenities = [],
   onBook,
   isFavorited = false,
   onFavorite,
   isAvailable = true,
 }) => {
+  // Formats normal and apartment-unit pricing consistently.
   const formatPrice = (value) => {
-    if (value === null || value === undefined || value === "") return "—";
+    if (
+      value === null ||
+      value === undefined ||
+      value === ""
+    ) {
+      return "—";
+    }
+
     return Number(value).toLocaleString("en-GH", {
       style: "currency",
       currency: "GHS",
@@ -46,74 +56,143 @@ const RentalCard = ({
     });
   };
 
+  const hasPrice =
+    price !== null &&
+    price !== undefined &&
+    price !== "";
+
   return (
     <motion.article
       className="rental-card"
       variants={cardVariant}
-      whileHover={{ y: -6, transition: { duration: 0.22 } }}
+      whileHover={{
+        y: -6,
+        transition: { duration: 0.22 },
+      }}
     >
       <div className="rental-card-image-wrap">
         {image ? (
-          <img src={image} alt={title || "Property"} className="rental-card-image" />
+          <img
+            src={image}
+            alt={title || "Property"}
+            className="rental-card-image"
+          />
         ) : (
           <div className="rental-card-image-placeholder">
             <FaHome />
           </div>
         )}
 
-        <span className={`rental-card-badge ${isAvailable ? "available" : "unavailable"}`}>
-          {isAvailable ? "● Available" : "● Occupied"}
+        <span
+          className={`rental-card-badge ${
+            isAvailable
+              ? "available"
+              : "unavailable"
+          }`}
+        >
+          {isAvailable
+            ? "● Available"
+            : "● Occupied"}
         </span>
 
         {category && (
           <span className="rental-card-category">
-            {category === "hostel" ? <FaBuilding /> : <FaHome />}
-            <span>{CATEGORY_LABELS[category] || category}</span>
+            {category === "hostel" ? (
+              <FaBuilding />
+            ) : (
+              <FaHome />
+            )}
+
+            <span>
+              {CATEGORY_LABELS[category] ||
+                category}
+            </span>
           </span>
         )}
 
         <button
           type="button"
-          className={`rental-card-fav-btn ${isFavorited ? "favorited" : ""}`}
-          onClick={(e) => {
-            e.stopPropagation();
+          className={`rental-card-fav-btn ${
+            isFavorited ? "favorited" : ""
+          }`}
+          onClick={(event) => {
+            event.stopPropagation();
             onFavorite?.();
           }}
-          aria-label={isFavorited ? "Remove from favourites" : "Add to favourites"}
-          title={isFavorited ? "Remove from favourites" : "Add to favourites"}
+          aria-label={
+            isFavorited
+              ? "Remove from favourites"
+              : "Add to favourites"
+          }
+          title={
+            isFavorited
+              ? "Remove from favourites"
+              : "Add to favourites"
+          }
         >
-          {isFavorited ? <FaHeart /> : <FaRegHeart />}
+          {isFavorited ? (
+            <FaHeart />
+          ) : (
+            <FaRegHeart />
+          )}
         </button>
       </div>
 
       <div className="rental-card-body">
-        <h3 className="rental-card-title">{title || "Untitled Property"}</h3>
+        <h3 className="rental-card-title">
+          {title || "Untitled Property"}
+        </h3>
 
         <p className="rental-card-location">
           <FaMapMarkerAlt />
-          {[city, region].filter(Boolean).join(", ") || "Location TBD"}
+
+          {[city, region]
+            .filter(Boolean)
+            .join(", ") || "Location TBD"}
         </p>
 
         {amenities.length > 0 && (
           <div className="rental-card-amenities">
-            {amenities.slice(0, 3).map((item, index) => (
-              <span key={index} className="rental-card-amenity">
-                {item}
-              </span>
-            ))}
+            {amenities
+              .slice(0, 3)
+              .map((item, index) => (
+                <span
+                  key={index}
+                  className="rental-card-amenity"
+                >
+                  {item}
+                </span>
+              ))}
           </div>
         )}
       </div>
 
       <div className="rental-card-footer">
         <div className="rental-card-price">
-          <span className="rental-card-price-amount">{formatPrice(price)}</span>
-          <span className="rental-card-price-label">per month</span>
+          <span className="rental-card-price-amount">
+            {hasPrice
+              ? `${
+                  isMultiUnitApartment
+                    ? "From "
+                    : ""
+                }${formatPrice(price)}`
+              : isMultiUnitApartment
+              ? "Unit pricing unavailable"
+              : "Price unavailable"}
+          </span>
+
+          {hasPrice && (
+            <span className="rental-card-price-label">
+              per month
+            </span>
+          )}
         </div>
 
         <button
           className="rental-card-book-btn"
-          onClick={isAvailable ? onBook : undefined}
+          onClick={
+            isAvailable ? onBook : undefined
+          }
           disabled={!isAvailable}
         >
           {isAvailable ? (

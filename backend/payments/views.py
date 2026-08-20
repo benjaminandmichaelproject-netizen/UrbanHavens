@@ -13,7 +13,7 @@ from system_logs.logger import log_sms_failure, log_sms_success
 from notifications.sms import send_rent_payment_received_sms
 from bookings.models import Booking
 from leases.models import TenantLease
-from properties.models import Property, Room
+from properties.models import ApartmentUnit, Property, Room
 
 from .models import OwnerPaymentAccount, Payment
 from .paystack import (
@@ -136,9 +136,13 @@ class InitializePaymentView(APIView):
            )
         serializer.is_valid(raise_exception=True)
 
-        # Uses only the booking and room resolved by secure serializer validation.
+        # Uses only the booking and rentable child resource resolved by
+        # secure serializer validation.
         booking = serializer.validated_data["_resolved_booking"]
         selected_room = serializer.validated_data.get("_resolved_room")
+        selected_apartment_unit = serializer.validated_data.get(
+            "_resolved_apartment_unit"
+        )
         duration_months = serializer.validated_data["duration_months"]
         payment_method = serializer.validated_data["payment_method"]
 
@@ -219,18 +223,34 @@ class InitializePaymentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if TenantLease.objects.filter(
-            tenant=request.user,
-            property=property_obj,
-            status="active",
-        ).exists():
+        # Keeps active-lease checks scoped to the actual rentable resource.
+        if (
+            property_obj.category == "apartment"
+            and property_obj.apartment_listing_type == "multi_unit"
+        ):
+            active_lease_exists = TenantLease.objects.filter(
+                tenant=request.user,
+                apartment_unit=selected_apartment_unit,
+                status="active",
+            ).exists()
+            active_lease_message = (
+                "You already have an active lease for this apartment unit."
+            )
+        else:
+            # Preserves the existing property-level rule for hostels, houses,
+            # and single apartments.
+            active_lease_exists = TenantLease.objects.filter(
+                tenant=request.user,
+                property=property_obj,
+                status="active",
+            ).exists()
+            active_lease_message = (
+                "You already have an active lease for this property."
+            )
+
+        if active_lease_exists:
             return Response(
-                {
-                    "detail": (
-                        "You already have an active lease "
-                        "for this property."
-                    )
-                },
+                {"detail": active_lease_message},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -265,17 +285,16 @@ class InitializePaymentView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-        # Uses the room price override for hostels when configured.
-        monthly_rent = Decimal(
-            str(
-                selected_room.price_override
-                if (
-                    selected_room
-                    and selected_room.price_override is not None
-                )
-                else property_obj.price
-            )
-        )
+        # Uses the exact rentable resource price selected by the tenant.
+        if selected_apartment_unit is not None:
+            monthly_rent = Decimal(str(selected_apartment_unit.price))
+        elif (
+            selected_room is not None
+            and selected_room.price_override is not None
+        ):
+            monthly_rent = Decimal(str(selected_room.price_override))
+        else:
+            monthly_rent = Decimal(str(property_obj.price))
         amount = monthly_rent * Decimal(str(duration_months))
 
         if amount <= Decimal("0.00"):
@@ -314,6 +333,7 @@ class InitializePaymentView(APIView):
                 payment.landlord = landlord
                 payment.property = property_obj
                 payment.room = selected_room
+                payment.apartment_unit = selected_apartment_unit
                 payment.payment_type = "rent"
                 payment.payment_method = payment_method
                 payment.duration_months = duration_months
@@ -330,6 +350,7 @@ class InitializePaymentView(APIView):
                         "landlord",
                         "property",
                         "room",
+                        "apartment_unit",
                         "payment_type",
                         "payment_method",
                         "duration_months",
@@ -349,6 +370,7 @@ class InitializePaymentView(APIView):
                     booking=booking,
                     property=property_obj,
                     room=selected_room,
+                    apartment_unit=selected_apartment_unit,
                     payment_type="rent",
                     payment_method=payment_method,
                     duration_months=duration_months,
@@ -372,6 +394,11 @@ class InitializePaymentView(APIView):
                     "monthly_rent": str(monthly_rent),
                     "amount": str(amount),
                     "room_id": selected_room.id if selected_room else None,
+                    "apartment_unit_id": (
+                        selected_apartment_unit.id
+                        if selected_apartment_unit
+                        else None
+                    ),
                     "payment": PaymentSerializer(payment).data,
                 },
                 status=status.HTTP_200_OK,
@@ -435,6 +462,11 @@ class InitializePaymentView(APIView):
                 "monthly_rent": str(monthly_rent),
                 "amount": str(amount),
                 "room_id": selected_room.id if selected_room else None,
+                "apartment_unit_id": (
+                    selected_apartment_unit.id
+                    if selected_apartment_unit
+                    else None
+                ),
                 "payment": PaymentSerializer(payment).data,
             },
             status=status.HTTP_200_OK,
@@ -453,6 +485,7 @@ class VerifyPaymentView(APIView):
                 "tenant",
                 "landlord",
                 "room",
+                "apartment_unit",
             ).get(
                 reference=reference,
                 tenant=request.user,
@@ -580,15 +613,16 @@ class VerifyPaymentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Uses the room price for hostels and property price for houses.
-        effective_monthly_rent = (
-            payment.room.price_override
-            if (
-                payment.room
-                and payment.room.price_override is not None
-            )
-            else property_obj.price
-        )
+        # Recomputes rent from the exact rentable resource stored on payment.
+        if payment.apartment_unit_id:
+            effective_monthly_rent = payment.apartment_unit.price
+        elif (
+            payment.room
+            and payment.room.price_override is not None
+        ):
+            effective_monthly_rent = payment.room.price_override
+        else:
+            effective_monthly_rent = property_obj.price
 
         # Recalculates the expected amount from trusted backend data.
         expected_amount = (
@@ -651,8 +685,9 @@ class VerifyPaymentView(APIView):
                 .get(pk=locked_payment.property_id)
             )
 
-            # Locks the selected hostel room before reservation.
+            # Locks the exact child resource before reservation.
             locked_room = None
+            locked_apartment_unit = None
 
             if locked_property.category == "hostel":
                 if not locked_payment.room_id:
@@ -678,6 +713,39 @@ class VerifyPaymentView(APIView):
                         {
                             "detail": (
                                 "The selected hostel room is invalid."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+            elif (
+                locked_property.category == "apartment"
+                and locked_property.apartment_listing_type == "multi_unit"
+            ):
+                if not locked_payment.apartment_unit_id:
+                    return Response(
+                        {
+                            "detail": (
+                                "An apartment unit is required for "
+                                "multi-unit apartment payment."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                try:
+                    locked_apartment_unit = (
+                        ApartmentUnit.objects.select_for_update()
+                        .get(
+                            pk=locked_payment.apartment_unit_id,
+                            property=locked_property,
+                        )
+                    )
+                except ApartmentUnit.DoesNotExist:
+                    return Response(
+                        {
+                            "detail": (
+                                "The selected apartment unit is invalid."
                             )
                         },
                         status=status.HTTP_400_BAD_REQUEST,
@@ -719,7 +787,7 @@ class VerifyPaymentView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Confirms the selected room or house remains available.
+            # Confirms the selected rentable resource remains available.
             if locked_property.category == "hostel":
                 if (
                     not locked_room.is_available
@@ -729,6 +797,17 @@ class VerifyPaymentView(APIView):
                         {
                             "detail": (
                                 "The selected room is no longer "
+                                "available."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            elif locked_apartment_unit is not None:
+                if locked_apartment_unit.status != "available":
+                    return Response(
+                        {
+                            "detail": (
+                                "The selected apartment unit is no longer "
                                 "available."
                             )
                         },
@@ -757,8 +836,23 @@ class VerifyPaymentView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Prevents a house from being reserved over an active lease.
-            if (
+            # Prevents reservation over an existing active lease for the
+            # exact non-hostel rentable resource.
+            if locked_apartment_unit is not None:
+                if TenantLease.objects.filter(
+                    apartment_unit=locked_apartment_unit,
+                    status="active",
+                ).exists():
+                    return Response(
+                        {
+                            "detail": (
+                                "This apartment unit already has "
+                                "an active lease."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            elif (
                 locked_property.category != "hostel"
                 and TenantLease.objects.filter(
                     property=locked_property,
@@ -835,11 +929,16 @@ class VerifyPaymentView(APIView):
                 update_fields=["status"]
             )
 
-            # Reserves one hostel space or the entire house.
+            # Reserves only the selected rentable resource.
             if locked_room:
                 locked_room.reserved_spaces += 1
                 locked_room.save()
+            elif locked_apartment_unit:
+                locked_apartment_unit.status = "reserved"
+                # ApartmentUnit.save() keeps parent availability in sync.
+                locked_apartment_unit.save()
             else:
+                # Houses and single apartments reserve the whole property.
                 locked_property.is_available = False
                 locked_property.save(
                     update_fields=["is_available"]
@@ -922,6 +1021,11 @@ class VerifyPaymentView(APIView):
                     if locked_room
                     else None
                 ),
+                "apartment_unit_id": (
+                    locked_apartment_unit.id
+                    if locked_apartment_unit
+                    else None
+                ),
                 "lease_id": None,
                 "duration_months": duration_months,
                 "receipt": {
@@ -973,6 +1077,8 @@ class OwnerPaymentsView(generics.ListAPIView):
                 "landlord",
                 "property",
                 "booking",
+                "room",
+                "apartment_unit",
             )
             .filter(
                 landlord=user,
@@ -1021,6 +1127,8 @@ class OwnerOnsitePaymentsView(generics.ListAPIView):
                 "landlord",
                 "property",
                 "booking",
+                "room",
+                "apartment_unit",
             )
             .filter(
                 landlord=user,
@@ -1100,8 +1208,9 @@ class ConfirmDirectPaymentView(APIView):
                 .get(pk=payment.property_id)
             )
 
-            # Locks the selected hostel room before reservation.
+            # Locks the exact child resource before reservation.
             selected_room = None
+            selected_apartment_unit = None
 
             if property_obj.category == "hostel":
                 if not payment.room_id:
@@ -1132,6 +1241,39 @@ class ConfirmDirectPaymentView(APIView):
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
+            elif (
+                property_obj.category == "apartment"
+                and property_obj.apartment_listing_type == "multi_unit"
+            ):
+                if not payment.apartment_unit_id:
+                    return Response(
+                        {
+                            "detail": (
+                                "An apartment unit is required for "
+                                "multi-unit apartment payment."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                try:
+                    selected_apartment_unit = (
+                        ApartmentUnit.objects.select_for_update()
+                        .get(
+                            pk=payment.apartment_unit_id,
+                            property=property_obj,
+                        )
+                    )
+                except ApartmentUnit.DoesNotExist:
+                    return Response(
+                        {
+                            "detail": (
+                                "The selected apartment unit is invalid."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
             # Ensures the booking is awaiting payment confirmation.
             if booking.status != "payment_pending":
                 return Response(
@@ -1144,7 +1286,7 @@ class ConfirmDirectPaymentView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Confirms that the room or house remains available.
+            # Confirms that the selected rentable resource remains available.
             if property_obj.category == "hostel":
                 if (
                     not selected_room.is_available
@@ -1154,6 +1296,17 @@ class ConfirmDirectPaymentView(APIView):
                         {
                             "detail": (
                                 "The selected room is no longer "
+                                "available."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+            elif selected_apartment_unit is not None:
+                if selected_apartment_unit.status != "available":
+                    return Response(
+                        {
+                            "detail": (
+                                "The selected apartment unit is no longer "
                                 "available."
                             )
                         },
@@ -1194,17 +1347,47 @@ class ConfirmDirectPaymentView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            # Prevents duplicate active tenancy for the same property.
-            if TenantLease.objects.filter(
-                tenant=payment.tenant,
-                property=property_obj,
-                status="active",
-            ).exists():
+            # Prevents duplicate active tenancy for the same rentable
+            # resource while preserving existing hostel/property behavior.
+            if selected_apartment_unit is not None:
+                active_lease_exists = TenantLease.objects.filter(
+                    tenant=payment.tenant,
+                    apartment_unit=selected_apartment_unit,
+                    status="active",
+                ).exists()
+                active_lease_message = (
+                    "The tenant already has an active lease for this "
+                    "apartment unit."
+                )
+            else:
+                active_lease_exists = TenantLease.objects.filter(
+                    tenant=payment.tenant,
+                    property=property_obj,
+                    status="active",
+                ).exists()
+                active_lease_message = (
+                    "The tenant already has an active lease for this property."
+                )
+
+            if active_lease_exists:
+                return Response(
+                    {"detail": active_lease_message},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Also protects a multi-unit apartment from any conflicting
+            # active lease, even if its status data became inconsistent.
+            if (
+                selected_apartment_unit is not None
+                and TenantLease.objects.filter(
+                    apartment_unit=selected_apartment_unit,
+                    status="active",
+                ).exclude(tenant=payment.tenant).exists()
+            ):
                 return Response(
                     {
                         "detail": (
-                            "The tenant already has an active lease "
-                            "for this property."
+                            "This apartment unit already has an active lease."
                         )
                     },
                     status=status.HTTP_400_BAD_REQUEST,
@@ -1257,11 +1440,16 @@ class ConfirmDirectPaymentView(APIView):
                 update_fields=["status"]
             )
 
-            # Reserves one hostel space or the entire house.
+            # Reserves only the selected rentable resource.
             if selected_room:
                 selected_room.reserved_spaces += 1
                 selected_room.save()
+            elif selected_apartment_unit:
+                selected_apartment_unit.status = "reserved"
+                # ApartmentUnit.save() keeps parent availability in sync.
+                selected_apartment_unit.save()
             else:
+                # Houses and single apartments reserve the whole property.
                 property_obj.is_available = False
                 property_obj.save(
                     update_fields=["is_available"]
@@ -1305,6 +1493,11 @@ class ConfirmDirectPaymentView(APIView):
                 "room_id": (
                     selected_room.id
                     if selected_room
+                    else None
+                ),
+                "apartment_unit_id": (
+                    selected_apartment_unit.id
+                    if selected_apartment_unit
                     else None
                 ),
                 "lease_id": None,
@@ -1447,6 +1640,8 @@ class TenantTransactionsView(generics.ListAPIView):
                 "landlord",
                 "property",
                 "booking",
+                "room",
+                "apartment_unit",
             )
             .filter(tenant=user)
             .order_by("-created_at")
@@ -1500,6 +1695,7 @@ class OwnerTransactionsView(APIView):
                 "booking",
                 "property",
                 "room",
+                "apartment_unit",
             )
             .filter(
                 landlord=user,
@@ -1520,6 +1716,7 @@ class OwnerTransactionsView(APIView):
                     "booking",
                     "property",
                     "room",
+                    "apartment_unit",
                 )
                 .all()
                 .order_by(

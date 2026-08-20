@@ -1,291 +1,479 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  useMapEvents,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import "./Editpropertymodal.css";
 import L from "leaflet";
 import {
-  FaTimes, FaHome, FaMapMarkerAlt, FaImages, FaSave,
-  FaChevronLeft, FaChevronRight, FaTrash, FaPlus,
-  FaExclamationCircle, FaCheckCircle,
+  FaTimes,
+  FaHome,
+  FaMapMarkerAlt,
+  FaImages,
+  FaSave,
+  FaChevronLeft,
+  FaChevronRight,
+  FaTrash,
+  FaPlus,
+  FaExclamationCircle,
+  FaCheckCircle,
 } from "react-icons/fa";
-import { updateProperty } from "../UploadDetails/api/api"; // adjust path as needed
+import { updateProperty } from "../UploadDetails/api/api";
 
-/* ── Leaflet icon fix ─────────────────────────────── */
+// Keeps the default Leaflet marker icons working inside Vite.
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
-  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-  iconUrl:       "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-  shadowUrl:     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+  iconRetinaUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
+  iconUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
-const API_MEDIA_BASE  = "http://127.0.0.1:8000";
-const MAX_IMAGES      = 6;
-const NUMBER_OPTIONS  = Array.from({ length: 10 }, (_, i) => i + 1);
-const ROOM_OPTIONS    = Array.from({ length: 50 }, (_, i) => i + 1);
+const API_MEDIA_BASE = "http://127.0.0.1:8000";
+const MAX_IMAGES = 6;
+const NUMBER_OPTIONS = Array.from({ length: 10 }, (_, i) => i + 1);
+const ROOM_OPTIONS = Array.from({ length: 50 }, (_, i) => i + 1);
 const RENTAL_DURATION_OPTIONS = [6, 12, 18, 24];
-const CATEGORY_LABELS = {
-  hostel:     "Hostel",
-  house_rent: "House for Rent",
-};
 
 const TABS = [
-  { id: "details",  label: "Details",  icon: <FaHome /> },
+  { id: "details", label: "Details", icon: <FaHome /> },
   { id: "location", label: "Location", icon: <FaMapMarkerAlt /> },
-  { id: "images",   label: "Images",   icon: <FaImages /> },
+  { id: "images", label: "Images", icon: <FaImages /> },
 ];
 
-/* ── helpers ──────────────────────────────────────── */
+// Converts relative backend media paths into URLs the browser can display.
 const normalizeUrl = (img) => {
   if (!img) return "";
   if (img.startsWith("http://") || img.startsWith("https://")) return img;
   return `${API_MEDIA_BASE}${img}`;
 };
 
-/* ================================================================
-   MAIN COMPONENT
-   Props:
-     property  — the full property object from MyProperties state
-     onClose   — () => void
-     onUpdated — (updatedProperty) => void   (called after success)
-   ================================================================ */
 const EditPropertyModal = ({ property, onClose, onUpdated }) => {
-  /* ── form state ─────────────────────────────────── */
-  const [tab, setTab]         = useState("details");
-  const [saving, setSaving]   = useState(false);
-  const [toast, setToast]     = useState(null); // { type: "success"|"error", msg }
+  const [tab, setTab] = useState("details");
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState(null);
 
-  /* Details */
+  // Preserves the existing editable parent-property fields and also
+  // carries the apartment listing type required by the new architecture.
   const [form, setForm] = useState({
     property_name: property.property_name ?? "",
-    category:      property.category      ?? "",
+    category: property.category ?? "",
     property_type: property.property_type ?? "",
-    bedrooms:      property.bedrooms      ?? "",
-    bathrooms:     property.bathrooms     ?? "",
-    price:         property.price         ?? "",
-    description:   property.description   ?? "",
-   amenities: Array.isArray(property.amenities) ? property.amenities : [],
-
-allowed_rental_months: Array.isArray(property.allowed_rental_months)
-  ? property.allowed_rental_months
-  : [],
+    apartment_listing_type: property.apartment_listing_type ?? "",
+    bedrooms: property.bedrooms ?? "",
+    bathrooms: property.bathrooms ?? "",
+    price: property.price ?? "",
+    description: property.description ?? "",
+    amenities: Array.isArray(property.amenities) ? property.amenities : [],
+    allowed_rental_months: Array.isArray(property.allowed_rental_months)
+      ? property.allowed_rental_months
+      : [],
   });
   const [detailErrors, setDetailErrors] = useState({});
 
-  /* Location */
   const [loc, setLoc] = useState({
     region: property.region ?? "",
-    city:   property.city   ?? "",
+    city: property.city ?? "",
     school: property.school ?? "",
-    lat:    property.lat    ?? null,
-    lng:    property.lng    ?? null,
+    lat: property.lat ?? null,
+    lng: property.lng ?? null,
   });
   const [locErrors, setLocErrors] = useState({});
 
-  /* Images — existing URLs + new File objects */
+  // Existing image URLs and newly selected files remain separate so the
+  // current delete/add image workflow is preserved.
   const [existingImages, setExistingImages] = useState(
-    (property.images || []).map((url) => ({ url: normalizeUrl(url), toDelete: false }))
+    (property.images || []).map((url) => ({
+      url: normalizeUrl(url),
+      toDelete: false,
+    }))
   );
-  const [newFiles, setNewFiles] = useState([]);   // File[]
+  const [newFiles, setNewFiles] = useState([]);
   const [newPreviews, setNewPreviews] = useState([]);
   const fileInputRef = useRef(null);
 
-  /* Rebuild previews for new files */
   useEffect(() => {
-    const urls = newFiles.map((f) => URL.createObjectURL(f));
+    const urls = newFiles.map((file) => URL.createObjectURL(file));
     setNewPreviews(urls);
-    return () => urls.forEach((u) => URL.revokeObjectURL(u));
+
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, [newFiles]);
 
   const totalImageCount =
-    existingImages.filter((i) => !i.toDelete).length + newFiles.length;
+    existingImages.filter((image) => !image.toDelete).length + newFiles.length;
 
-  /* ── detail helpers ─────────────────────────────── */
   const isHostel = form.category === "hostel";
+  const isApartment = form.category === "apartment";
+  const isMultiUnitApartment =
+    isApartment && form.apartment_listing_type === "multi_unit";
 
-  const handleForm = (e) => {
-    const { name, value } = e.target;
+  // Updates normal text/number fields without changing the existing form flow.
+  const handleForm = (event) => {
+    const { name, value } = event.target;
     const parsed = ["price", "bedrooms", "bathrooms"].includes(name)
-      ? Number(value) || 0 : value;
-    setForm((p) => ({ ...p, [name]: parsed }));
-    setDetailErrors((p) => ({ ...p, [name]: "" }));
+      ? Number(value) || 0
+      : value;
+
+    setForm((previous) => ({
+      ...previous,
+      [name]: parsed,
+    }));
+
+    setDetailErrors((previous) => ({
+      ...previous,
+      [name]: "",
+    }));
   };
 
-  const addAmenity    = () => setForm((p) => ({ ...p, amenities: [...p.amenities, ""] }));
-  const updateAmenity = (i, v) => {
-    const a = [...form.amenities]; a[i] = v;
-    setForm((p) => ({ ...p, amenities: a }));
+  // Keeps category-only fields from leaking into another property category.
+  const handleCategoryChange = (event) => {
+    const category = event.target.value;
+
+    setForm((previous) => {
+      if (category === "hostel") {
+        return {
+          ...previous,
+          category,
+          property_type: "",
+          apartment_listing_type: "",
+          bathrooms: 1,
+        };
+      }
+
+      if (category === "apartment") {
+        return {
+          ...previous,
+          category,
+          property_type: "",
+          apartment_listing_type:
+            previous.category === "apartment"
+              ? previous.apartment_listing_type
+              : "",
+        };
+      }
+
+      return {
+        ...previous,
+        category,
+        property_type: "",
+        apartment_listing_type: "",
+      };
+    });
+
+    setDetailErrors((previous) => ({
+      ...previous,
+      category: "",
+      property_type: "",
+      apartment_listing_type: "",
+    }));
   };
-  const removeAmenity = (i) =>
-    setForm((p) => ({ ...p, amenities: p.amenities.filter((_, idx) => idx !== i) }));
 
-const toggleRentalDuration = (months) => {
-  setForm((prev) => {
-    const current = Array.isArray(prev.allowed_rental_months)
-      ? prev.allowed_rental_months
-      : [];
+  const addAmenity = () => {
+    setForm((previous) => ({
+      ...previous,
+      amenities: [...previous.amenities, ""],
+    }));
+  };
 
-    const updated = current.includes(months)
-      ? current.filter((m) => m !== months)
-      : [...current, months];
+  const updateAmenity = (index, value) => {
+    const amenities = [...form.amenities];
+    amenities[index] = value;
 
-    return {
-      ...prev,
-      allowed_rental_months: updated,
-    };
-  });
+    setForm((previous) => ({
+      ...previous,
+      amenities,
+    }));
+  };
 
-  setDetailErrors((prev) => ({
-    ...prev,
-    allowed_rental_months: "",
-  }));
-};
+  const removeAmenity = (index) => {
+    setForm((previous) => ({
+      ...previous,
+      amenities: previous.amenities.filter(
+        (_, amenityIndex) => amenityIndex !== index
+      ),
+    }));
+  };
 
+  const toggleRentalDuration = (months) => {
+    setForm((previous) => {
+      const current = Array.isArray(previous.allowed_rental_months)
+        ? previous.allowed_rental_months
+        : [];
 
+      const updated = current.includes(months)
+        ? current.filter((month) => month !== months)
+        : [...current, months];
 
+      return {
+        ...previous,
+        allowed_rental_months: updated,
+      };
+    });
+
+    setDetailErrors((previous) => ({
+      ...previous,
+      allowed_rental_months: "",
+    }));
+  };
+
+  // Multi-unit apartment parent records intentionally do not carry their own
+  // bedrooms, bathrooms or price. Those values remain managed per unit.
   const validateDetails = () => {
-    const e = {};
-    if (!form.property_name?.trim()) e.property_name = "Required";
-    if (!form.category)              e.category      = "Required";
-    if (form.category === "house_rent" && !form.property_type) e.property_type = "Required";
-    if (!form.bedrooms || form.bedrooms < 1)
-      e.bedrooms = isHostel ? "Total rooms required" : "Required";
-    if (!isHostel && (!form.bathrooms || form.bathrooms < 1)) e.bathrooms = "Required";
-    if (!form.price || form.price <= 0) e.price = "Required";
-    if (!form.description?.trim()) e.description = "Required";
-   if (
-  !Array.isArray(form.allowed_rental_months) ||
-  form.allowed_rental_months.length === 0
-) {
-  e.allowed_rental_months =
-    "Select at least one rental duration.";
-}
+    const errors = {};
 
-setDetailErrors(e);
-return !Object.keys(e).length;
-   
+    if (!form.property_name?.trim()) {
+      errors.property_name = "Required";
+    }
+
+    if (!form.category) {
+      errors.category = "Required";
+    }
+
+    if (form.category === "house_rent" && !form.property_type) {
+      errors.property_type = "Required";
+    }
+
+    if (isApartment && !form.apartment_listing_type) {
+      errors.apartment_listing_type = "Required";
+    }
+
+    if (
+      !isMultiUnitApartment &&
+      (!form.bedrooms || form.bedrooms < 1)
+    ) {
+      errors.bedrooms = isHostel ? "Total rooms required" : "Required";
+    }
+
+    if (
+      !isHostel &&
+      !isMultiUnitApartment &&
+      (!form.bathrooms || form.bathrooms < 1)
+    ) {
+      errors.bathrooms = "Required";
+    }
+
+    if (
+      !isMultiUnitApartment &&
+      (!form.price || form.price <= 0)
+    ) {
+      errors.price = "Required";
+    }
+
+    if (!form.description?.trim()) {
+      errors.description = "Required";
+    }
+
+    if (
+      !Array.isArray(form.allowed_rental_months) ||
+      form.allowed_rental_months.length === 0
+    ) {
+      errors.allowed_rental_months =
+        "Select at least one rental duration.";
+    }
+
+    setDetailErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
-  /* ── location helpers ───────────────────────────── */
-  const handleLoc = (e) => {
-    const { name, value } = e.target;
-    setLoc((p) => ({ ...p, [name]: value }));
-    setLocErrors((p) => ({ ...p, [name]: "" }));
+  const handleLoc = (event) => {
+    const { name, value } = event.target;
+
+    setLoc((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+
+    setLocErrors((previous) => ({
+      ...previous,
+      [name]: "",
+    }));
   };
 
   const validateLocation = () => {
-    const e = {};
-    if (!loc.region)       e.region = "Required";
-    if (!loc.city?.trim()) e.city   = "Required";
-    if (!loc.lat || !loc.lng) e.map = "Pin location on map";
-    setLocErrors(e);
-    return !Object.keys(e).length;
+    const errors = {};
+
+    if (!loc.region) errors.region = "Required";
+    if (!loc.city?.trim()) errors.city = "Required";
+    if (!loc.lat || !loc.lng) errors.map = "Pin location on map";
+
+    setLocErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
-  /* ── map marker ─────────────────────────────────── */
+  // Lets the owner move the existing map pin by clicking the map.
   const LocationMarker = () => {
     useMapEvents({
-      click(e) {
-        setLoc((p) => ({ ...p, lat: e.latlng.lat, lng: e.latlng.lng }));
-        setLocErrors((p) => ({ ...p, map: "" }));
+      click(event) {
+        setLoc((previous) => ({
+          ...previous,
+          lat: event.latlng.lat,
+          lng: event.latlng.lng,
+        }));
+
+        setLocErrors((previous) => ({
+          ...previous,
+          map: "",
+        }));
       },
     });
+
     if (!loc.lat || !loc.lng) return null;
     return <Marker position={[loc.lat, loc.lng]} />;
   };
 
-  const mapCenter = loc.lat && loc.lng
-    ? [loc.lat, loc.lng]
-    : [5.6037, -0.187];
+  const mapCenter =
+    loc.lat && loc.lng ? [loc.lat, loc.lng] : [5.6037, -0.187];
 
-  /* ── image helpers ──────────────────────────────── */
-  const toggleDeleteExisting = (i) => {
-    setExistingImages((prev) =>
-      prev.map((img, idx) => idx === i ? { ...img, toDelete: !img.toDelete } : img)
+  const toggleDeleteExisting = (index) => {
+    setExistingImages((previous) =>
+      previous.map((image, imageIndex) =>
+        imageIndex === index
+          ? { ...image, toDelete: !image.toDelete }
+          : image
+      )
     );
   };
 
-  const handleFileAdd = (e) => {
-    const selected = Array.from(e.target.files).filter((f) => f instanceof File);
-    const slots    = MAX_IMAGES - totalImageCount;
-    setNewFiles((p) => [...p, ...selected.slice(0, slots)]);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  const handleFileAdd = (event) => {
+    const selected = Array.from(event.target.files).filter(
+      (file) => file instanceof File
+    );
+    const slots = MAX_IMAGES - totalImageCount;
+
+    setNewFiles((previous) => [
+      ...previous,
+      ...selected.slice(0, slots),
+    ]);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
-  const removeNewFile = (i) => setNewFiles((p) => p.filter((_, idx) => idx !== i));
+  const removeNewFile = (index) => {
+    setNewFiles((previous) =>
+      previous.filter((_, fileIndex) => fileIndex !== index)
+    );
+  };
 
-  /* ── submit ─────────────────────────────────────── */
   const handleSave = async () => {
-  const detailOk   = validateDetails();
-  const locationOk = validateLocation();
+    const detailOk = validateDetails();
+    const locationOk = validateLocation();
 
-  if (!detailOk)   { setTab("details");  return; }
-  if (!locationOk) { setTab("location"); return; }
-  if (totalImageCount === 0) {
-    setTab("images");
-    setToast({ type: "error", msg: "At least 1 image is required." });
-    return;
-  }
+    if (!detailOk) {
+      setTab("details");
+      return;
+    }
 
-  try {
-    setSaving(true);
-    const payload = new FormData();
+    if (!locationOk) {
+      setTab("location");
+      return;
+    }
 
-    /* flat fields */
-    const combined = { ...form, ...loc };
-    Object.entries(combined).forEach(([key, val]) => {
-      if (val !== undefined && val !== null && val !== "") {
-       if (
-  key === "amenities" ||
-  key === "allowed_rental_months"
-) {
-  payload.append(
-    key,
-    JSON.stringify(Array.isArray(val) ? val : [])
-  );
-} else {
-  payload.append(key, val);
-}
-      }
-    });
+    if (totalImageCount === 0) {
+      setTab("images");
+      setToast({
+        type: "error",
+        msg: "At least 1 image is required.",
+      });
+      return;
+    }
 
-    /* images to delete */
-    existingImages
-      .filter((i) => i.toDelete)
-      .forEach((i) => payload.append("delete_images", i.url));
+    try {
+      setSaving(true);
 
-    /* new images */
-    newFiles.forEach((f) => payload.append("property_images", f));
+      const payload = new FormData();
+      const combined = { ...form, ...loc };
 
-    const updated = await updateProperty(property.id, payload);
+      Object.entries(combined).forEach(([key, value]) => {
+        // Never send parent bedroom/bathroom/price values for a multi-unit
+        // apartment. Those values belong to ApartmentUnit records.
+        if (
+          isMultiUnitApartment &&
+          ["bedrooms", "bathrooms", "price"].includes(key)
+        ) {
+          return;
+        }
 
-    setToast({ type: "success", msg: "Property updated successfully!" });
+        if (value === undefined || value === null || value === "") {
+          return;
+        }
 
-    // Use server-returned images so URLs are real, not revoked blob URLs
-    const mergedImages = updated?.images?.length
-      ? updated.images.map((img) =>
-          typeof img === "string" ? img : normalizeUrl(img.image ?? img.url ?? "")
-        )
-      : existingImages.filter((i) => !i.toDelete).map((i) => i.url);
+        if (key === "amenities" || key === "allowed_rental_months") {
+          payload.append(
+            key,
+            JSON.stringify(Array.isArray(value) ? value : [])
+          );
+          return;
+        }
 
-    const merged = {
-      ...property,
-      ...form,
-      ...loc,
-      status: property.status ?? "Active",
-      images: mergedImages,
-    };
+        payload.append(key, value);
+      });
 
-    setTimeout(() => { onUpdated(merged); onClose(); }, 1200);
-  } catch (err) {
-    console.error("Update failed:", err);
-    setToast({ type: "error", msg: "Update failed. Please try again." });
-  } finally {
-    setSaving(false);
-  }
-};
+      existingImages
+        .filter((image) => image.toDelete)
+        .forEach((image) => payload.append("delete_images", image.url));
 
-  /* ── render ─────────────────────────────────────── */
+      newFiles.forEach((file) =>
+        payload.append("property_images", file)
+      );
+
+      const updated = await updateProperty(property.id, payload);
+
+      setToast({
+        type: "success",
+        msg: "Property updated successfully!",
+      });
+
+      // Keeps real server image URLs after the update instead of temporary
+      // browser blob URLs.
+      const mergedImages = updated?.images?.length
+        ? updated.images.map((image) =>
+            typeof image === "string"
+              ? image
+              : normalizeUrl(image.image ?? image.url ?? "")
+          )
+        : existingImages
+            .filter((image) => !image.toDelete)
+            .map((image) => image.url);
+
+      const merged = {
+        ...property,
+        ...form,
+        ...loc,
+        ...(updated || {}),
+        status: updated?.status ?? property.status ?? "Active",
+        images: mergedImages,
+      };
+
+      setTimeout(() => {
+        onUpdated(merged);
+        onClose();
+      }, 1200);
+    } catch (error) {
+      console.error("Update failed:", error);
+
+      const backendMessage =
+        error.response?.data?.detail ||
+        Object.values(error.response?.data || {})
+          .flat()
+          .find((value) => typeof value === "string");
+
+      setToast({
+        type: "error",
+        msg: backendMessage || "Update failed. Please try again.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       <motion.div
@@ -298,43 +486,56 @@ return !Object.keys(e).length;
         <motion.div
           className="epm-modal"
           initial={{ y: 40, opacity: 0, scale: 0.97 }}
-          animate={{ y: 0,  opacity: 1, scale: 1 }}
+          animate={{ y: 0, opacity: 1, scale: 1 }}
           exit={{ y: 40, opacity: 0, scale: 0.97 }}
           transition={{ type: "spring", stiffness: 320, damping: 28 }}
-          onClick={(e) => e.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
         >
-          {/* ── Modal Header ── */}
           <div className="epm-header">
             <div className="epm-header-left">
-              <div className="epm-header-icon"><FaHome /></div>
+              <div className="epm-header-icon">
+                <FaHome />
+              </div>
+
               <div>
                 <h2 className="epm-title">Edit Property</h2>
-                <p className="epm-subtitle">#{property.id} · {property.property_name}</p>
+                <p className="epm-subtitle">
+                  #{property.id} - {property.property_name}
+                </p>
               </div>
             </div>
-            <button className="epm-close" onClick={onClose}><FaTimes /></button>
+
+            <button className="epm-close" onClick={onClose}>
+              <FaTimes />
+            </button>
           </div>
 
-          {/* ── Tabs ── */}
           <div className="epm-tabs">
-            {TABS.map((t) => (
+            {TABS.map((tabItem) => (
               <button
-                key={t.id}
-                className={`epm-tab ${tab === t.id ? "epm-tab--active" : ""}`}
-                onClick={() => setTab(t.id)}
+                key={tabItem.id}
+                className={`epm-tab ${
+                  tab === tabItem.id ? "epm-tab--active" : ""
+                }`}
+                onClick={() => setTab(tabItem.id)}
               >
-                {t.icon}
-                <span>{t.label}</span>
-                {t.id === "details"  && Object.keys(detailErrors).length > 0 && <span className="epm-tab-err" />}
-                {t.id === "location" && Object.keys(locErrors).length   > 0 && <span className="epm-tab-err" />}
+                {tabItem.icon}
+                <span>{tabItem.label}</span>
+
+                {tabItem.id === "details" &&
+                  Object.keys(detailErrors).length > 0 && (
+                    <span className="epm-tab-err" />
+                  )}
+
+                {tabItem.id === "location" &&
+                  Object.keys(locErrors).length > 0 && (
+                    <span className="epm-tab-err" />
+                  )}
               </button>
             ))}
           </div>
 
-          {/* ── Tab Body ── */}
           <div className="epm-body">
-
-            {/* ────────── DETAILS TAB ────────── */}
             <AnimatePresence mode="wait">
               {tab === "details" && (
                 <motion.div
@@ -346,17 +547,24 @@ return !Object.keys(e).length;
                   transition={{ duration: 0.18 }}
                 >
                   <div className="epm-grid">
-
                     <div className="epm-field">
                       <label>Property Name</label>
                       <input
                         name="property_name"
                         value={form.property_name}
                         onChange={handleForm}
-                        className={detailErrors.property_name ? "epm-input--err" : ""}
+                        className={
+                          detailErrors.property_name
+                            ? "epm-input--err"
+                            : ""
+                        }
                         placeholder="e.g. Cozy Studio near Legon"
                       />
-                      {detailErrors.property_name && <span className="epm-err-text">{detailErrors.property_name}</span>}
+                      {detailErrors.property_name && (
+                        <span className="epm-err-text">
+                          {detailErrors.property_name}
+                        </span>
+                      )}
                     </div>
 
                     <div className="epm-field">
@@ -364,18 +572,21 @@ return !Object.keys(e).length;
                       <select
                         name="category"
                         value={form.category}
-                        onChange={(e) => {
-                          handleForm(e);
-                          if (e.target.value === "hostel")
-                            setForm((p) => ({ ...p, bathrooms: 1, property_type: "" }));
-                        }}
-                        className={detailErrors.category ? "epm-input--err" : ""}
+                        onChange={handleCategoryChange}
+                        className={
+                          detailErrors.category ? "epm-input--err" : ""
+                        }
                       >
                         <option value="">Select</option>
                         <option value="hostel">Hostel</option>
                         <option value="house_rent">House for Rent</option>
+                        <option value="apartment">Apartment</option>
                       </select>
-                      {detailErrors.category && <span className="epm-err-text">{detailErrors.category}</span>}
+                      {detailErrors.category && (
+                        <span className="epm-err-text">
+                          {detailErrors.category}
+                        </span>
+                      )}
                     </div>
 
                     {form.category === "house_rent" && (
@@ -385,23 +596,34 @@ return !Object.keys(e).length;
                           name="property_type"
                           value={form.property_type}
                           onChange={handleForm}
-                          className={detailErrors.property_type ? "epm-input--err" : ""}
+                          className={
+                            detailErrors.property_type
+                              ? "epm-input--err"
+                              : ""
+                          }
                         >
                           <option value="">Select</option>
-                          <option value="apartment">Apartment</option>
                           <option value="single_room">Single Room</option>
                           <option value="chamber_hall">Chamber & Hall</option>
                           <option value="self_contained">Self Contained</option>
                           <option value="office">Office</option>
                         </select>
-                        {detailErrors.property_type && <span className="epm-err-text">{detailErrors.property_type}</span>}
+                        {detailErrors.property_type && (
+                          <span className="epm-err-text">
+                            {detailErrors.property_type}
+                          </span>
+                        )}
                       </div>
                     )}
 
                     {isHostel && (
                       <div className="epm-field">
                         <label>Hostel Type</label>
-                        <select name="property_type" value={form.property_type} onChange={handleForm}>
+                        <select
+                          name="property_type"
+                          value={form.property_type}
+                          onChange={handleForm}
+                        >
                           <option value="">Select</option>
                           <option value="mixed">Mixed</option>
                           <option value="male_only">Male Only</option>
@@ -410,76 +632,151 @@ return !Object.keys(e).length;
                       </div>
                     )}
 
-                    <div className="epm-field">
-                      <label>{isHostel ? "Total Rooms" : "Bedrooms"}</label>
-                      <select
-                        name="bedrooms"
-                        value={form.bedrooms}
-                        onChange={handleForm}
-                        className={detailErrors.bedrooms ? "epm-input--err" : ""}
-                      >
-                        <option value="">Select</option>
-                        {(isHostel ? ROOM_OPTIONS : NUMBER_OPTIONS).map((n) => (
-                          <option key={n} value={n}>{n}</option>
-                        ))}
-                      </select>
-                      {detailErrors.bedrooms && <span className="epm-err-text">{detailErrors.bedrooms}</span>}
-                    </div>
+                    {isApartment && (
+                      <div className="epm-field">
+                        <label>Apartment Listing Type</label>
+                        <select
+                          name="apartment_listing_type"
+                          value={form.apartment_listing_type}
+                          onChange={handleForm}
+                          className={
+                            detailErrors.apartment_listing_type
+                              ? "epm-input--err"
+                              : ""
+                          }
+                        >
+                          <option value="">Select</option>
+                          <option value="single">Single Apartment</option>
+                          <option value="multi_unit">
+                            Multi-unit Apartment
+                          </option>
+                        </select>
+                        {detailErrors.apartment_listing_type && (
+                          <span className="epm-err-text">
+                            {detailErrors.apartment_listing_type}
+                          </span>
+                        )}
+                      </div>
+                    )}
 
-                    {!isHostel && (
+                    {!isMultiUnitApartment && (
+                      <div className="epm-field">
+                        <label>{isHostel ? "Total Rooms" : "Bedrooms"}</label>
+                        <select
+                          name="bedrooms"
+                          value={form.bedrooms}
+                          onChange={handleForm}
+                          className={
+                            detailErrors.bedrooms ? "epm-input--err" : ""
+                          }
+                        >
+                          <option value="">Select</option>
+                          {(isHostel ? ROOM_OPTIONS : NUMBER_OPTIONS).map(
+                            (number) => (
+                              <option key={number} value={number}>
+                                {number}
+                              </option>
+                            )
+                          )}
+                        </select>
+                        {detailErrors.bedrooms && (
+                          <span className="epm-err-text">
+                            {detailErrors.bedrooms}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {!isHostel && !isMultiUnitApartment && (
                       <div className="epm-field">
                         <label>Bathrooms</label>
                         <select
                           name="bathrooms"
                           value={form.bathrooms}
                           onChange={handleForm}
-                          className={detailErrors.bathrooms ? "epm-input--err" : ""}
+                          className={
+                            detailErrors.bathrooms ? "epm-input--err" : ""
+                          }
                         >
                           <option value="">Select</option>
-                          {NUMBER_OPTIONS.map((n) => <option key={n} value={n}>{n}</option>)}
+                          {NUMBER_OPTIONS.map((number) => (
+                            <option key={number} value={number}>
+                              {number}
+                            </option>
+                          ))}
                         </select>
-                        {detailErrors.bathrooms && <span className="epm-err-text">{detailErrors.bathrooms}</span>}
+                        {detailErrors.bathrooms && (
+                          <span className="epm-err-text">
+                            {detailErrors.bathrooms}
+                          </span>
+                        )}
                       </div>
                     )}
 
-                    <div className="epm-field">
-                      <label>{isHostel ? "Price per Room (GHS)" : "Price (GHS)"}</label>
-                      <input
-                        type="number"
-                        name="price"
-                        value={form.price}
-                        onChange={handleForm}
-                        className={detailErrors.price ? "epm-input--err" : ""}
-                        placeholder="0.00"
-                      />
-                      {detailErrors.price && <span className="epm-err-text">{detailErrors.price}</span>}
-                    </div>
-
+                    {!isMultiUnitApartment && (
+                      <div className="epm-field">
+                        <label>
+                          {isHostel ? "Price per Room (GHS)" : "Price (GHS)"}
+                        </label>
+                        <input
+                          type="number"
+                          name="price"
+                          value={form.price}
+                          onChange={handleForm}
+                          className={
+                            detailErrors.price ? "epm-input--err" : ""
+                          }
+                          placeholder="0.00"
+                        />
+                        {detailErrors.price && (
+                          <span className="epm-err-text">
+                            {detailErrors.price}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Amenities */}
+                  {isMultiUnitApartment && (
+                    <div className="epm-field epm-field--full">
+                      <p className="epm-map-hint">
+                        Bedrooms, bathrooms and rent are managed separately for
+                        each apartment through Manage Units. The parent listing
+                        does not store those values.
+                      </p>
+                    </div>
+                  )}
+
                   <div className="epm-field epm-field--full">
                     <label>Amenities</label>
                     <div className="epm-amenities">
-                      {form.amenities.map((item, i) => (
-                        <div key={i} className="epm-amenity-row">
+                      {form.amenities.map((item, index) => (
+                        <div key={index} className="epm-amenity-row">
                           <input
                             value={item}
-                            onChange={(e) => updateAmenity(i, e.target.value)}
-                            placeholder={`Amenity ${i + 1}`}
+                            onChange={(event) =>
+                              updateAmenity(index, event.target.value)
+                            }
+                            placeholder={`Amenity ${index + 1}`}
                           />
-                          <button className="epm-amenity-remove" onClick={() => removeAmenity(i)}>
+                          <button
+                            className="epm-amenity-remove"
+                            onClick={() => removeAmenity(index)}
+                          >
                             <FaTimes />
                           </button>
                         </div>
                       ))}
-                      <button className="epm-amenity-add" onClick={addAmenity}>
+
+                      <button
+                        className="epm-amenity-add"
+                        onClick={addAmenity}
+                      >
                         <FaPlus /> Add Amenity
                       </button>
                     </div>
                   </div>
 
-                  {/* Description */}
                   <div className="epm-field epm-field--full">
                     <label>Description</label>
                     <textarea
@@ -487,22 +784,30 @@ return !Object.keys(e).length;
                       value={form.description}
                       onChange={handleForm}
                       rows={4}
-                      className={detailErrors.description ? "epm-input--err" : ""}
+                      className={
+                        detailErrors.description ? "epm-input--err" : ""
+                      }
                       placeholder="Describe the property..."
                     />
-                    {detailErrors.description && <span className="epm-err-text">{detailErrors.description}</span>}
+                    {detailErrors.description && (
+                      <span className="epm-err-text">
+                        {detailErrors.description}
+                      </span>
+                    )}
                   </div>
 
                   <div className="epm-tab-nav">
                     <span />
-                    <button className="epm-nav-btn epm-nav-btn--next" onClick={() => setTab("location")}>
+                    <button
+                      className="epm-nav-btn epm-nav-btn--next"
+                      onClick={() => setTab("location")}
+                    >
                       Location <FaChevronRight />
                     </button>
                   </div>
                 </motion.div>
               )}
 
-              {/* ────────── LOCATION TAB ────────── */}
               {tab === "location" && (
                 <motion.div
                   key="location"
@@ -513,14 +818,15 @@ return !Object.keys(e).length;
                   transition={{ duration: 0.18 }}
                 >
                   <div className="epm-grid">
-
                     <div className="epm-field">
                       <label>Region</label>
                       <select
                         name="region"
                         value={loc.region}
                         onChange={handleLoc}
-                        className={locErrors.region ? "epm-input--err" : ""}
+                        className={
+                          locErrors.region ? "epm-input--err" : ""
+                        }
                       >
                         <option value="">Select Region</option>
                         <option value="greater_accra">Greater Accra</option>
@@ -534,7 +840,11 @@ return !Object.keys(e).length;
                         <option value="upper_west">Upper West</option>
                         <option value="brong_ahafo">Brong-Ahafo</option>
                       </select>
-                      {locErrors.region && <span className="epm-err-text">{locErrors.region}</span>}
+                      {locErrors.region && (
+                        <span className="epm-err-text">
+                          {locErrors.region}
+                        </span>
+                      )}
                     </div>
 
                     <div className="epm-field">
@@ -546,7 +856,11 @@ return !Object.keys(e).length;
                         placeholder="e.g. East Legon, Spintex, KNUST Area"
                         className={locErrors.city ? "epm-input--err" : ""}
                       />
-                      {locErrors.city && <span className="epm-err-text">{locErrors.city}</span>}
+                      {locErrors.city && (
+                        <span className="epm-err-text">
+                          {locErrors.city}
+                        </span>
+                      )}
                     </div>
 
                     <div className="epm-field">
@@ -561,71 +875,90 @@ return !Object.keys(e).length;
                         placeholder="e.g. University of Ghana, KNUST"
                       />
                     </div>
-
                   </div>
 
-                  {/* Map */}
                   <div className="epm-field epm-field--full">
                     <label>Pin Property Location on Map</label>
-                    <p className="epm-map-hint">Click on the map to update the pin.</p>
-                    <div className={`epm-map-wrap ${locErrors.map ? "epm-map-wrap--err" : ""}`}>
+                    <p className="epm-map-hint">
+                      Click on the map to update the pin.
+                    </p>
+                    <div
+                      className={`epm-map-wrap ${
+                        locErrors.map ? "epm-map-wrap--err" : ""
+                      }`}
+                    >
                       <MapContainer
                         key={`${loc.region}-${loc.lat}-${loc.lng}`}
                         center={mapCenter}
                         zoom={13}
-                        style={{ height: "260px", width: "100%", borderRadius: "10px" }}
+                        style={{
+                          height: "260px",
+                          width: "100%",
+                          borderRadius: "10px",
+                        }}
                       >
                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                         <LocationMarker />
                       </MapContainer>
                     </div>
+
                     {loc.lat && loc.lng && (
                       <p className="epm-map-coords">
-                        ✓ Pinned: {loc.lat.toFixed(5)}, {loc.lng.toFixed(5)}
+                        Pinned: {Number(loc.lat).toFixed(5)}, {" "}
+                        {Number(loc.lng).toFixed(5)}
                       </p>
                     )}
-                    {locErrors.map && <span className="epm-err-text">{locErrors.map}</span>}
+
+                    {locErrors.map && (
+                      <span className="epm-err-text">{locErrors.map}</span>
+                    )}
                   </div>
 
                   <div className="epm-tab-nav">
-                    <button className="epm-nav-btn epm-nav-btn--prev" onClick={() => setTab("details")}>
+                    <button
+                      className="epm-nav-btn epm-nav-btn--prev"
+                      onClick={() => setTab("details")}
+                    >
                       <FaChevronLeft /> Details
                     </button>
-                    <button className="epm-nav-btn epm-nav-btn--next" onClick={() => setTab("images")}>
+                    <button
+                      className="epm-nav-btn epm-nav-btn--next"
+                      onClick={() => setTab("images")}
+                    >
                       Images <FaChevronRight />
                     </button>
                   </div>
                 </motion.div>
               )}
-<div className="form-group full-width">
-  <label>Available Rental Durations</label>
 
-  <div className="rental-duration-grid">
-    {RENTAL_DURATION_OPTIONS.map((months) => (
-      <label
-        key={months}
-        className="rental-duration-option"
-      >
-        <input
-          type="checkbox"
-          checked={
-  (form.allowed_rental_months || []).includes(months)
-}
-          onChange={() => toggleRentalDuration(months)}
-        />
+              <div className="form-group full-width">
+                <label>Available Rental Durations</label>
 
-        {months} Months
-      </label>
-    ))}
-  </div>
+                <div className="rental-duration-grid">
+                  {RENTAL_DURATION_OPTIONS.map((months) => (
+                    <label
+                      key={months}
+                      className="rental-duration-option"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={(form.allowed_rental_months || []).includes(
+                          months
+                        )}
+                        onChange={() => toggleRentalDuration(months)}
+                      />
+                      {months} Months
+                    </label>
+                  ))}
+                </div>
 
-  {detailErrors.allowed_rental_months &&  (
-    <span className="error-text">
-      {detailErrors.allowed_rental_months}
-    </span>
-  )}
-</div>
-              {/* ────────── IMAGES TAB ────────── */}
+                {detailErrors.allowed_rental_months && (
+                  <span className="error-text">
+                    {detailErrors.allowed_rental_months}
+                  </span>
+                )}
+              </div>
+
               {tab === "images" && (
                 <motion.div
                   key="images"
@@ -639,6 +972,7 @@ return !Object.keys(e).length;
                     <p className="epm-img-count">
                       <FaImages /> {totalImageCount} / {MAX_IMAGES} images
                     </p>
+
                     {totalImageCount < MAX_IMAGES && (
                       <label className="epm-img-add-btn">
                         <FaPlus /> Add Images
@@ -655,32 +989,55 @@ return !Object.keys(e).length;
                   </div>
 
                   <div className="epm-img-grid">
-
-                    {/* Existing images */}
-                    {existingImages.map((img, i) => (
+                    {existingImages.map((image, index) => (
                       <div
-                        key={`exist-${i}`}
-                        className={`epm-img-card ${img.toDelete ? "epm-img-card--marked" : ""}`}
+                        key={`exist-${index}`}
+                        className={`epm-img-card ${
+                          image.toDelete ? "epm-img-card--marked" : ""
+                        }`}
                       >
-                        <img src={img.url} alt={`existing ${i + 1}`} />
+                        <img
+                          src={image.url}
+                          alt={`existing ${index + 1}`}
+                        />
                         <div className="epm-img-overlay">
                           <button
-                            className={`epm-img-del-btn ${img.toDelete ? "epm-img-del-btn--undo" : ""}`}
-                            onClick={() => toggleDeleteExisting(i)}
+                            className={`epm-img-del-btn ${
+                              image.toDelete
+                                ? "epm-img-del-btn--undo"
+                                : ""
+                            }`}
+                            onClick={() => toggleDeleteExisting(index)}
                           >
-                            {img.toDelete ? "↩ Restore" : <><FaTrash /> Remove</>}
+                            {image.toDelete ? (
+                              "Restore"
+                            ) : (
+                              <>
+                                <FaTrash /> Remove
+                              </>
+                            )}
                           </button>
                         </div>
-                        {img.toDelete && <div className="epm-img-delete-mask"><span>Will be removed</span></div>}
+
+                        {image.toDelete && (
+                          <div className="epm-img-delete-mask">
+                            <span>Will be removed</span>
+                          </div>
+                        )}
                       </div>
                     ))}
 
-                    {/* New file previews */}
-                    {newPreviews.map((url, i) => (
-                      <div key={`new-${i}`} className="epm-img-card epm-img-card--new">
-                        <img src={url} alt={`new ${i + 1}`} />
+                    {newPreviews.map((url, index) => (
+                      <div
+                        key={`new-${index}`}
+                        className="epm-img-card epm-img-card--new"
+                      >
+                        <img src={url} alt={`new ${index + 1}`} />
                         <div className="epm-img-overlay">
-                          <button className="epm-img-del-btn" onClick={() => removeNewFile(i)}>
+                          <button
+                            className="epm-img-del-btn"
+                            onClick={() => removeNewFile(index)}
+                          >
                             <FaTrash /> Remove
                           </button>
                         </div>
@@ -688,18 +1045,19 @@ return !Object.keys(e).length;
                       </div>
                     ))}
 
-                    {/* Empty slots */}
                     {totalImageCount === 0 && (
                       <div className="epm-img-empty">
                         <FaImages />
                         <p>No images yet. Add at least one.</p>
                       </div>
                     )}
-
                   </div>
 
                   <div className="epm-tab-nav">
-                    <button className="epm-nav-btn epm-nav-btn--prev" onClick={() => setTab("location")}>
+                    <button
+                      className="epm-nav-btn epm-nav-btn--prev"
+                      onClick={() => setTab("location")}
+                    >
                       <FaChevronLeft /> Location
                     </button>
                     <span />
@@ -709,19 +1067,31 @@ return !Object.keys(e).length;
             </AnimatePresence>
           </div>
 
-          {/* ── Footer ── */}
           <div className="epm-footer">
-            <button className="epm-cancel-btn" onClick={onClose} disabled={saving}>
+            <button
+              className="epm-cancel-btn"
+              onClick={onClose}
+              disabled={saving}
+            >
               Cancel
             </button>
-            <button className="epm-save-btn" onClick={handleSave} disabled={saving}>
-              {saving
-                ? <><span className="epm-spinner" /> Saving...</>
-                : <><FaSave /> Save Changes</>}
+            <button
+              className="epm-save-btn"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? (
+                <>
+                  <span className="epm-spinner" /> Saving...
+                </>
+              ) : (
+                <>
+                  <FaSave /> Save Changes
+                </>
+              )}
             </button>
           </div>
 
-          {/* ── Toast ── */}
           <AnimatePresence>
             {toast && (
               <motion.div
@@ -730,15 +1100,20 @@ return !Object.keys(e).length;
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 16 }}
                 onAnimationComplete={() => {
-                  if (toast.type === "error") setTimeout(() => setToast(null), 3000);
+                  if (toast.type === "error") {
+                    setTimeout(() => setToast(null), 3000);
+                  }
                 }}
               >
-                {toast.type === "success" ? <FaCheckCircle /> : <FaExclamationCircle />}
+                {toast.type === "success" ? (
+                  <FaCheckCircle />
+                ) : (
+                  <FaExclamationCircle />
+                )}
                 {toast.msg}
               </motion.div>
             )}
           </AnimatePresence>
-
         </motion.div>
       </motion.div>
     </AnimatePresence>

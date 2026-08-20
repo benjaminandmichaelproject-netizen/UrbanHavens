@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from dateutil.relativedelta import relativedelta
 from django.db import transaction
 from rest_framework import generics, permissions, status
@@ -8,7 +10,7 @@ from rest_framework.views import APIView
 from bookings.models import Booking
 from notifications.utils import send_notification
 from payments.models import Payment
-from properties.models import Property, Room
+from properties.models import ApartmentUnit, Property, Room
 
 from .models import TenantLease
 from .serializers import (
@@ -55,6 +57,7 @@ class AwaitingLeaseListView(generics.ListAPIView):
                 "landlord",
                 "property",
                 "room",
+                "apartment_unit",
                 "booking",
             )
             .filter(
@@ -86,16 +89,14 @@ class AwaitingLeaseListView(generics.ListAPIView):
         for payment in payments:
             property_obj = payment.property
             room_obj = payment.room
+            apartment_unit_obj = payment.apartment_unit
 
-            # Uses the room price override for hostels when available.
+            # Uses the amount actually paid to preserve the agreed rent even
+            # if the property, room, or unit price changes after payment.
             monthly_rent = (
-                room_obj.price_override
-                if (
-                    room_obj
-                    and room_obj.price_override is not None
-                )
-                else property_obj.price
-            )
+                payment.amount
+                / Decimal(str(payment.duration_months))
+            ).quantize(Decimal("0.01"))
 
             tenant_name = (
                 payment.tenant.get_full_name()
@@ -117,6 +118,9 @@ class AwaitingLeaseListView(generics.ListAPIView):
                     "property_category": (
                         property_obj.category
                     ),
+                    "apartment_listing_type": (
+                        property_obj.apartment_listing_type
+                    ),
                     "room_id": (
                         room_obj.id
                         if room_obj
@@ -125,6 +129,26 @@ class AwaitingLeaseListView(generics.ListAPIView):
                     "room_number": (
                         room_obj.room_number
                         if room_obj
+                        else None
+                    ),
+                    "apartment_unit_id": (
+                        apartment_unit_obj.id
+                        if apartment_unit_obj
+                        else None
+                    ),
+                    "apartment_unit_number": (
+                        apartment_unit_obj.unit_number
+                        if apartment_unit_obj
+                        else None
+                    ),
+                    "apartment_unit_floor": (
+                        apartment_unit_obj.floor
+                        if apartment_unit_obj
+                        else None
+                    ),
+                    "apartment_unit_status": (
+                        apartment_unit_obj.status
+                        if apartment_unit_obj
                         else None
                     ),
                     "duration_months": (
@@ -193,10 +217,17 @@ class CreateLeaseFromPaymentView(APIView):
 
         with transaction.atomic():
             try:
-                # Locks only the payment row.
-                # Nullable related records are locked separately.
+                # Locks the successful payment that authorizes this lease.
                 payment = (
                     Payment.objects.select_for_update()
+                    .select_related(
+                        "tenant",
+                        "landlord",
+                        "property",
+                        "room",
+                        "apartment_unit",
+                        "booking",
+                    )
                     .get(
                         id=payment_id,
                         status="success",
@@ -210,6 +241,19 @@ class CreateLeaseFromPaymentView(APIView):
                         )
                     },
                     status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # First-time lease creation must be backed by a booking payment,
+            # not a lease-renewal payment.
+            if not payment.booking_id or payment.renewal_request_id:
+                return Response(
+                    {
+                        "detail": (
+                            "This payment cannot be used for "
+                            "first-time lease creation."
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             # Prevents an owner from using another owner's payment.
@@ -287,7 +331,40 @@ class CreateLeaseFromPaymentView(APIView):
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
-            # Confirms that the payment owner matches the property owner.
+            # Confirms payment, booking, and owner relationships are intact.
+            if booking.property_id != property_obj.id:
+                return Response(
+                    {
+                        "detail": (
+                            "The payment property no longer matches "
+                            "the booking property."
+                        )
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            if booking.tenant_id != payment.tenant_id:
+                return Response(
+                    {
+                        "detail": (
+                            "The payment tenant no longer matches "
+                            "the booking tenant."
+                        )
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            if booking.owner_id != payment.landlord_id:
+                return Response(
+                    {
+                        "detail": (
+                            "The payment landlord no longer matches "
+                            "the booking owner."
+                        )
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
             if property_obj.owner_id != payment.landlord_id:
                 return Response(
                     {
@@ -300,14 +377,27 @@ class CreateLeaseFromPaymentView(APIView):
                 )
 
             room_obj = None
+            apartment_unit_obj = None
 
             if property_obj.category == "hostel":
+                # Hostel payments must contain only the reserved room.
                 if not payment.room_id:
                     return Response(
                         {
                             "detail": (
                                 "This hostel payment has no "
                                 "reserved room."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                if payment.apartment_unit_id:
+                    return Response(
+                        {
+                            "detail": (
+                                "A hostel payment cannot contain "
+                                "an apartment unit."
                             )
                         },
                         status=status.HTTP_400_BAD_REQUEST,
@@ -362,20 +452,123 @@ class CreateLeaseFromPaymentView(APIView):
                     ]
                 )
 
-            else:
-                # Prevents a house payment from containing a room.
+            elif (
+                property_obj.category == "apartment"
+                and property_obj.apartment_listing_type == "multi_unit"
+            ):
+                # Multi-unit payments must contain only the exact reserved
+                # apartment unit selected and paid for by the tenant.
+                if not payment.apartment_unit_id:
+                    return Response(
+                        {
+                            "detail": (
+                                "This apartment payment has no "
+                                "reserved apartment unit."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
                 if payment.room_id:
                     return Response(
                         {
                             "detail": (
-                                "House payments cannot contain "
+                                "A multi-unit apartment payment cannot "
+                                "contain a hostel room."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                try:
+                    apartment_unit_obj = (
+                        ApartmentUnit.objects.select_for_update()
+                        .get(
+                            id=payment.apartment_unit_id,
+                            property=property_obj,
+                        )
+                    )
+                except ApartmentUnit.DoesNotExist:
+                    return Response(
+                        {
+                            "detail": (
+                                "The reserved apartment unit "
+                                "could not be found."
+                            )
+                        },
+                        status=status.HTTP_404_NOT_FOUND,
+                    )
+
+                if apartment_unit_obj.status != "reserved":
+                    return Response(
+                        {
+                            "detail": (
+                                "This apartment unit is no longer "
+                                "reserved for this payment."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                if TenantLease.objects.filter(
+                    apartment_unit=apartment_unit_obj,
+                    status="active",
+                ).exists():
+                    return Response(
+                        {
+                            "detail": (
+                                "This apartment unit already has "
+                                "an active lease."
+                            )
+                        },
+                        status=status.HTTP_409_CONFLICT,
+                    )
+
+                # Converts the paid reservation into active occupancy.
+                apartment_unit_obj.status = "occupied"
+                apartment_unit_obj.save()
+
+            else:
+                # Houses and single apartments are represented directly by
+                # the parent Property and must not contain child resources.
+                if payment.room_id:
+                    return Response(
+                        {
+                            "detail": (
+                                "This payment cannot contain "
                                 "a hostel room."
                             )
                         },
                         status=status.HTTP_400_BAD_REQUEST,
                     )
 
-                # Keeps the reserved house unavailable.
+                if payment.apartment_unit_id:
+                    return Response(
+                        {
+                            "detail": (
+                                "This payment cannot contain "
+                                "an apartment unit."
+                            )
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                if TenantLease.objects.filter(
+                    property=property_obj,
+                    status="active",
+                ).exists():
+                    return Response(
+                        {
+                            "detail": (
+                                "This property already has "
+                                "an active lease."
+                            )
+                        },
+                        status=status.HTTP_409_CONFLICT,
+                    )
+
+                # Payment verification already reserved the parent rental.
+                # Keep it unavailable while the lease remains active.
                 if property_obj.is_available:
                     property_obj.is_available = False
                     property_obj.save(
@@ -384,14 +577,22 @@ class CreateLeaseFromPaymentView(APIView):
                         ]
                     )
 
-            monthly_rent = (
-                room_obj.price_override
-                if (
-                    room_obj
-                    and room_obj.price_override is not None
+            # Uses the trusted paid amount rather than a price that may have
+            # changed after payment initialization.
+            if payment.duration_months <= 0:
+                return Response(
+                    {
+                        "detail": (
+                            "The payment rental duration is invalid."
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-                else property_obj.price
-            )
+
+            monthly_rent = (
+                payment.amount
+                / Decimal(str(payment.duration_months))
+            ).quantize(Decimal("0.01"))
 
             # Calculates the lease end date from the paid duration.
             lease_end_date = (
@@ -408,6 +609,7 @@ class CreateLeaseFromPaymentView(APIView):
                 tenant_id=payment.tenant_id,
                 landlord_id=payment.landlord_id,
                 room=room_obj,
+                apartment_unit=apartment_unit_obj,
                 lease_start_date=lease_start_date,
                 lease_end_date=lease_end_date,
                 move_in_date=move_in_date,

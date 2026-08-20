@@ -234,6 +234,100 @@
 .mp-btn--cancel       { background: #f4f7f5; color: #0f2d1c; border: 1px solid rgba(26,122,64,0.14); }
 .mp-btn--confirm-delete { background: #dc2626; color: #fff; }
 
+/* ── Property report moderation ───────────────────────────── */
+
+/* Displays report status, report count, and report reasons. */
+.mp-report-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  max-width: 230px;
+}
+
+.mp-report-info strong {
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.mp-report-info span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+/* Flagged property warning. */
+.mp-report-info--flagged {
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #fed7aa;
+}
+
+/* Hidden properties receive a stronger warning. */
+.mp-report-info--hidden {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* Properties waiting for an admin recheck. */
+.mp-report-info--reviewing {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+/* Resolved moderation cases. */
+.mp-report-info--resolved {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+
+/* Request Recheck button.
+   Targets the moderation action without changing Edit/Delete buttons. */
+/* Request Recheck button only.
+   Excludes normal property actions such as Edit, Delete and Manage Units. */
+.mp-actions
+  .mp-btn:not(.mp-btn--edit):not(.mp-btn--delete):not(.mp-btn--units):not(:disabled) {
+  background: #fff7ed;
+  color: #9a3412;
+  border: 1px solid #fdba74;
+}
+
+.mp-actions
+  .mp-btn:not(.mp-btn--edit):not(.mp-btn--delete):not(.mp-btn--units):not(:disabled):hover {
+  background: #ffedd5;
+}
+
+
+/* Under Review button.
+   Disabled intentionally to prevent duplicate recheck requests. */
+/* Under Review moderation button only. */
+.mp-actions
+  .mp-btn:not(.mp-btn--edit):not(.mp-btn--delete):not(.mp-btn--units):disabled {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+  opacity: 1;
+}
+
+
+/* Keep moderation information readable inside mobile cards. */
+.mp-mobile-card .mp-report-info {
+  max-width: none;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+
+
 /* ── Mobile cards ─────────────────────────────────────────────────── */
 .mp-mobile-list { display: none; }
 
@@ -501,6 +595,421 @@
   justify-content: center;
   margin-top: 22px;
 }
+
+/* ── Apartment unit management ───────────────────────────────────── */
+
+/* Small unit-count text displayed below a multi-unit property name. */
+.mp-unit-count-text {
+  margin-top: 5px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: #4a7060;
+}
+
+/* Dedicated Manage Units action.
+   Kept visually separate from Edit, Delete and moderation actions. */
+.mp-actions .mp-btn--units {
+  background: #eef6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.mp-actions .mp-btn--units:hover {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.mp-actions .mp-btn--units:disabled {
+  background: #eef2f7;
+  color: #64748b;
+  border: 1px solid #d8e0ea;
+  opacity: 0.7;
+}
+
+
+/* Larger version of the existing modal for apartment-unit management. */
+.mp-unit-modal {
+  width: min(860px, 100%);
+  max-width: 860px;
+  max-height: 90vh;
+  overflow-y: auto;
+  text-align: left;
+  padding: 26px;
+  position: relative;
+}
+
+
+/* Unit-manager heading and total-unit badge. */
+.mp-unit-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding-right: 44px;
+  margin-bottom: 20px;
+}
+
+.mp-unit-modal-header h3 {
+  margin: 0 0 4px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: #0f2d1c;
+}
+
+.mp-unit-modal-header p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #4a7060;
+}
+
+.mp-unit-total-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 11px;
+  border-radius: 20px;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+
+/* Existing unit list. */
+.mp-unit-list {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.mp-unit-card {
+  padding: 14px;
+  background: #f9fbf9;
+  border: 1px solid rgba(26, 122, 64, 0.14);
+  border-radius: 12px;
+}
+
+.mp-unit-card-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.mp-unit-card-main > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mp-unit-card-main strong {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #0f2d1c;
+}
+
+.mp-unit-card-main span {
+  font-size: 0.72rem;
+  color: #4a7060;
+}
+
+
+/* Unit rental-state badges. */
+.mp-unit-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 9px;
+  border-radius: 20px;
+  font-size: 0.65rem !important;
+  font-weight: 800;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.mp-unit-status--available {
+  background: #d1fae5;
+  color: #065f46 !important;
+  border: 1px solid #a7f3d0;
+}
+
+.mp-unit-status--reserved {
+  background: #fef3c7;
+  color: #92400e !important;
+  border: 1px solid #fde68a;
+}
+
+.mp-unit-status--occupied {
+  background: #fee2e2;
+  color: #991b1b !important;
+  border: 1px solid #fecaca;
+}
+
+
+/* Unit-specific details such as bedrooms and price. */
+.mp-unit-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.mp-unit-details span {
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid rgba(26, 122, 64, 0.1);
+  color: #4a7060;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.mp-unit-amenities {
+  margin-bottom: 10px;
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: #4a7060;
+}
+
+
+/* Empty-state message when the building has no units yet. */
+.mp-unit-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 150px;
+  padding: 28px;
+  text-align: center;
+  background: #f9fbf9;
+  border: 1px dashed rgba(26, 122, 64, 0.25);
+  border-radius: 12px;
+}
+
+.mp-unit-empty svg {
+  font-size: 1.7rem;
+  color: #1a7a40;
+}
+
+.mp-unit-empty strong {
+  font-size: 0.9rem;
+  color: #0f2d1c;
+}
+
+.mp-unit-empty p {
+  margin: 0;
+  max-width: 340px;
+  font-size: 0.76rem;
+  color: #4a7060;
+}
+
+
+/* Add/Edit unit form. */
+.mp-unit-form {
+  padding-top: 20px;
+  border-top: 1px solid rgba(26, 122, 64, 0.12);
+}
+
+.mp-unit-form-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.mp-unit-form-title h4 {
+  margin: 0 0 3px;
+  color: #0f2d1c;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.mp-unit-form-title p {
+  margin: 0;
+  color: #4a7060;
+  font-size: 0.74rem;
+}
+
+.mp-unit-form-title > svg {
+  color: #1a7a40;
+  font-size: 1rem;
+}
+
+
+/* Backend or frontend validation message. */
+.mp-unit-error {
+  margin-bottom: 14px;
+  padding: 9px 11px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+
+/* Two-column form layout on larger screens. */
+.mp-unit-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.mp-unit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mp-unit-field label {
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: #0f2d1c;
+}
+
+.mp-unit-field input[type="text"],
+.mp-unit-field input[type="number"] {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border-radius: 8px;
+  border: 1px solid rgba(26, 122, 64, 0.2);
+  background: #ffffff;
+  color: #0f2d1c;
+  font-family: inherit;
+  font-size: 0.8rem;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.mp-unit-field input[type="text"]:focus,
+.mp-unit-field input[type="number"]:focus {
+  border-color: #1a7a40;
+  box-shadow: 0 0 0 3px rgba(26, 122, 64, 0.08);
+}
+
+.mp-unit-field small {
+  color: #6b8278;
+  font-size: 0.66rem;
+}
+
+
+/* Amenities uses the full width of the form. */
+.mp-unit-field--full {
+  grid-column: 1 / -1;
+}
+
+
+/* Furnished checkbox styling. */
+.mp-unit-field--checkbox {
+  justify-content: flex-end;
+  padding-bottom: 10px;
+}
+
+.mp-unit-field--checkbox label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.mp-unit-field--checkbox input {
+  width: 16px;
+  height: 16px;
+  accent-color: #1a7a40;
+}
+
+
+/* Create/update form buttons. */
+.mp-unit-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 18px;
+}
+
+
+/* Improve the unit modal close button disabled state. */
+.mp-unit-modal .mp-viewer-close:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+
+/* Apartment-unit modal responsive layout. */
+@media (max-width: 700px) {
+  .mp-unit-modal {
+    width: 100%;
+    max-height: 94vh;
+    padding: 22px 16px;
+  }
+
+  .mp-unit-modal-header {
+    flex-direction: column;
+    padding-right: 42px;
+  }
+
+  .mp-unit-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mp-unit-field--full {
+    grid-column: auto;
+  }
+
+  .mp-unit-card-main {
+    align-items: flex-start;
+  }
+
+  .mp-unit-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .mp-unit-form-actions .mp-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
+@media (max-width: 480px) {
+  .mp-unit-details {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mp-unit-details span {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .mp-unit-card .mp-actions {
+    flex-direction: column;
+  }
+
+  .mp-unit-card .mp-actions .mp-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .mp-actions--mobile .mp-btn--units {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+
+
+
+
+
+
 
 /* ── Responsive ───────────────────────────────────────────────────── */
 @media (max-width: 768px) {

@@ -98,6 +98,7 @@ class TenantRenewalListView(APIView):
                 "landlord",
                 "property",
                 "room",
+                "apartment_unit",
             )
             .filter(
                 tenant=request.user,
@@ -146,6 +147,7 @@ class OwnerRenewalListView(APIView):
                 "landlord",
                 "property",
                 "room",
+                "apartment_unit",
             )
             .order_by("-created_at")
         )
@@ -202,6 +204,7 @@ class ApproveRenewalRequestView(APIView):
                         "landlord",
                         "property",
                         "room",
+                        "apartment_unit",
                     )
                     .get(id=renewal_id)
                 )
@@ -248,6 +251,8 @@ class ApproveRenewalRequestView(APIView):
                 == renewal.property_id
                 and current_lease.room_id
                 == renewal.room_id
+                and current_lease.apartment_unit_id
+                == renewal.apartment_unit_id
             )
 
             if not relationships_match:
@@ -372,6 +377,7 @@ class RejectRenewalRequestView(APIView):
                         "landlord",
                         "property",
                         "room",
+                        "apartment_unit",
                     )
                     .get(id=renewal_id)
                 )

@@ -30,100 +30,148 @@ const SUGGESTIONS = [
 ];
 
 // Displays one property returned by the assistant.
-const PropertyCard = ({ property, onView }) => (
-  <motion.div
-    className="ai-prop-card"
-    initial={{ opacity: 0, y: 12 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.35 }}
-  >
-    {property.thumbnail && (
-      <div className="ai-prop-img-wrap">
-        <img
-          src={property.thumbnail}
-          alt={property.property_name}
-          className="ai-prop-img"
-        />
+// Displays one property returned by the assistant.
+const PropertyCard = ({ property, onView }) => {
+  // Multi-unit apartments use their cheapest available unit price
+  // because the parent property's price is intentionally empty.
+  const isMultiUnitApartment =
+    property?.category === "apartment" &&
+    property?.apartment_listing_type === "multi_unit";
 
-        <span className="ai-prop-badge">
-          {property.category === "hostel" ? "Hostel" : "House for Rent"}
-        </span>
-      </div>
-    )}
+  const displayPrice = isMultiUnitApartment
+    ? property?.starting_price
+    : property?.price;
 
-    <div className="ai-prop-body">
-      <p className="ai-prop-name">{property.property_name}</p>
+  const hasDisplayPrice =
+    displayPrice !== null &&
+    displayPrice !== undefined &&
+    displayPrice !== "";
 
-      <p className="ai-prop-loc">
-        <FaMapMarkerAlt />
-        {[property.city, property.region].filter(Boolean).join(", ")}
-      </p>
+  // Shows the correct readable property category.
+  const categoryLabel =
+    property?.category === "hostel"
+      ? "Hostel"
+      : property?.category === "apartment"
+      ? isMultiUnitApartment
+        ? "Multi-unit Apartment"
+        : "Single Apartment"
+      : "House for Rent";
 
-      <div className="ai-prop-specs">
-        {property.bedrooms != null && (
-          <span>
-            <FaBed />
-            {property.bedrooms} bed
-            {property.bedrooms !== 1 ? "s" : ""}
+  return (
+    <motion.div
+      className="ai-prop-card"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35 }}
+    >
+      {property.thumbnail && (
+        <div className="ai-prop-img-wrap">
+          <img
+            src={property.thumbnail}
+            alt={property.property_name}
+            className="ai-prop-img"
+          />
+
+          <span className="ai-prop-badge">
+            {categoryLabel}
           </span>
-        )}
+        </div>
+      )}
 
-        {property.school && (
-          <span>
-            <FaHome />
-            Near {property.school}
-          </span>
-        )}
-      </div>
+      <div className="ai-prop-body">
+        <p className="ai-prop-name">
+          {property.property_name}
+        </p>
 
-      <div className="ai-prop-footer">
-        <span className="ai-prop-price">
-          GHS {Number(property.price).toLocaleString()}
-          <small>/mo</small>
-        </span>
+        <p className="ai-prop-loc">
+          <FaMapMarkerAlt />
 
-        <button
-          type="button"
-          className="ai-prop-btn"
-          onClick={() => onView(property.id)}
-        >
-          View <FaArrowRight />
-        </button>
-      </div>
+          {[property.city, property.region]
+            .filter(Boolean)
+            .join(", ")}
+        </p>
 
-      {(property.owner_name ||
-        property.owner_phone ||
-        property.owner_email) && (
-        <div className="ai-prop-landlord">
-          <span className="ai-prop-landlord-label">Landlord</span>
-
-          <div className="ai-prop-landlord-info">
-            {property.owner_name && (
+        <div className="ai-prop-specs">
+          {!isMultiUnitApartment &&
+            property.bedrooms != null && (
               <span>
-                <FaHome />
-                {property.owner_name}
+                <FaBed />
+                {property.bedrooms} bed
+                {property.bedrooms !== 1 ? "s" : ""}
               </span>
             )}
 
-            {property.owner_phone && (
-              <a href={`tel:${property.owner_phone}`}>
-                <FaPhone />
-                {property.owner_phone}
-              </a>
-            )}
-
-            {property.owner_email && (
-              <a href={`mailto:${property.owner_email}`}>
-                <FaEnvelope />
-                {property.owner_email}
-              </a>
-            )}
-          </div>
+          {property.school && (
+            <span>
+              <FaHome />
+              Near {property.school}
+            </span>
+          )}
         </div>
-      )}
-    </div>
-  </motion.div>
-);
+
+        <div className="ai-prop-footer">
+          <span className="ai-prop-price">
+            {hasDisplayPrice ? (
+              <>
+                {isMultiUnitApartment ? "From " : ""}
+                GHS{" "}
+                {Number(displayPrice).toLocaleString()}
+                <small>/mo</small>
+              </>
+            ) : isMultiUnitApartment ? (
+              "Unit pricing unavailable"
+            ) : (
+              "Price unavailable"
+            )}
+          </span>
+
+          <button
+            type="button"
+            className="ai-prop-btn"
+            onClick={() => onView(property.id)}
+          >
+            View <FaArrowRight />
+          </button>
+        </div>
+
+        {(property.owner_name ||
+          property.owner_phone ||
+          property.owner_email) && (
+          <div className="ai-prop-landlord">
+            <span className="ai-prop-landlord-label">
+              Landlord
+            </span>
+
+            <div className="ai-prop-landlord-info">
+              {property.owner_name && (
+                <span>
+                  <FaHome />
+                  {property.owner_name}
+                </span>
+              )}
+
+              {property.owner_phone && (
+                <a href={`tel:${property.owner_phone}`}>
+                  <FaPhone />
+                  {property.owner_phone}
+                </a>
+              )}
+
+              {property.owner_email && (
+                <a
+                  href={`mailto:${property.owner_email}`}
+                >
+                  <FaEnvelope />
+                  {property.owner_email}
+                </a>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+};
 
 // Displays one user or assistant chat message.
 const MessageBubble = ({ msg, onView }) => {

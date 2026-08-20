@@ -22,6 +22,7 @@ const categories = [
   { key: "all", label: "All Properties" },
   { key: "house_rent", label: "House for Rent" },
   { key: "hostel", label: "Hostel for Rent" },
+  { key: "apartment", label: "Apartment" },
 ];
 
 const fadeUp = {
@@ -447,7 +448,16 @@ useEffect(() => {
                     city={property.city}
                     region={property.region}
                     category={property.category}
-                    price={property.price}
+                  price={
+  property.category === "apartment" &&
+  property.apartment_listing_type === "multi_unit"
+    ? property.starting_price
+    : property.price
+}
+isMultiUnitApartment={
+  property.category === "apartment" &&
+  property.apartment_listing_type === "multi_unit"
+}
                     amenities={getAmenities(property.amenities)}
                     onBook={() => navigate(`/detail/${property.id}`)}
                     isAvailable={getAvailability(property)}

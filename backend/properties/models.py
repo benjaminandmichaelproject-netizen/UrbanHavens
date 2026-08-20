@@ -54,6 +54,13 @@ class Property(models.Model):
         ("duplicate_property", "Duplicate Property"),
     ]
 
+    # Defines whether an apartment is rented as one unit
+    # or contains several separately rentable apartment units.
+    APARTMENT_LISTING_TYPE_CHOICES = [
+        ("single", "Single Apartment"),
+        ("multi_unit", "Multiple Apartment Units"),
+    ]
+
     # Defines Ghana's supported regions.
     REGION_CHOICES = [
         ("ahafo", "Ahafo"),
@@ -92,21 +99,42 @@ class Property(models.Model):
 
     # Stores the property's main listing details.
     property_name = models.CharField(max_length=255)
+
+    # Defines the main type of property being listed.
     category = models.CharField(
         max_length=50,
         choices=[
             ("hostel", "Hostel"),
             ("house_rent", "House for Rent"),
+            ("apartment", "Apartment"),
         ],
     )
+
+    # Used only when the selected property category is Apartment.
+    # Existing hostel and house records remain unaffected because
+    # this field is optional.
+    apartment_listing_type = models.CharField(
+        max_length=20,
+        choices=APARTMENT_LISTING_TYPE_CHOICES,
+        blank=True,
+        null=True,
+    )
+
     property_type = models.CharField(
         max_length=50,
         blank=True,
         null=True,
     )
-    bedrooms = models.PositiveIntegerField()
-    bathrooms = models.PositiveIntegerField(default=0)
-    price = models.DecimalField(max_digits=12, decimal_places=2)
+    # Multi-unit apartment parents store these values on ApartmentUnit.
+    # Other property categories still require them through model/serializer validation.
+    bedrooms = models.PositiveIntegerField(null=True, blank=True)
+    bathrooms = models.PositiveIntegerField(null=True, blank=True)
+    price = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
     description = models.TextField()
     amenities = models.JSONField(default=list, blank=True)
     allowed_rental_months = models.JSONField(
@@ -128,7 +156,10 @@ class Property(models.Model):
     lat = models.FloatField(blank=True, null=True)
     lng = models.FloatField(blank=True, null=True)
 
-    # Tracks house availability or whether any hostel room has space.
+    # For houses and single apartments, this represents the
+    # availability of the whole property.
+    # For hostels and multi-unit apartments, it is synchronized
+    # from their child rooms or apartment units.
     is_available = models.BooleanField(default=True)
 
     # Tracks property approval and featuring details.
@@ -227,8 +258,11 @@ class Property(models.Model):
             ),
         ]
 
-    # Recalculates hostel availability from current room states.
+    # Recalculates availability for property types that contain
+    # separately rentable child units.
     def sync_availability(self):
+        # A hostel remains available while at least one room
+        # still has an available space.
         if self.category == "hostel":
             has_space = self.rooms.filter(
                 is_available=True
@@ -237,9 +271,27 @@ class Property(models.Model):
             Property.objects.filter(pk=self.pk).update(
                 is_available=has_space
             )
+
             self.is_available = has_space
 
-    # Validates ownership and featured-property rules.
+        # A multi-unit apartment remains available while at least
+        # one individual apartment unit is available.
+        elif (
+            self.category == "apartment"
+            and self.apartment_listing_type == "multi_unit"
+        ):
+            has_available_unit = self.apartment_units.filter(
+                status="available"
+            ).exists()
+
+            Property.objects.filter(pk=self.pk).update(
+                is_available=has_available_unit
+            )
+
+            self.is_available = has_available_unit
+
+    # Validates ownership, featured-property rules,
+    # and apartment-specific configuration.
     def clean(self):
         super().clean()
 
@@ -248,6 +300,8 @@ class Property(models.Model):
             self.external_landlord_id is not None
         )
 
+        # A property must belong to either a registered owner
+        # or an external landlord, but never both.
         if has_registered_owner == has_external_landlord:
             raise ValidationError(
                 {
@@ -260,6 +314,7 @@ class Property(models.Model):
                 }
             )
 
+        # Only approved properties can appear as featured properties.
         if (
             self.is_featured
             and self.approval_status != "approved"
@@ -271,6 +326,65 @@ class Property(models.Model):
                     )
                 }
             )
+
+        # Every apartment must state whether it represents a
+        # single apartment or multiple separately rentable units.
+        if (
+            self.category == "apartment"
+            and not self.apartment_listing_type
+        ):
+            raise ValidationError(
+                {
+                    "apartment_listing_type": (
+                        "Choose whether this is a single apartment "
+                        "or a multi-unit apartment property."
+                    )
+                }
+            )
+
+        # Prevents house and hostel records from accidentally
+        # carrying apartment-only configuration.
+        if (
+            self.category != "apartment"
+            and self.apartment_listing_type
+        ):
+            raise ValidationError(
+                {
+                    "apartment_listing_type": (
+                        "Apartment listing type can only be used "
+                        "for apartment properties."
+                    )
+                }
+            )
+
+        # Multi-unit apartment parents intentionally leave these fields empty
+        # because bedrooms, bathrooms, and price belong to ApartmentUnit.
+        is_multi_unit_apartment = (
+            self.category == "apartment"
+            and self.apartment_listing_type == "multi_unit"
+        )
+
+        # Hostels, houses, and single apartments retain parent-level values.
+        if not is_multi_unit_apartment:
+            required_field_errors = {}
+
+            if self.bedrooms is None:
+                required_field_errors["bedrooms"] = (
+                    "Bedrooms are required for this property type."
+                )
+
+            if self.bathrooms is None:
+                required_field_errors["bathrooms"] = (
+                    "Bathrooms are required for this property type."
+                )
+
+            if self.price is None:
+                required_field_errors["price"] = (
+                    "Price is required for this property type."
+                )
+
+            if required_field_errors:
+                raise ValidationError(required_field_errors)
 
     # Prevents unapproved properties from remaining featured.
     def save(self, *args, **kwargs):
@@ -289,6 +403,7 @@ class Property(models.Model):
                 f"{self.owner.first_name} "
                 f"{self.owner.last_name}"
             ).strip()
+
             return full_name or self.owner.username
 
         if self.external_landlord:
@@ -379,8 +494,8 @@ class Room(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        # Prevents duplicate room numbers inside the same hostel.
         constraints = [
+            # Prevents duplicate room numbers inside the same hostel.
             models.UniqueConstraint(
                 fields=["property", "room_number"],
                 name="unique_property_room_number",
@@ -411,11 +526,13 @@ class Room(models.Model):
                 name="room_reserved_lte_max_capacity",
             ),
 
-            # Prevents occupied and reserved spaces exceeding capacity.
+            # Prevents occupied and reserved spaces together from
+            # exceeding the room's maximum capacity.
             models.CheckConstraint(
                 condition=Q(
                     occupied_spaces__lte=(
-                        F("max_capacity") - F("reserved_spaces")
+                        F("max_capacity")
+                        - F("reserved_spaces")
                     )
                 ),
                 name="room_used_spaces_lte_max_capacity",
@@ -430,7 +547,8 @@ class Room(models.Model):
             - self.reserved_spaces
         )
 
-    # Validates hostel ownership and room capacity values.
+    # Ensures rooms belong only to hostel properties and
+    # prevents impossible capacity values.
     def clean(self):
         super().clean()
 
@@ -485,6 +603,7 @@ class Room(models.Model):
         self.full_clean()
 
         self.is_available = self.available_spaces() > 0
+
         super().save(*args, **kwargs)
 
         if self.property_id:
@@ -493,6 +612,7 @@ class Room(models.Model):
     # Synchronizes hostel availability after a room is deleted.
     def delete(self, *args, **kwargs):
         property_obj = self.property
+
         super().delete(*args, **kwargs)
 
         if property_obj:
@@ -503,6 +623,135 @@ class Room(models.Model):
         return (
             f"{self.property.property_name} "
             f"- Room {self.room_number}"
+        )
+
+
+class ApartmentUnit(models.Model):
+    # Defines the current rental state of one apartment unit.
+    # Payment will later move a unit from available to reserved,
+    # while lease activation can move it to occupied.
+    UNIT_STATUS_CHOICES = [
+        ("available", "Available"),
+        ("reserved", "Reserved"),
+        ("occupied", "Occupied"),
+    ]
+
+    # Links this unit to the apartment property/building
+    # that contains it.
+    property = models.ForeignKey(
+        Property,
+        on_delete=models.CASCADE,
+        related_name="apartment_units",
+    )
+
+    # Stores the unit identifier displayed to owners and tenants,
+    # for example A1, A2, B1, Flat 3 or Apartment 4.
+    unit_number = models.CharField(max_length=50)
+
+    # Stores information that can differ between units
+    # inside the same apartment property.
+    bedrooms = models.PositiveIntegerField(default=1)
+    bathrooms = models.PositiveIntegerField(default=1)
+
+    # Allows descriptive floor values such as Ground Floor,
+    # First Floor or Floor 3.
+    floor = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+    )
+
+    # Each apartment unit has its own rental price.
+    price = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+    )
+
+    # Stores furnishing and unit-specific amenity information.
+    is_furnished = models.BooleanField(default=False)
+    amenities = models.JSONField(
+        default=list,
+        blank=True,
+    )
+
+    # Tracks whether this exact unit can currently be selected
+    # by another tenant.
+    status = models.CharField(
+        max_length=20,
+        choices=UNIT_STATUS_CHOICES,
+        default="available",
+        db_index=True,
+    )
+
+    # Records when the unit was created and last updated.
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            # Prevents duplicate unit numbers within the same
+            # apartment property while allowing another building
+            # to use the same unit number.
+            models.UniqueConstraint(
+                fields=["property", "unit_number"],
+                name="unique_property_apartment_unit",
+            ),
+        ]
+
+    # Ensures apartment units cannot accidentally be attached
+    # to houses, hostels or single-apartment listings.
+    def clean(self):
+        super().clean()
+
+        if self.property_id:
+            if self.property.category != "apartment":
+                raise ValidationError(
+                    {
+                        "property": (
+                            "Apartment units can only be added "
+                            "to apartment properties."
+                        )
+                    }
+                )
+
+            if (
+                self.property.apartment_listing_type
+                != "multi_unit"
+            ):
+                raise ValidationError(
+                    {
+                        "property": (
+                            "Apartment units can only be added "
+                            "to multi-unit apartment properties."
+                        )
+                    }
+                )
+
+    # Validates the unit before saving and then recalculates
+    # whether the parent apartment property is still available.
+    def save(self, *args, **kwargs):
+        self.full_clean()
+
+        super().save(*args, **kwargs)
+
+        if self.property_id:
+            self.property.sync_availability()
+
+    # Recalculates the parent property's availability when
+    # an apartment unit is removed.
+    def delete(self, *args, **kwargs):
+        property_obj = self.property
+
+        super().delete(*args, **kwargs)
+
+        if property_obj:
+            property_obj.sync_availability()
+
+    # Returns a readable name for administration and debugging.
+    def __str__(self):
+        return (
+            f"{self.property.property_name} "
+            f"- Unit {self.unit_number}"
         )
 
 
@@ -547,12 +796,16 @@ class PropertyDuplicateMatch(models.Model):
         # Displays newest duplicate matches first.
         ordering = ["-created_at"]
 
-        # Prevents duplicate pairs and self-matching properties.
         constraints = [
+            # Prevents the same duplicate relationship from
+            # being stored more than once.
             models.UniqueConstraint(
                 fields=["property", "matched_property"],
                 name="unique_property_duplicate_match",
             ),
+
+            # Prevents a property from being marked as a
+            # duplicate of itself.
             models.CheckConstraint(
                 condition=~Q(
                     property_id=F("matched_property_id")
@@ -584,8 +837,9 @@ class Favorite(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        # Prevents a user from favoriting the same property twice.
         constraints = [
+            # Prevents a user from favoriting the same
+            # property more than once.
             models.UniqueConstraint(
                 fields=["user", "property"],
                 name="unique_user_property_favorite",

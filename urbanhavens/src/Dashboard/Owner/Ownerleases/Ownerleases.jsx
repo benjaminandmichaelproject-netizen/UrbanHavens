@@ -483,11 +483,16 @@ const OwnerLeases = () => {
                               No room assigned
                             </span>
                           )
-                        ) : (
-                          <span className="ol-unit-badge">
-                            Whole property
-                          </span>
-                        )}
+                       ) : lease.apartment_unit_number ? (
+  <span className="ol-unit-badge">
+    <FaBed />
+    Unit {lease.apartment_unit_number}
+  </span>
+) : (
+  <span className="ol-unit-badge">
+    Whole property
+  </span>
+)}
                       </td>
 
                       <td className="ol-rent">

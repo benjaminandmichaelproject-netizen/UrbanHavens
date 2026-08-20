@@ -191,6 +191,7 @@ const TenantBooking = () => {
   const [rentalBooking, setRentalBooking] = useState(null);
   const [selectedDuration, setSelectedDuration] = useState("");
   const [selectedRoomId, setSelectedRoomId] = useState("");
+  const [selectedApartmentUnitId, setSelectedApartmentUnitId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("paystack");
   const [rentalError, setRentalError] = useState("");
   const [submittingRental, setSubmittingRental] = useState(false);
@@ -300,6 +301,56 @@ const TenantBooking = () => {
   };
 
 
+  // Detects whether the selected property is a multi-unit apartment.
+  const isMultiUnitApartmentBooking = (booking) => {
+    const category =
+      booking?.property_category ||
+      booking?.category ||
+      "";
+
+    const listingType =
+      booking?.property_apartment_listing_type ||
+      booking?.apartment_listing_type ||
+      "";
+
+    return (
+      category === "apartment" &&
+      listingType === "multi_unit"
+    );
+  };
+
+
+  // Returns a readable property type for booking screens.
+  const getBookingTypeLabel = (booking) => {
+    if (isHostelBooking(booking)) {
+      return "Hostel";
+    }
+
+    if (isMultiUnitApartmentBooking(booking)) {
+      return "Multi-unit Apartment";
+    }
+
+    const category =
+      booking?.property_category ||
+      booking?.category ||
+      "";
+
+    if (
+      category === "apartment" ||
+      booking?.property_apartment_listing_type === "single"
+    ) {
+      return "Single Apartment";
+    }
+
+    return (
+      booking?.property_type ||
+      booking?.property_category ||
+      booking?.category ||
+      "—"
+    );
+  };
+
+
   // Returns rooms from any supported booking response field.
   const getBookingRooms = (booking) => {
     if (Array.isArray(booking?.rooms)) {
@@ -338,6 +389,45 @@ const TenantBooking = () => {
   }, [availableRooms, selectedRoomId]);
 
 
+  // Returns apartment units from any supported booking response field.
+  const getBookingApartmentUnits = (booking) => {
+    if (Array.isArray(booking?.apartment_units)) {
+      return booking.apartment_units;
+    }
+
+    if (Array.isArray(booking?.property_apartment_units)) {
+      return booking.property_apartment_units;
+    }
+
+    return [];
+  };
+
+
+  // Keeps only apartment units that are currently available.
+  const availableApartmentUnits = useMemo(() => {
+    if (!isMultiUnitApartmentBooking(rentalBooking)) {
+      return [];
+    }
+
+    return getBookingApartmentUnits(rentalBooking).filter(
+      (unit) => unit?.status === "available"
+    );
+  }, [rentalBooking]);
+
+
+  // Resolves the exact apartment unit selected for payment.
+  const selectedApartmentUnit = useMemo(() => {
+    return availableApartmentUnits.find(
+      (unit) =>
+        String(unit.id) ===
+        String(selectedApartmentUnitId)
+    );
+  }, [
+    availableApartmentUnits,
+    selectedApartmentUnitId,
+  ]);
+
+
   // Opens the payment modal with safe defaults.
   const openRentalModal = (booking) => {
     const durations = Array.isArray(
@@ -351,6 +441,7 @@ const TenantBooking = () => {
       durations.length ? String(durations[0]) : ""
     );
     setSelectedRoomId("");
+    setSelectedApartmentUnitId("");
     setPaymentMethod("paystack");
     setRentalError("");
   };
@@ -361,12 +452,15 @@ const TenantBooking = () => {
     setRentalBooking(null);
     setSelectedDuration("");
     setSelectedRoomId("");
+    setSelectedApartmentUnitId("");
     setPaymentMethod("paystack");
     setRentalError("");
   };
 
 
-  // Uses room pricing for hostels and property pricing for houses.
+  // Uses the exact selected child resource price where required.
+  // Hostels use the selected room, multi-unit apartments use the
+  // selected ApartmentUnit, and normal properties use parent pricing.
   const monthlyRent = rentalBooking
     ? Number(
         isHostelBooking(rentalBooking) &&
@@ -375,6 +469,9 @@ const TenantBooking = () => {
               selectedRoom.price_override ??
               rentalBooking.property_price ??
               0
+          : isMultiUnitApartmentBooking(rentalBooking) &&
+            selectedApartmentUnit
+          ? selectedApartmentUnit.price ?? 0
           : rentalBooking.property_price ?? 0
       )
     : 0;
@@ -506,11 +603,32 @@ const TenantBooking = () => {
       return;
     }
 
+    if (
+      isMultiUnitApartmentBooking(rentalBooking) &&
+      !selectedApartmentUnitId
+    ) {
+      setRentalError(
+        "Select an apartment unit before continuing with payment."
+      );
+      return;
+    }
+
+    if (
+      isMultiUnitApartmentBooking(rentalBooking) &&
+      !selectedApartmentUnit
+    ) {
+      setRentalError(
+        "The selected apartment unit is no longer available."
+      );
+      return;
+    }
+
     try {
       setSubmittingRental(true);
       setRentalError("");
 
-      // Sends room_id only for hostel payments.
+      // Sends the exact child resource only when the property type
+      // requires one. Booking itself remains property-level.
       const paymentPayload = {
         booking_id: rentalBooking.id,
         duration_months: durationMonths,
@@ -519,6 +637,12 @@ const TenantBooking = () => {
 
       if (isHostelBooking(rentalBooking)) {
         paymentPayload.room_id = Number(selectedRoomId);
+      }
+
+      if (isMultiUnitApartmentBooking(rentalBooking)) {
+        paymentPayload.apartment_unit_id = Number(
+          selectedApartmentUnitId
+        );
       }
 
       const response = await api.post(
@@ -718,10 +842,7 @@ const TenantBooking = () => {
                           </span>
 
                           <span className="tb-type-tag">
-                            {booking.property_type ||
-                              booking.property_category ||
-                              booking.category ||
-                              "—"}
+                            {getBookingTypeLabel(booking)}
                           </span>
                         </div>
                       </td>
@@ -903,10 +1024,7 @@ const TenantBooking = () => {
                     <span>Type</span>
 
                     <strong>
-                      {selected.property_type ||
-                        selected.property_category ||
-                        selected.category ||
-                        "—"}
+                      {getBookingTypeLabel(selected)}
                     </strong>
                   </div>
 
@@ -927,13 +1045,13 @@ const TenantBooking = () => {
                     <span>Price</span>
 
                     <strong>
-                      GHS{" "}
-                      {selected.property_price
-                        ? formatMoney(
+                      {isMultiUnitApartmentBooking(selected)
+                        ? "Unit price selected at payment"
+                        : selected.property_price
+                        ? `GHS ${formatMoney(
                             selected.property_price
-                          )
+                          )}/mo`
                         : "—"}
-                      /mo
                     </strong>
                   </div>
                 </div>
@@ -1054,8 +1172,9 @@ const TenantBooking = () => {
                       completed. You can now
                       select one of the
                       landlord-approved rental
-                      durations and choose your
-                      payment method.
+                      durations, choose the exact
+                      apartment unit when required,
+                      and choose your payment method.
                     </p>
 
                     <button
@@ -1100,8 +1219,9 @@ const TenantBooking = () => {
 
                     <p>
                       Your payment has been confirmed.
-                      The property or room is reserved
-                      while the owner prepares your lease.
+                      The property, room, or apartment unit
+                      is reserved while the owner prepares
+                      your lease.
                     </p>
                   </div>
                 </div>
@@ -1171,7 +1291,11 @@ const TenantBooking = () => {
                     <span>Monthly Rent</span>
 
                     <strong>
-                      GHS {formatMoney(monthlyRent)}
+                      {isMultiUnitApartmentBooking(
+                        rentalBooking
+                      ) && !selectedApartmentUnit
+                        ? "Select a unit"
+                        : `GHS ${formatMoney(monthlyRent)}`}
                     </strong>
                   </div>
 
@@ -1245,6 +1369,47 @@ const TenantBooking = () => {
                     </div>
                   )}
 
+                  {isMultiUnitApartmentBooking(
+                    rentalBooking
+                  ) && (
+                    <div>
+                      <span>Select Apartment Unit</span>
+
+                      <select
+                        className="tb-rental-select"
+                        value={selectedApartmentUnitId}
+                        onChange={(event) => {
+                          setSelectedApartmentUnitId(
+                            event.target.value
+                          );
+                          setRentalError("");
+                        }}
+                      >
+                        <option value="">
+                          Select an available unit
+                        </option>
+
+                        {availableApartmentUnits.map(
+                          (unit) => (
+                            <option
+                              key={unit.id}
+                              value={unit.id}
+                            >
+                              Unit {unit.unit_number} —{" "}
+                              {unit.bedrooms} bed —{" "}
+                              {unit.bathrooms} bath
+                              {unit.floor
+                                ? ` — Floor ${unit.floor}`
+                                : ""}
+                              {" — "}GHS{" "}
+                              {formatMoney(unit.price)}
+                            </option>
+                          )
+                        )}
+                      </select>
+                    </div>
+                  )}
+
                   <div>
                     <span>Advance Period</span>
 
@@ -1268,6 +1433,15 @@ const TenantBooking = () => {
                   availableRooms.length === 0 && (
                     <p className="tb-error">
                       No hostel room currently has available space.
+                    </p>
+                  )}
+
+                {isMultiUnitApartmentBooking(
+                  rentalBooking
+                ) &&
+                  availableApartmentUnits.length === 0 && (
+                    <p className="tb-error">
+                      No apartment unit is currently available.
                     </p>
                   )}
               </div>
@@ -1358,11 +1532,29 @@ const TenantBooking = () => {
                   </div>
                 )}
 
+                {isMultiUnitApartmentBooking(
+                  rentalBooking
+                ) && (
+                  <div>
+                    <span>Selected apartment unit</span>
+
+                    <strong>
+                      {selectedApartmentUnit
+                        ? `Unit ${selectedApartmentUnit.unit_number}`
+                        : "—"}
+                    </strong>
+                  </div>
+                )}
+
                 <div>
                   <span>Monthly rent</span>
 
                   <strong>
-                    GHS {formatMoney(monthlyRent)}
+                    {isMultiUnitApartmentBooking(
+                      rentalBooking
+                    ) && !selectedApartmentUnit
+                      ? "Select a unit"
+                      : `GHS ${formatMoney(monthlyRent)}`}
                   </strong>
                 </div>
 
@@ -1402,6 +1594,12 @@ const TenantBooking = () => {
                   (
                     isHostelBooking(rentalBooking) &&
                     !selectedRoomId
+                  ) ||
+                  (
+                    isMultiUnitApartmentBooking(
+                      rentalBooking
+                    ) &&
+                    !selectedApartmentUnitId
                   )
                 }
               >

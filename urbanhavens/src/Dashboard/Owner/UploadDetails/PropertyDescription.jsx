@@ -22,6 +22,10 @@ const PropertyDescription = ({ data = {}, update, next, prev }) => {
   const [errors, setErrors] = useState({});
 
   const isHostel = data.category === "hostel";
+  const isApartment = data.category === "apartment";
+  const isMultiUnitApartment =
+    isApartment && data.apartment_listing_type === "multi_unit";
+
   const amenities = Array.isArray(data.amenities) ? data.amenities : [];
   const rooms = Array.isArray(data.rooms) ? data.rooms : [];
 
@@ -42,6 +46,7 @@ const PropertyDescription = ({ data = {}, update, next, prev }) => {
       if (value === "hostel") {
         update({
           category: value,
+          apartment_listing_type: "",
           bathrooms: 1,
           property_type: "",
           rooms:
@@ -52,12 +57,46 @@ const PropertyDescription = ({ data = {}, update, next, prev }) => {
       } else {
         update({
           category: value,
+          apartment_listing_type: "",
           property_type: "",
           rooms: [],
         });
       }
 
-      setErrors((prev) => ({ ...prev, [name]: "" }));
+      setErrors((prev) => ({
+        ...prev,
+        category: "",
+        apartment_listing_type: "",
+        property_type: "",
+      }));
+      return;
+    }
+
+    if (name === "apartment_listing_type" && isApartment) {
+      if (value === "multi_unit") {
+        update({
+          apartment_listing_type: value,
+          property_type: "",
+          bedrooms: null,
+          bathrooms: null,
+          price: null,
+          rooms: [],
+        });
+      } else {
+        update({
+          apartment_listing_type: value,
+          property_type: "",
+          rooms: [],
+        });
+      }
+
+      setErrors((prev) => ({
+        ...prev,
+        apartment_listing_type: "",
+        bedrooms: "",
+        bathrooms: "",
+        price: "",
+      }));
       return;
     }
 
@@ -220,20 +259,29 @@ const toggleRentalDuration = (months) => {
       newErrors.property_type = "Property type is required";
     }
 
-    if (!data.bedrooms || data.bedrooms < 1) {
-      newErrors.bedrooms = isHostel
-        ? "Total rooms required"
-        : "Valid bedrooms required";
+    if (isApartment && !data.apartment_listing_type) {
+      newErrors.apartment_listing_type =
+        "Choose single apartment or multi-unit apartment";
     }
 
-    if (!isHostel && (!data.bathrooms || data.bathrooms < 1)) {
-      newErrors.bathrooms = "Valid bathrooms required";
-    }
+    // Multi-unit parent listings do not own bedrooms, bathrooms, or price.
+    // Those values belong to the individual ApartmentUnit records.
+    if (!isMultiUnitApartment) {
+      if (!data.bedrooms || data.bedrooms < 1) {
+        newErrors.bedrooms = isHostel
+          ? "Total rooms required"
+          : "Valid bedrooms required";
+      }
 
-    if (!data.price || data.price <= 0) {
-      newErrors.price = isHostel
-        ? "Base room price required"
-        : "Valid price required";
+      if (!isHostel && (!data.bathrooms || data.bathrooms < 1)) {
+        newErrors.bathrooms = "Valid bathrooms required";
+      }
+
+      if (!data.price || data.price <= 0) {
+        newErrors.price = isHostel
+          ? "Base room price required"
+          : "Valid price required";
+      }
     }
 if (
   !Array.isArray(data.allowed_rental_months) ||
@@ -268,7 +316,17 @@ if (
         }))
       : [];
 
-    update({ rooms: cleanedRooms });
+    if (isMultiUnitApartment) {
+      update({
+        rooms: [],
+        bedrooms: null,
+        bathrooms: null,
+        price: null,
+      });
+    } else {
+      update({ rooms: cleanedRooms });
+    }
+
     next();
   };
 
@@ -299,6 +357,7 @@ if (
             <option value="">Select</option>
             <option value="hostel">Hostel</option>
             <option value="house_rent">House for Rent</option>
+            <option value="apartment">Apartment</option>
           </select>
           {errors.category && (
             <span className="error-text">{errors.category}</span>
@@ -315,7 +374,6 @@ if (
               className={errors.property_type ? "error-input" : ""}
             >
               <option value="">Select</option>
-              <option value="apartment">Apartment</option>
               <option value="single_room">Single Room</option>
               <option value="chamber_hall">Chamber & Hall</option>
               <option value="self_contained">Self Contained</option>
@@ -323,6 +381,29 @@ if (
             </select>
             {errors.property_type && (
               <span className="error-text">{errors.property_type}</span>
+            )}
+          </div>
+        )}
+
+        {isApartment && (
+          <div className="form-group">
+            <label>Apartment Listing Type</label>
+            <select
+              name="apartment_listing_type"
+              value={data.apartment_listing_type ?? ""}
+              onChange={handleChange}
+              className={
+                errors.apartment_listing_type ? "error-input" : ""
+              }
+            >
+              <option value="">Select</option>
+              <option value="single">Single Apartment</option>
+              <option value="multi_unit">Multi-unit Apartment</option>
+            </select>
+            {errors.apartment_listing_type && (
+              <span className="error-text">
+                {errors.apartment_listing_type}
+              </span>
             )}
           </div>
         )}
@@ -343,62 +424,80 @@ if (
           </div>
         )}
 
-        <div className="form-group">
-          <label>{isHostel ? "Total Rooms" : "Bedrooms"}</label>
-          <select
-            name="bedrooms"
-            value={data.bedrooms ?? ""}
-            onChange={handleChange}
-            className={errors.bedrooms ? "error-input" : ""}
-          >
-            <option value="">Select</option>
-            {(isHostel ? ROOM_OPTIONS : NUMBER_OPTIONS).map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-          {errors.bedrooms && (
-            <span className="error-text">{errors.bedrooms}</span>
-          )}
-        </div>
+        {!isMultiUnitApartment && (
+          <>
+            <div className="form-group">
+              <label>{isHostel ? "Total Rooms" : "Bedrooms"}</label>
+              <select
+                name="bedrooms"
+                value={data.bedrooms ?? ""}
+                onChange={handleChange}
+                className={errors.bedrooms ? "error-input" : ""}
+              >
+                <option value="">Select</option>
+                {(isHostel ? ROOM_OPTIONS : NUMBER_OPTIONS).map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              {errors.bedrooms && (
+                <span className="error-text">{errors.bedrooms}</span>
+              )}
+            </div>
 
-        {!isHostel && (
-          <div className="form-group">
-            <label>Bathrooms</label>
-            <select
-              name="bathrooms"
-              value={data.bathrooms ?? ""}
-              onChange={handleChange}
-              className={errors.bathrooms ? "error-input" : ""}
-            >
-              <option value="">Select</option>
-              {NUMBER_OPTIONS.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-            {errors.bathrooms && (
-              <span className="error-text">{errors.bathrooms}</span>
+            {!isHostel && (
+              <div className="form-group">
+                <label>Bathrooms</label>
+                <select
+                  name="bathrooms"
+                  value={data.bathrooms ?? ""}
+                  onChange={handleChange}
+                  className={errors.bathrooms ? "error-input" : ""}
+                >
+                  <option value="">Select</option>
+                  {NUMBER_OPTIONS.map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+                {errors.bathrooms && (
+                  <span className="error-text">{errors.bathrooms}</span>
+                )}
+              </div>
             )}
-          </div>
-        )}
 
-        <div className="form-group">
-          <label>{isHostel ? "Base Room Price (GHS)" : "Price (GHS)"}</label>
-          <input
-            type="number"
-            name="price"
-            value={data.price ?? ""}
-            onChange={handleChange}
-            className={errors.price ? "error-input" : ""}
-          />
-          {errors.price && (
-            <span className="error-text">{errors.price}</span>
-          )}
-        </div>
+            <div className="form-group">
+              <label>
+                {isHostel ? "Base Room Price (GHS)" : "Price (GHS)"}
+              </label>
+              <input
+                type="number"
+                name="price"
+                value={data.price ?? ""}
+                onChange={handleChange}
+                className={errors.price ? "error-input" : ""}
+              />
+              {errors.price && (
+                <span className="error-text">{errors.price}</span>
+              )}
+            </div>
+          </>
+        )}
       </div>
+
+      {isMultiUnitApartment && (
+        <div className="hostel-info-banner">
+          <span>🏢</span>
+          <p>
+            This listing represents the apartment building. Bedrooms,
+            bathrooms, and rent are set on each individual apartment unit.
+            After creating the property, use Manage Units to add the units.
+          </p>
+        </div>
+      )}
+
 <div className="form-group full-width">
   <label>Available Rental Durations</label>
 
@@ -430,7 +529,7 @@ if (
       {isHostel && (
         <>
           <div className="hostel-info-banner">
-            <span>🏠</span>
+            <span>ðŸ </span>
             <p>
               For hostels, you now need to define the actual room setup.
               Each lease will attach to a real room, not just the main property.
@@ -472,7 +571,7 @@ if (
                           onClick={() => removeRoom(room.temp_id)}
                           aria-label="Remove room"
                         >
-                          ✕
+                          âœ•
                         </button>
                       </div>
 
@@ -642,7 +741,7 @@ if (
               onClick={() => removeAmenity(i)}
               aria-label="Remove amenity"
             >
-              ✕
+              âœ•
             </button>
           </div>
         ))}

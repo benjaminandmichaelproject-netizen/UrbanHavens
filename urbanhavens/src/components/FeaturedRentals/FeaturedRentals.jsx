@@ -30,18 +30,18 @@ const cardVariant = {
 
 /* ─── Inline Rental Card ──────────────────────────────────────────── */
 const RentalCard = ({
-  id,
   image,
   title,
   city,
   region,
   category,
   price,
+  isMultiUnitApartment = false,
   amenities = [],
   onBook,
-  isAvailable,
-  isFavorited,
+  isFavorited = false,
   onFavorite,
+  isAvailable = true,
 }) => {
   const formatPrice = (p) => {
     if (!p && p !== 0) return "—";
@@ -113,10 +113,19 @@ const RentalCard = ({
 
       {/* ── Footer ── */}
       <div className="rental-card-footer">
-        <div className="rental-card-price">
-          <span className="rental-card-price-amount">{formatPrice(price)}</span>
-          <span className="rental-card-price-label">per month</span>
-        </div>
+       <div className="rental-card-price">
+  <span className="rental-card-price-amount">
+    {price !== null && price !== undefined && price !== ""
+      ? `${isMultiUnitApartment ? "From " : ""}${formatPrice(price)}`
+      : isMultiUnitApartment
+      ? "Unit pricing unavailable"
+      : "Price unavailable"}
+  </span>
+
+  {price !== null && price !== undefined && price !== "" && (
+    <span className="rental-card-price-label">per month</span>
+  )}
+</div>
 
         <button
           className="rental-card-book-btn"
@@ -299,7 +308,16 @@ const FeaturedRentals = () => {
               city={property.city}
               region={property.region}
               category={property.category}
-              price={property.price}
+           price={
+  property.category === "apartment" &&
+  property.apartment_listing_type === "multi_unit"
+    ? property.starting_price
+    : property.price
+}
+isMultiUnitApartment={
+  property.category === "apartment" &&
+  property.apartment_listing_type === "multi_unit"
+}
               amenities={getAmenitiesPreview(property.amenities)}
               onBook={() => handleBook(property)}
               isAvailable={getAvailability(property)}

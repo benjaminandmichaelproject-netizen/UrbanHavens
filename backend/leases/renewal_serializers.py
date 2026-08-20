@@ -47,6 +47,40 @@ class LeaseRenewalRequestSerializer(
         allow_null=True,
     )
 
+    # Returns the exact apartment unit preserved by the renewal.
+    apartment_unit_number = serializers.CharField(
+        source="apartment_unit.unit_number",
+        read_only=True,
+        allow_null=True,
+    )
+    apartment_unit_floor = serializers.CharField(
+        source="apartment_unit.floor",
+        read_only=True,
+        allow_null=True,
+    )
+    apartment_unit_bedrooms = serializers.IntegerField(
+        source="apartment_unit.bedrooms",
+        read_only=True,
+        allow_null=True,
+    )
+    apartment_unit_bathrooms = serializers.IntegerField(
+        source="apartment_unit.bathrooms",
+        read_only=True,
+        allow_null=True,
+    )
+    apartment_unit_price = serializers.DecimalField(
+        source="apartment_unit.price",
+        max_digits=12,
+        decimal_places=2,
+        read_only=True,
+        allow_null=True,
+    )
+    apartment_unit_status = serializers.CharField(
+        source="apartment_unit.status",
+        read_only=True,
+        allow_null=True,
+    )
+
     status_display = serializers.CharField(
         source="get_status_display",
         read_only=True,
@@ -66,6 +100,13 @@ class LeaseRenewalRequestSerializer(
             "property_name",
             "room",
             "room_number",
+            "apartment_unit",
+            "apartment_unit_number",
+            "apartment_unit_floor",
+            "apartment_unit_bedrooms",
+            "apartment_unit_bathrooms",
+            "apartment_unit_price",
+            "apartment_unit_status",
             "requested_duration_months",
             "proposed_start_date",
             "proposed_end_date",
@@ -92,6 +133,13 @@ class LeaseRenewalRequestSerializer(
             "property_name",
             "room",
             "room_number",
+            "apartment_unit",
+            "apartment_unit_number",
+            "apartment_unit_floor",
+            "apartment_unit_bedrooms",
+            "apartment_unit_bathrooms",
+            "apartment_unit_price",
+            "apartment_unit_status",
             "proposed_start_date",
             "proposed_end_date",
             "monthly_rent",
@@ -169,13 +217,15 @@ class CreateLeaseRenewalRequestSerializer(
         ]
 
         try:
-            # Loads only a lease belonging to this tenant.
+            # Loads only a lease belonging to this tenant, including
+            # the exact child resource currently being rented.
             lease = (
                 TenantLease.objects.select_related(
                     "property",
                     "tenant",
                     "landlord",
                     "room",
+                    "apartment_unit",
                 )
                 .get(
                     id=lease_id,
@@ -338,7 +388,8 @@ class CreateLeaseRenewalRequestSerializer(
         )
 
         with transaction.atomic():
-            # Locks the lease against duplicate requests.
+            # Locks the lease against duplicate requests and keeps the
+            # exact hostel room or apartment unit attached to it.
             locked_lease = (
                 TenantLease.objects
                 .select_for_update()
@@ -347,6 +398,7 @@ class CreateLeaseRenewalRequestSerializer(
                     "tenant",
                     "landlord",
                     "room",
+                    "apartment_unit",
                 )
                 .get(pk=lease.pk)
             )
@@ -375,6 +427,7 @@ class CreateLeaseRenewalRequestSerializer(
                 landlord=locked_lease.landlord,
                 property=locked_lease.property,
                 room=locked_lease.room,
+                apartment_unit=locked_lease.apartment_unit,
                 requested_duration_months=(
                     validated_data[
                         "requested_duration_months"

@@ -45,10 +45,48 @@ def property_share_view(request, property_id):
     # Converts the stored region value into its readable display label.
     region_name = property_obj.get_region_display()
 
+    # Multi-unit apartments do not store a price on the parent property.
+    # Use the cheapest available unit, falling back to any existing unit.
+    is_multi_unit_apartment = (
+        property_obj.category == "apartment"
+        and property_obj.apartment_listing_type == "multi_unit"
+    )
+
+    if is_multi_unit_apartment:
+        unit_price = (
+            property_obj.apartment_units
+            .filter(status="available")
+            .order_by("price")
+            .values_list("price", flat=True)
+            .first()
+        )
+
+        if unit_price is None:
+            unit_price = (
+                property_obj.apartment_units
+                .order_by("price")
+                .values_list("price", flat=True)
+                .first()
+            )
+
+        price_text = (
+            f"From GHS {unit_price:,.2f}"
+            if unit_price is not None
+            else "Unit pricing available"
+        )
+    else:
+        # Existing hostel, house, and single-apartment listings
+        # continue using their parent property price.
+        price_text = (
+            f"GHS {property_obj.price:,.2f}"
+            if property_obj.price is not None
+            else "Price available"
+        )
+
     # Builds a concise social-media description.
     share_description = (
         f"{property_obj.city}, {region_name} · "
-        f"GH₵{property_obj.price:,.2f}"
+        f"{price_text}"
     )
 
     # Public Vercel URL that users will share.

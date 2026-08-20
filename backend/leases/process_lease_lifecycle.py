@@ -17,7 +17,7 @@ from .models import (
 )
 
 
-# Renewal states that must keep the property or hostel space reserved.
+# Renewal states that must keep the rented property, room, or apartment unit reserved.
 PROTECTED_RENEWAL_STATUSES = [
     "pending",
     "payment_pending",
@@ -59,7 +59,7 @@ def _send_sms_helper_safely(
 def _get_protected_renewal(lease):
     """
     Returns the newest renewal that should prevent automatic
-    lease expiry and property release.
+    lease expiry and release of the rented resource.
     """
     return (
         LeaseRenewalRequest.objects.filter(
@@ -121,6 +121,7 @@ def send_lease_expiry_reminders(today=None):
             "landlord",
             "property",
             "room",
+            "apartment_unit",
         )
         .order_by("lease_end_date")
     )
@@ -139,15 +140,20 @@ def send_lease_expiry_reminders(today=None):
             days_remaining
         ]
 
-        room_text = (
-            f", Room {lease.room.room_number}"
-            if lease.room_id
-            else ""
-        )
+        resource_text = ""
+
+        if lease.room_id:
+            resource_text = (
+                f", Room {lease.room.room_number}"
+            )
+        elif lease.apartment_unit_id:
+            resource_text = (
+                f", Unit {lease.apartment_unit.unit_number}"
+            )
 
         event_message = (
             f"Lease #{lease.id} for "
-            f"{lease.property.property_name}{room_text} "
+            f"{lease.property.property_name}{resource_text} "
             f"expires in {days_remaining} days on "
             f"{lease.lease_end_date}."
         )
@@ -163,6 +169,9 @@ def send_lease_expiry_reminders(today=None):
                 ),
                 "property_id": lease.property_id,
                 "room_id": lease.room_id,
+                "apartment_unit_id": (
+                    lease.apartment_unit_id
+                ),
             },
         )
 
@@ -195,8 +204,11 @@ def send_lease_expiry_reminders(today=None):
 
 def _release_expired_lease_space(lease):
     """
-    Releases the house or one occupied hostel space after a lease
-    ends, while preserving the existing room availability logic.
+    Releases the exact rented resource after a lease ends.
+
+    Hostels release one occupied room space. Multi-unit apartments
+    release only the lease's exact apartment unit. Houses and single
+    apartments release the parent property.
     """
     property_obj = lease.property
 
@@ -245,8 +257,75 @@ def _release_expired_lease_space(lease):
             "reason": "Room has no occupied space to release.",
         }
 
-    # Prevents a house from becoming available while another
-    # active lease still exists for it.
+    is_multi_unit_apartment = (
+        property_obj.category == "apartment"
+        and property_obj.apartment_listing_type == "multi_unit"
+    )
+
+    if is_multi_unit_apartment:
+        if not lease.apartment_unit_id:
+            return {
+                "released": False,
+                "release_type": "apartment_unit",
+                "reason": (
+                    "Lease has no assigned apartment unit."
+                ),
+            }
+
+        # Locks only the exact apartment unit attached to this lease.
+        apartment_unit = (
+            lease.apartment_unit.__class__.objects
+            .select_for_update()
+            .get(
+                pk=lease.apartment_unit_id,
+                property=property_obj,
+            )
+        )
+
+        # Never free the unit if another active lease still points to it.
+        another_active_unit_lease = (
+            TenantLease.objects.filter(
+                apartment_unit=apartment_unit,
+                status="active",
+            )
+            .exclude(pk=lease.pk)
+            .exists()
+        )
+
+        if another_active_unit_lease:
+            return {
+                "released": False,
+                "release_type": "apartment_unit",
+                "apartment_unit_id": apartment_unit.id,
+                "reason": (
+                    "Another active lease still exists "
+                    "for this apartment unit."
+                ),
+            }
+
+        # The tenant has left and no protected renewal remains.
+        # ApartmentUnit.save() synchronizes the parent availability.
+        if apartment_unit.status != "available":
+            apartment_unit.status = "available"
+            apartment_unit.save(
+                update_fields=[
+                    "status",
+                    "updated_at",
+                ]
+            )
+
+        return {
+            "released": True,
+            "release_type": "apartment_unit",
+            "apartment_unit_id": apartment_unit.id,
+            "unit_number": apartment_unit.unit_number,
+            "status": apartment_unit.status,
+            "property_id": property_obj.id,
+            "property_is_available": property_obj.is_available,
+        }
+
+    # Houses and single apartments use the parent Property directly.
+    # Do not release it while another active parent-level lease exists.
     another_active_lease_exists = (
         TenantLease.objects.filter(
             property=property_obj,
@@ -259,7 +338,7 @@ def _release_expired_lease_space(lease):
     if another_active_lease_exists:
         return {
             "released": False,
-            "release_type": "house",
+            "release_type": "property",
             "reason": (
                 "Another active lease still exists "
                 "for this property."
@@ -277,7 +356,7 @@ def _release_expired_lease_space(lease):
 
     return {
         "released": True,
-        "release_type": "house",
+        "release_type": "property",
         "property_id": property_obj.id,
         "is_available": property_obj.is_available,
     }
@@ -288,7 +367,7 @@ def process_expired_leases(today=None):
     Ends leases whose end date has passed unless a protected
     renewal request still exists.
 
-    Protected renewals keep the house or hostel space unavailable.
+    Protected renewals keep the exact rented resource unavailable.
     """
     today = today or timezone.localdate()
 
@@ -324,6 +403,7 @@ def process_expired_leases(today=None):
                         "landlord",
                         "property",
                         "room",
+                        "apartment_unit",
                     )
                     .get(
                         id=lease_id,
@@ -369,6 +449,11 @@ def process_expired_leases(today=None):
                         ),
                         "renewal_status": (
                             protected_renewal.status
+                        ),
+                        "property_id": lease.property_id,
+                        "room_id": lease.room_id,
+                        "apartment_unit_id": (
+                            lease.apartment_unit_id
                         ),
                     },
                 )
@@ -422,6 +507,9 @@ def process_expired_leases(today=None):
                         "processed_date": str(today),
                         "property_id": lease.property_id,
                         "room_id": lease.room_id,
+                        "apartment_unit_id": (
+                            lease.apartment_unit_id
+                        ),
                         "release": release_result,
                     },
                 )
@@ -450,12 +538,6 @@ def process_expired_leases(today=None):
             continue
 
         lease = sms_payload["lease"]
-
-        room_text = (
-            f", Room {lease.room.room_number}"
-            if lease.room_id
-            else ""
-        )
 
         if sms_payload["type"] == "blocked":
             renewal = sms_payload[

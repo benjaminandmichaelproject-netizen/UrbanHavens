@@ -29,6 +29,86 @@ from .paystack import (
 from .serializers import PaymentSerializer
 
 
+def _renewal_matches_current_lease(renewal):
+    # Ensures the renewal still represents the exact active rental resource.
+    current_lease = renewal.current_lease
+
+    relationships_match = (
+        current_lease.tenant_id == renewal.tenant_id
+        and current_lease.landlord_id == renewal.landlord_id
+        and current_lease.property_id == renewal.property_id
+        and current_lease.room_id == renewal.room_id
+        and current_lease.apartment_unit_id == renewal.apartment_unit_id
+    )
+
+    if not relationships_match:
+        return False
+
+    property_obj = renewal.property
+    is_multi_unit_apartment = (
+        property_obj.category == "apartment"
+        and property_obj.apartment_listing_type == "multi_unit"
+    )
+
+    if property_obj.category == "hostel":
+        return (
+            renewal.room_id is not None
+            and renewal.apartment_unit_id is None
+            and renewal.room.property_id == renewal.property_id
+        )
+
+    if is_multi_unit_apartment:
+        return (
+            renewal.apartment_unit_id is not None
+            and renewal.room_id is None
+            and renewal.apartment_unit.property_id == renewal.property_id
+        )
+
+    # Houses and single apartments use only the parent Property.
+    return (
+        renewal.room_id is None
+        and renewal.apartment_unit_id is None
+    )
+
+
+def _payment_matches_renewal(payment, renewal):
+    # Prevents a payment from being detached from the approved renewal.
+    if (
+        payment.booking_id is not None
+        or payment.renewal_request_id != renewal.id
+        or payment.payment_type != "renewal"
+        or payment.tenant_id != renewal.tenant_id
+        or payment.landlord_id != renewal.landlord_id
+        or payment.property_id != renewal.property_id
+        or payment.room_id != renewal.room_id
+        or payment.apartment_unit_id != renewal.apartment_unit_id
+        or payment.duration_months != renewal.requested_duration_months
+    ):
+        return False
+
+    if (
+        renewal.expected_amount is None
+        or payment.amount is None
+        or payment.expected_amount is None
+    ):
+        return False
+
+    expected_amount = Decimal(str(renewal.expected_amount)).quantize(
+        Decimal("0.01")
+    )
+    payment_amount = Decimal(str(payment.amount)).quantize(
+        Decimal("0.01")
+    )
+    payment_expected_amount = Decimal(
+        str(payment.expected_amount)
+    ).quantize(Decimal("0.01"))
+
+    return (
+        payment_amount == expected_amount
+        and payment_expected_amount == expected_amount
+    )
+
+
 class InitializeRenewalPaymentSerializer(serializers.Serializer):
     # Identifies the approved renewal request.
     renewal_request_id = serializers.IntegerField(min_value=1)
@@ -56,6 +136,7 @@ class InitializeRenewalPaymentSerializer(serializers.Serializer):
                     "landlord",
                     "property",
                     "room",
+                    "apartment_unit",
                 )
                 .get(
                     id=attrs["renewal_request_id"],
@@ -85,6 +166,18 @@ class InitializeRenewalPaymentSerializer(serializers.Serializer):
                 {
                     "renewal_request_id": (
                         "The current lease is no longer active."
+                    )
+                }
+            )
+
+        # Blocks payment if the renewal no longer points to the
+        # same room or apartment unit as the active lease.
+        if not _renewal_matches_current_lease(renewal):
+            raise serializers.ValidationError(
+                {
+                    "renewal_request_id": (
+                        "The renewal request no longer matches "
+                        "the current lease resource."
                     )
                 }
             )
@@ -147,6 +240,7 @@ class InitializeRenewalPaymentView(APIView):
                     "landlord",
                     "property",
                     "room",
+                    "apartment_unit",
                 )
                 .get(id=renewal.id, tenant=request.user)
             )
@@ -163,15 +257,47 @@ class InitializeRenewalPaymentView(APIView):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+            # Re-checks the exact room/apartment unit under the lock.
+            if not _renewal_matches_current_lease(locked_renewal):
+                return Response(
+                    {
+                        "detail": (
+                            "The renewal request no longer matches "
+                            "the current lease resource."
+                        )
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
             existing_payment = (
                 Payment.objects
                 .select_for_update()
+                .select_related(
+                    "room",
+                    "apartment_unit",
+                )
                 .filter(renewal_request=locked_renewal)
                 .order_by("-created_at")
                 .first()
             )
 
             if existing_payment:
+                # Existing attempts must still be tied to the exact renewal
+                # resource before they can be returned or reused.
+                if not _payment_matches_renewal(
+                    existing_payment,
+                    locked_renewal,
+                ):
+                    return Response(
+                        {
+                            "detail": (
+                                "The existing renewal payment no longer "
+                                "matches this renewal request."
+                            )
+                        },
+                        status=status.HTTP_409_CONFLICT,
+                    )
+
                 # Successful payments always block another attempt.
                 if existing_payment.status == "success":
                     return Response(
@@ -237,6 +363,10 @@ class InitializeRenewalPaymentView(APIView):
                 payment.duration_months = (
                     locked_renewal.requested_duration_months
                 )
+                payment.room = locked_renewal.room
+                payment.apartment_unit = (
+                    locked_renewal.apartment_unit
+                )
                 payment.paystack_access_code = ""
                 payment.paystack_authorization_url = ""
                 payment.paystack_response = None
@@ -257,6 +387,8 @@ class InitializeRenewalPaymentView(APIView):
                         "amount",
                         "expected_amount",
                         "duration_months",
+                        "room",
+                        "apartment_unit",
                         "paystack_access_code",
                         "paystack_authorization_url",
                         "paystack_response",
@@ -276,6 +408,7 @@ class InitializeRenewalPaymentView(APIView):
                     landlord=locked_renewal.landlord,
                     property=locked_renewal.property,
                     room=locked_renewal.room,
+                    apartment_unit=locked_renewal.apartment_unit,
                     payment_type="renewal",
                     payment_method=requested_method,
                     duration_months=(
@@ -459,6 +592,7 @@ class VerifyRenewalPaymentView(APIView):
                     "landlord",
                     "property",
                     "room",
+                    "apartment_unit",
                 )
                 .get(
                     reference=reference,
@@ -585,6 +719,7 @@ class VerifyRenewalPaymentView(APIView):
                     "landlord",
                     "property",
                     "room",
+                    "apartment_unit",
                 )
                 .get(pk=payment.pk)
             )
@@ -598,6 +733,7 @@ class VerifyRenewalPaymentView(APIView):
                     "landlord",
                     "property",
                     "room",
+                    "apartment_unit",
                 )
                 .get(
                     pk=locked_payment.renewal_request_id
@@ -640,6 +776,34 @@ class VerifyRenewalPaymentView(APIView):
                         )
                     },
                     status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Confirms the renewal still preserves the exact current resource.
+            if not _renewal_matches_current_lease(renewal):
+                return Response(
+                    {
+                        "detail": (
+                            "The renewal request no longer matches "
+                            "the current lease resource."
+                        )
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            # Confirms this payment is still tied to that exact renewal
+            # room or apartment unit before accepting Paystack success.
+            if not _payment_matches_renewal(
+                locked_payment,
+                renewal,
+            ):
+                return Response(
+                    {
+                        "detail": (
+                            "The renewal payment no longer matches "
+                            "this renewal request."
+                        )
+                    },
+                    status=status.HTTP_409_CONFLICT,
                 )
 
             # Calculates UrbanHavens commission.
@@ -848,6 +1012,7 @@ class ConfirmDirectRenewalPaymentView(APIView):
                         "landlord",
                         "property",
                         "room",
+                        "apartment_unit",
                     )
                     .get(
                         id=payment_id,
@@ -896,6 +1061,7 @@ class ConfirmDirectRenewalPaymentView(APIView):
                     "landlord",
                     "property",
                     "room",
+                    "apartment_unit",
                 )
                 .get(
                     pk=payment.renewal_request_id
@@ -921,6 +1087,31 @@ class ConfirmDirectRenewalPaymentView(APIView):
                         )
                     },
                     status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            # Confirms the renewal still preserves the exact current resource.
+            if not _renewal_matches_current_lease(renewal):
+                return Response(
+                    {
+                        "detail": (
+                            "The renewal request no longer matches "
+                            "the current lease resource."
+                        )
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
+            # Confirms this direct payment still belongs to the exact
+            # room or apartment unit approved for renewal.
+            if not _payment_matches_renewal(payment, renewal):
+                return Response(
+                    {
+                        "detail": (
+                            "The renewal payment no longer matches "
+                            "this renewal request."
+                        )
+                    },
+                    status=status.HTTP_409_CONFLICT,
                 )
 
             expected_amount = Decimal(

@@ -172,7 +172,13 @@ const Detail = () => {
   const getImageUrl = (path) => path || "/default-house.jpg";
 
   const formatCat = (c) =>
-    c === "house_rent" ? "House for Rent" : c === "hostel" ? "Hostel" : c || "N/A";
+    c === "house_rent"
+      ? "House for Rent"
+      : c === "hostel"
+      ? "Hostel"
+      : c === "apartment"
+      ? "Apartment"
+      : c || "N/A";
 
   const formatMoney = (value) => {
     const num = Number(value);
@@ -264,12 +270,51 @@ const Detail = () => {
       ? `/landlord/${property.owner_source}/${property.owner_reference_id}`
       : null;
 
+  // Multi-unit apartments get their rent and room details from
+  // individual ApartmentUnit records, not the parent Property.
+  const isMultiUnitApartment =
+    property.category === "apartment" &&
+    property.apartment_listing_type === "multi_unit";
+
+  const displayPrice = isMultiUnitApartment
+    ? property.starting_price
+    : property.price;
+
+  const hasDisplayPrice =
+    displayPrice !== null &&
+    displayPrice !== undefined &&
+    displayPrice !== "";
+
+  const priceText = hasDisplayPrice
+    ? `${isMultiUnitApartment ? "From " : ""}GHS ${formatMoney(displayPrice)}`
+    : isMultiUnitApartment
+    ? "Unit pricing unavailable"
+    : "Price unavailable";
+
   const specs = [
     { icon: <FaHome />, label: formatCat(property.category) },
-    { icon: <FaBed />, label: `${property.bedrooms || 0} Bedrooms` },
-    { icon: <FaBath />, label: `${property.bathrooms || 0} Bathrooms` },
+
+    ...(isMultiUnitApartment
+      ? [
+          {
+            icon: <FaHome />,
+            label: "Multi-unit Apartment",
+          },
+        ]
+      : [
+          {
+            icon: <FaBed />,
+            label: `${property.bedrooms || 0} Bedrooms`,
+          },
+          {
+            icon: <FaBath />,
+            label: `${property.bathrooms || 0} Bathrooms`,
+          },
+        ]),
+
     { icon: <FaMapMarkerAlt />, label: property.region || "N/A" },
     { icon: <FaMapMarkerAlt />, label: property.city || "N/A" },
+
     ...(property.school
       ? [{ icon: <FaSchool />, label: property.school }]
       : []),
@@ -319,14 +364,20 @@ const Detail = () => {
           </motion.p>
 
           <motion.div className="dt-hero-pills" variants={fadeUp}>
-            <span className="dt-pill">
-              <FaBed /> {property.bedrooms || 0} Beds
-            </span>
-            <span className="dt-pill">
-              <FaBath /> {property.bathrooms || 0} Baths
-            </span>
+            {!isMultiUnitApartment && (
+              <>
+                <span className="dt-pill">
+                  <FaBed /> {property.bedrooms || 0} Beds
+                </span>
+                <span className="dt-pill">
+                  <FaBath /> {property.bathrooms || 0} Baths
+                </span>
+              </>
+            )}
+
             <span className="dt-pill dt-pill-price">
-              GHS {formatMoney(property.price)}/mo
+              {priceText}
+              {hasDisplayPrice && "/mo"}
             </span>
 
             {property.category === "hostel" && hostelStats && (
@@ -404,8 +455,8 @@ const Detail = () => {
             <div className="dt-card-title-row">
               <h2 className="dt-prop-name">{property.property_name}</h2>
               <span className="dt-price">
-                GHS {formatMoney(property.price)}
-                <small>/mo</small>
+                {priceText}
+                {hasDisplayPrice && <small>/mo</small>}
               </span>
             </div>
 

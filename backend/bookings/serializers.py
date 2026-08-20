@@ -71,8 +71,18 @@ class BookingSerializer(serializers.ModelSerializer):
         read_only=True,
     )
 
+    # Identifies single versus multi-unit apartment listings.
+    property_apartment_listing_type = serializers.CharField(
+        source="property.apartment_listing_type",
+        read_only=True,
+        allow_null=True,
+    )
+
     # Returns only hostel rooms that still have available space.
     rooms = serializers.SerializerMethodField()
+
+    # Returns only apartment units that are currently available.
+    apartment_units = serializers.SerializerMethodField()
     property_allowed_rental_months = serializers.JSONField(
         source="property.allowed_rental_months",
         read_only=True,
@@ -101,8 +111,10 @@ class BookingSerializer(serializers.ModelSerializer):
             "property_price",
             "property_type",
             "property_category",
+            "property_apartment_listing_type",
             "property_allowed_rental_months",
             "rooms",
+            "apartment_units",
             "property_images",
             "tenant",
             "tenant_name",
@@ -138,8 +150,10 @@ class BookingSerializer(serializers.ModelSerializer):
             "property_price",
             "property_type",
             "property_category",
+            "property_apartment_listing_type",
             "property_allowed_rental_months",
             "rooms",
+            "apartment_units",
             "property_images",
             "status",
             "archived_by_owner",
@@ -209,6 +223,34 @@ class BookingSerializer(serializers.ModelSerializer):
             )
 
         return result
+
+
+    # Returns available units only for multi-unit apartment bookings.
+    def get_apartment_units(self, obj):
+        if not (
+            obj.property.category == "apartment"
+            and obj.property.apartment_listing_type == "multi_unit"
+        ):
+            return []
+
+        units = obj.property.apartment_units.filter(
+            status="available",
+        ).order_by("unit_number")
+
+        return [
+            {
+                "id": unit.id,
+                "unit_number": unit.unit_number,
+                "bedrooms": unit.bedrooms,
+                "bathrooms": unit.bathrooms,
+                "floor": unit.floor,
+                "price": str(unit.price),
+                "is_furnished": unit.is_furnished,
+                "amenities": unit.amenities,
+                "status": unit.status,
+            }
+            for unit in units
+        ]
 
     def get_tenant_name(self, obj):
             full = f"{obj.tenant.first_name} {obj.tenant.last_name}".strip()

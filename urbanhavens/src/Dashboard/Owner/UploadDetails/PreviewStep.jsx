@@ -71,27 +71,101 @@ const PreviewStep = ({ formData, files, prev, finish, isSubmitting }) => {
         {idImageUrl && <img src={idImageUrl} alt="ID Preview" className="preview-img" />}
       </div> */}
 
-      <div className="preview-section">
+          <div className="preview-section">
         <h3>Property</h3>
-        <p><strong>Name:</strong> {property.property_name}</p>
-        <p><strong>Category:</strong> {property.category}</p>
-        <p><strong>Type:</strong> {property.property_type}</p>
-        <p><strong>Bedrooms:</strong> {property.bedrooms}</p>
-        <p><strong>Bathrooms:</strong> {property.bathrooms}</p>
-        <p><strong>Price:</strong> GHS {property.price}</p>
-        <p><strong>Furnishing:</strong> {property.furnishing}</p>
-        <p><strong>Description:</strong> {property.description}</p>
-        {property.amenities?.length > 0 && (
-          <p><strong>Amenities:</strong> {property.amenities.join(", ")}</p>
+
+        <p>
+          <strong>Name:</strong> {property.property_name}
+        </p>
+
+        <p>
+          <strong>Category:</strong>{" "}
+          {property.category === "apartment"
+            ? "Apartment"
+            : property.category === "house_rent"
+            ? "House for Rent"
+            : property.category === "hostel"
+            ? "Hostel"
+            : property.category}
+        </p>
+
+        {property.category === "apartment" ? (
+          <p>
+            <strong>Apartment Listing Type:</strong>{" "}
+            {property.apartment_listing_type === "multi_unit"
+              ? "Multi-unit Apartment"
+              : "Single Apartment"}
+          </p>
+        ) : (
+          property.property_type && (
+            <p>
+              <strong>Type:</strong> {property.property_type}
+            </p>
+          )
         )}
+
+        {property.apartment_listing_type !== "multi_unit" && (
+          <>
+            <p>
+              <strong>
+                {property.category === "hostel"
+                  ? "Total Rooms:"
+                  : "Bedrooms:"}
+              </strong>{" "}
+              {property.bedrooms}
+            </p>
+
+            {property.category !== "hostel" && (
+              <p>
+                <strong>Bathrooms:</strong> {property.bathrooms}
+              </p>
+            )}
+
+            <p>
+              <strong>
+                {property.category === "hostel"
+                  ? "Base Room Price:"
+                  : "Price:"}
+              </strong>{" "}
+              GHS {property.price}
+            </p>
+          </>
+        )}
+
+        {property.category === "apartment" &&
+          property.apartment_listing_type === "multi_unit" && (
+            <p>
+              <strong>Unit Details:</strong>{" "}
+              Bedrooms, bathrooms, furnishing, and rent will be set
+              individually for each apartment unit after the property is
+              created.
+            </p>
+          )}
+
+        {property.furnishing && (
+          <p>
+            <strong>Furnishing:</strong> {property.furnishing}
+          </p>
+        )}
+
+        <p>
+          <strong>Description:</strong> {property.description}
+        </p>
+
+        {property.amenities?.length > 0 && (
+          <p>
+            <strong>Amenities:</strong> {property.amenities.join(", ")}
+          </p>
+        )}
+
         {property.allowed_rental_months?.length > 0 && (
-  <p>
-    <strong>Rental Durations:</strong>{" "}
-    {property.allowed_rental_months
-      .map((months) => `${months} months`)
-      .join(", ")}
-  </p>
-)}
+          <p>
+            <strong>Rental Durations:</strong>{" "}
+            {property.allowed_rental_months
+              .map((months) => `${months} months`)
+              .join(", ")}
+          </p>
+        )}
       </div>
 
       <div className="preview-section">

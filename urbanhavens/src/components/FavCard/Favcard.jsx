@@ -11,6 +11,7 @@ import "./Favcard.css";
 const CATEGORY_LABELS = {
   hostel: "Hostel",
   house_rent: "House for Rent",
+  apartment: "Apartment",
 };
 
 const Favcard = ({ favorite, onRemove, onView }) => {
@@ -19,8 +20,25 @@ const Favcard = ({ favorite, onRemove, onView }) => {
   if (!property) return null;
 
   const image = property?.images?.[0]?.image || "";
+
   const isAvailable =
-    typeof property?.is_available === "boolean" ? property.is_available : true;
+    typeof property?.is_available === "boolean"
+      ? property.is_available
+      : true;
+
+  // Multi-unit apartments use the cheapest available unit price.
+  const isMultiUnitApartment =
+    property?.category === "apartment" &&
+    property?.apartment_listing_type === "multi_unit";
+
+  const displayPrice = isMultiUnitApartment
+    ? property?.starting_price
+    : property?.price;
+
+  const hasPrice =
+    displayPrice !== null &&
+    displayPrice !== undefined &&
+    displayPrice !== "";
 
   return (
     <div className="fav-card">
@@ -63,26 +81,47 @@ const Favcard = ({ favorite, onRemove, onView }) => {
             ) : (
               <FaHome />
             )}
-            {CATEGORY_LABELS[property.category] || property.category}
+
+            {CATEGORY_LABELS[property.category] ||
+              property.category}
           </span>
         )}
       </div>
 
       <div className="fav-card-body">
-        <h3 className="fav-card-title">{property.property_name}</h3>
+        <h3 className="fav-card-title">
+          {property.property_name}
+        </h3>
 
         <p className="fav-card-location">
           <FaMapMarkerAlt />
-          {[property.city, property.region].filter(Boolean).join(", ")}
+
+          {[property.city, property.region]
+            .filter(Boolean)
+            .join(", ")}
         </p>
 
         <div className="fav-card-footer">
           <div className="fav-card-price">
-            GHS {Number(property.price || 0).toLocaleString()}
-            <span>/mo</span>
+            {hasPrice ? (
+              <>
+                {isMultiUnitApartment ? "From " : ""}
+                GHS {Number(displayPrice).toLocaleString()}
+                <span>/mo</span>
+              </>
+            ) : (
+              <span>
+                {isMultiUnitApartment
+                  ? "Unit pricing unavailable"
+                  : "Price unavailable"}
+              </span>
+            )}
           </div>
 
-          <button className="fav-card-btn" onClick={onView}>
+          <button
+            className="fav-card-btn"
+            onClick={onView}
+          >
             View <FaArrowRight />
           </button>
         </div>

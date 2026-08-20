@@ -9,7 +9,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from bookings.models import Booking
-from properties.models import Property, Room
+from properties.models import ApartmentUnit, Property, Room
 
 
 class OwnerPaymentAccount(models.Model):
@@ -201,6 +201,16 @@ class Payment(models.Model):
     # Stores the selected hostel room when the property is a hostel.
     room = models.ForeignKey(
         Room,
+        on_delete=models.PROTECT,
+        related_name="payments",
+        null=True,
+        blank=True,
+    )
+
+    # Stores the selected apartment unit when the property is a
+    # multi-unit apartment building.
+    apartment_unit = models.ForeignKey(
+        ApartmentUnit,
         on_delete=models.PROTECT,
         related_name="payments",
         null=True,
@@ -410,6 +420,10 @@ class Payment(models.Model):
             ),
             models.Index(
                 fields=["room", "status"],
+            ),
+            # Supports efficient apartment-unit payment state lookups.
+            models.Index(
+                fields=["apartment_unit", "status"],
             ),
             models.Index(
                 fields=["renewal_request", "status"],
@@ -623,6 +637,20 @@ class Payment(models.Model):
                     "renewal room."
                 )
 
+            # Keeps any apartment unit attached to a renewal payment
+            # aligned with the unit stored by the renewal workflow.
+            renewal_apartment_unit_id = getattr(
+                renewal,
+                "apartment_unit_id",
+                None,
+            )
+
+            if renewal_apartment_unit_id != self.apartment_unit_id:
+                errors["apartment_unit"] = (
+                    "The payment apartment unit must match the "
+                    "renewal apartment unit."
+                )
+
             if (
                 self.duration_months
                 != renewal.requested_duration_months
@@ -641,21 +669,70 @@ class Payment(models.Model):
                     "approved renewal amount."
                 )
 
+        # Ensures the payment references the correct rentable child
+        # resource for the selected property category.
         if self.property_id:
-            if self.property.category == "hostel":
+            property_obj = self.property
+
+            if property_obj.category == "hostel":
+                # Hostel payments require a room and cannot use an
+                # apartment unit.
                 if not self.room_id:
                     errors["room"] = (
                         "A room is required for hostel payments."
                     )
-            elif self.room_id:
-                errors["room"] = (
-                    "A room cannot be attached to a house payment."
-                )
 
+                if self.apartment_unit_id:
+                    errors["apartment_unit"] = (
+                        "An apartment unit cannot be attached "
+                        "to a hostel payment."
+                    )
+
+            elif (
+                property_obj.category == "apartment"
+                and property_obj.apartment_listing_type == "multi_unit"
+            ):
+                # Multi-unit apartment payments must identify the exact
+                # apartment being rented.
+                if not self.apartment_unit_id:
+                    errors["apartment_unit"] = (
+                        "An apartment unit is required for "
+                        "multi-unit apartment payments."
+                    )
+
+                if self.room_id:
+                    errors["room"] = (
+                        "A hostel room cannot be attached to "
+                        "an apartment payment."
+                    )
+
+            else:
+                # Houses and single apartments are rented directly from
+                # the parent Property and therefore use no child resource.
+                if self.room_id:
+                    errors["room"] = (
+                        "A room can only be attached to a hostel payment."
+                    )
+
+                if self.apartment_unit_id:
+                    errors["apartment_unit"] = (
+                        "An apartment unit can only be attached to "
+                        "a multi-unit apartment payment."
+                    )
+
+        # A selected hostel room must belong to the payment property.
         if self.room_id and self.property_id:
             if self.room.property_id != self.property_id:
                 errors["room"] = (
                     "The selected room does not belong to this property."
+                )
+
+        # A selected apartment unit must belong to the payment property.
+        if self.apartment_unit_id and self.property_id:
+            if self.apartment_unit.property_id != self.property_id:
+                errors["apartment_unit"] = (
+                    "The selected apartment unit does not belong "
+                    "to this property."
                 )
 
         if self.expected_amount < Decimal("0.00"):

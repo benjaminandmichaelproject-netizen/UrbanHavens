@@ -157,6 +157,82 @@ export const getMyProperties = async () => {
     throw err.response?.data || err;
   }
 };
+// Requests an admin recheck for an owner's flagged or hidden property.
+export const requestPropertyRecheck = async (propertyId) => {
+  try {
+    const res = await api.post(
+      `/properties/${propertyId}/request-recheck/`
+    );
+    return res.data;
+  } catch (err) {
+    console.error(
+      "Property recheck request failed:",
+      err.response?.data || err.message
+    );
+    throw err.response?.data || err;
+  }
+};
+
+// Creates one separately rentable unit inside a multi-unit apartment.
+export const createApartmentUnit = async (propertyId, unitData) => {
+  try {
+    const res = await api.post("/apartment-units/", {
+      property: propertyId,
+      ...unitData,
+    });
+
+    return res.data;
+  } catch (err) {
+    console.error(
+      "Create apartment unit failed:",
+      err.response?.data || err.message
+    );
+
+    throw err.response?.data || err;
+  }
+};
+
+
+// Updates the owner-editable details of an existing apartment unit.
+export const updateApartmentUnit = async (unitId, unitData) => {
+  try {
+    const res = await api.patch(
+      `/apartment-units/${unitId}/`,
+      unitData
+    );
+
+    return res.data;
+  } catch (err) {
+    console.error(
+      "Update apartment unit failed:",
+      err.response?.data || err.message
+    );
+
+    throw err.response?.data || err;
+  }
+};
+
+
+// Deletes an apartment unit belonging to the authenticated owner.
+export const deleteApartmentUnit = async (unitId) => {
+  try {
+    await api.delete(
+      `/apartment-units/${unitId}/`
+    );
+
+    return true;
+  } catch (err) {
+    console.error(
+      "Delete apartment unit failed:",
+      err.response?.data || err.message
+    );
+
+    throw err.response?.data || err;
+  }
+};
+
+
+
 
 export const getPropertyById = async (id) => {
   try {
