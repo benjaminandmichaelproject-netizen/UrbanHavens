@@ -5,7 +5,7 @@ import { api } from "../../Dashboard/Owner/UploadDetails/api/api";
 import { FaArrowRight, FaEnvelope, FaLock } from "react-icons/fa";
 import "./Login.css";
 
-const fadeUp  = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } };
+const fadeUp = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } };
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.1 } } };
 
 const Login = () => {
@@ -13,9 +13,9 @@ const Login = () => {
   const location = useLocation();
 
   const [formData, setFormData] = useState({ email: "", password: "" });
-  const [error, setError]       = useState("");
-  const [loading, setLoading]   = useState(false);
-  const successMessage          = location.state?.message || "";
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const successMessage = location.state?.message || "";
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -31,19 +31,19 @@ const Login = () => {
       const { access, refresh, id, username, role } = res.data;
       const userRole = role.toLowerCase();
 
-    localStorage.setItem("access",   access);
-localStorage.setItem("refresh",  refresh);
-localStorage.setItem("userId",   id);
-localStorage.setItem("username", username);
-localStorage.setItem("role",     userRole);
+      localStorage.setItem("access", access);
+      localStorage.setItem("refresh", refresh);
+      localStorage.setItem("userId", id);
+      localStorage.setItem("username", username);
+      localStorage.setItem("role", userRole);
 
-      if      (userRole === "owner") window.location.href = "/dashboard/owner";
+      if (userRole === "owner") window.location.href = "/dashboard/owner";
       else if (userRole === "admin") window.location.href = "/dashboard/admin";
-      else                           window.location.href = "/";
+      else window.location.href = "/";
     } catch (err) {
       setError(
         err.response?.data?.detail ||
-        err.response?.data?.error  ||
+        err.response?.data?.error ||
         "Invalid email or password"
       );
     } finally {
@@ -84,7 +84,7 @@ localStorage.setItem("role",     userRole);
           transition={{ duration: 0.55, delay: 0.15 }}
         >
           {successMessage && <div className="lg-success">{successMessage}</div>}
-          {error          && <div className="lg-error">{error}</div>}
+          {error && <div className="lg-error">{error}</div>}
 
           <form onSubmit={handleSubmit} className="lg-form">
 

@@ -2,8 +2,7 @@
   "rewrites": [
     {
       "source": "/share/property/:propertyId",
-      "destination": "https://urbanhavens-backend.onrender.com/api/share/property/:propertyId/"
-    },
+"destination": "https://api.urbanhavensgh.online/api/share/property/:propertyId/"    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
