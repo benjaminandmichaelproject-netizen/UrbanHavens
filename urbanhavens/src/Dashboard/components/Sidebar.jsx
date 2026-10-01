@@ -88,8 +88,8 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
 
               <SectionLabel label="Tenants" />
               <NavItem to="/dashboard/owner/OwnerLeases/OwnerLeases" icon={<FaUsers />} label="Tenants" onClick={handleClick} />
-              <NavItem to="/dashboard/owner/contracts" icon={<FaFileContract />} label="Contracts" onClick={handleClick} />
-              <NavItem to="/dashboard/owner/documents" icon={<FaFileAlt />} label="Documents" onClick={handleClick} />
+              {/* <NavItem to="/dashboard/owner/contracts" icon={<FaFileContract />} label="Contracts" onClick={handleClick} /> */}
+              {/* <NavItem to="/dashboard/owner/documents" icon={<FaFileAlt />} label="Documents" onClick={handleClick} /> */}
              <NavItem to="/dashboard/owner/OnsitePayments/OnsitePayments" icon={<FaFileAlt />} label="Onsite Payments" onClick={handleClick} />
               <NavItem to="/dashboard/owner/AwaitingLeasePage/AwaitingLeasePage" icon={<FaFileAlt />} label="Awaiting Leases" onClick={handleClick} />
               <NavItem to="/dashboard/owner/OwnerTransactions/OwnerTransactions" icon={<FaFileAlt />} label="Transactions" onClick={handleClick} />

@@ -91,7 +91,7 @@ const Footer = () => {
               <Link to="/faq">FAQ</Link>
               <Link to="/privacy">Privacy Policy</Link>
               <Link to="/terms">Terms of Service</Link>
-              <Link to="/help">Help Center</Link>
+              {/* <Link to="/help">Help Center</Link> */}
             </div>
           </div>
         </div>

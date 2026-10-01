@@ -48,7 +48,7 @@ const Contact = () => {
 
             <div className="contact-card-actions">
               <a
-                href="https://wa.me/233550000000"
+                href="https://wa.me/233541254645"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="contact-action-btn whatsapp-btn"
@@ -58,12 +58,12 @@ const Contact = () => {
               </a>
 
               <a
-                href="https://wa.me/233550000000"
+                href="https://wa.me/233541254645"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="contact-link"
               >
-                +233 55 000 0000
+                +233 54 125 4645
               </a>
             </div>
           </div>
@@ -80,8 +80,8 @@ const Contact = () => {
               information.
             </p>
 
-            <a href="tel:+233550000000" className="contact-link">
-              +233 55 000 0000
+            <a href="tel:+233541254645" className="contact-link">
+              +233 54 125 4645
             </a>
           </div>
 
