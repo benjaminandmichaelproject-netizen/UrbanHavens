@@ -219,8 +219,7 @@ class CreateLeaseFromPaymentView(APIView):
             try:
                 # Locks the successful payment that authorizes this lease.
                 payment = (
-                    Payment.objects.select_for_update()
-                    .select_related(
+                    Payment.objects.select_related(
                         "tenant",
                         "landlord",
                         "property",
@@ -228,6 +227,7 @@ class CreateLeaseFromPaymentView(APIView):
                         "apartment_unit",
                         "booking",
                     )
+                    .select_for_update(of=("self",))
                     .get(
                         id=payment_id,
                         status="success",
