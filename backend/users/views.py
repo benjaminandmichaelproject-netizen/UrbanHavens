@@ -11,12 +11,13 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .email_service import BrevoEmailError, send_brevo_email
 from .models import PasswordResetCode, User
 from .serializers import (
+    ChangePasswordSerializer,
     ConfirmResetCodeSerializer,
     ForgotPasswordSerializer,
     RegisterSerializer,
     ResetPasswordSerializer,
+    UserSettingsSerializer,
 )
-
 
 class UserViewSet(viewsets.ViewSet):
     """
@@ -592,12 +593,113 @@ class UserViewSet(viewsets.ViewSet):
             status=status.HTTP_200_OK,
         )
 
+   
+    
+    @action(
+        detail=False,
+        methods=["get", "patch"],
+        permission_classes=[IsAuthenticated],
+        url_path="me",
+    )
+    def me(self, request):
+        """
+        Returns or updates the authenticated user's
+        editable account settings.
+        """
+
+        user = request.user
+
+        if request.method == "GET":
+            serializer = UserSettingsSerializer(
+                user,
+                context={"request": request},
+            )
+
+            return Response(
+                serializer.data,
+                status=status.HTTP_200_OK,
+            )
+
+        serializer = UserSettingsSerializer(
+            user,
+            data=request.data,
+            partial=True,
+            context={"request": request},
+        )
+
+        serializer.is_valid(
+            raise_exception=True
+        )
+
+        serializer.save()
+
+        return Response(
+            {
+                "message": (
+                    "Account settings updated successfully."
+                ),
+                "user": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+    
+    
+    
+    @action(
+        detail=False,
+        methods=["post"],
+        permission_classes=[IsAuthenticated],
+        url_path="change-password",
+    )
+    def change_password(self, request):
+        """
+        Changes the authenticated user's password
+        after confirming the current password.
+        """
+
+        serializer = ChangePasswordSerializer(
+            data=request.data,
+            context={"request": request},
+        )
+
+        serializer.is_valid(
+            raise_exception=True
+        )
+
+        user = request.user
+
+        user.set_password(
+            serializer.validated_data[
+                "new_password"
+            ]
+        )
+
+        user.save(
+            update_fields=["password"]
+        )
+
+        return Response(
+            {
+                "detail": (
+                    "Password changed successfully."
+                )
+            },
+            status=status.HTTP_200_OK,
+        )
+    
+    
+    
+    
+    
+       
     @action(
         detail=True,
         methods=["post"],
         permission_classes=[IsAuthenticated],
         url_path="toggle-verification",
-    )
+     )
+  
+    
     def toggle_verification(self, request, pk=None):
         """
         Allows an administrator to verify or unverify an owner.

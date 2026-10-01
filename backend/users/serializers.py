@@ -137,3 +137,199 @@ class ResetPasswordSerializer(serializers.Serializer):
     def validate_new_password(self, value):
         validate_password(value)
         return value
+    
+    
+
+class UserSettingsSerializer(serializers.ModelSerializer):
+    business_name = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+    )
+
+    username = serializers.CharField(read_only=True)
+    role = serializers.CharField(read_only=True)
+    email = serializers.EmailField(read_only=True)
+
+    document_type = serializers.SerializerMethodField()
+    id_number = serializers.SerializerMethodField()
+    is_verified = serializers.SerializerMethodField()
+    document_file = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "username",
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "role",
+            "business_name",
+            "document_type",
+            "id_number",
+            "is_verified",
+            "document_file",
+        ]
+
+        read_only_fields = [
+            "id",
+            "username",
+            "email",
+            "role",
+            "document_type",
+            "id_number",
+            "is_verified",
+            "document_file",
+        ]
+
+    def _get_landlord_profile(self, obj):
+        if obj.role != "owner":
+            return None
+
+        return getattr(
+            obj,
+            "landlord_profile",
+            None,
+        )
+
+    def get_document_type(self, obj):
+        profile = self._get_landlord_profile(obj)
+
+        if not profile:
+            return None
+
+        return profile.document_type
+
+    def get_id_number(self, obj):
+        profile = self._get_landlord_profile(obj)
+
+        if not profile:
+            return None
+
+        return profile.id_number
+
+    def get_is_verified(self, obj):
+        profile = self._get_landlord_profile(obj)
+
+        if not profile:
+            return None
+
+        return profile.is_verified
+
+    def get_document_file(self, obj):
+        profile = self._get_landlord_profile(obj)
+
+        if not profile or not profile.document_file:
+            return None
+
+        request = self.context.get("request")
+
+        url = profile.document_file.url
+
+        if request:
+            return request.build_absolute_uri(url)
+
+        return url
+
+    def update(self, instance, validated_data):
+        business_name = validated_data.pop(
+            "business_name",
+            None,
+        )
+
+        instance.first_name = validated_data.get(
+            "first_name",
+            instance.first_name,
+        )
+
+        instance.last_name = validated_data.get(
+            "last_name",
+            instance.last_name,
+        )
+
+        instance.phone = validated_data.get(
+            "phone",
+            instance.phone,
+        )
+
+        instance.save(
+            update_fields=[
+                "first_name",
+                "last_name",
+                "phone",
+            ]
+        )
+
+        if instance.role == "owner":
+            profile = getattr(
+                instance,
+                "landlord_profile",
+                None,
+            )
+
+            if profile and business_name is not None:
+                profile.business_name = business_name
+                profile.save(
+                    update_fields=["business_name"]
+                )
+
+        return instance
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField(
+        write_only=True,
+        trim_whitespace=False,
+    )
+
+    new_password = serializers.CharField(
+        write_only=True,
+        trim_whitespace=False,
+    )
+
+    confirm_password = serializers.CharField(
+        write_only=True,
+        trim_whitespace=False,
+    )
+
+    def validate(self, attrs):
+        user = self.context["request"].user
+
+        current_password = attrs.get(
+            "current_password"
+        )
+
+        new_password = attrs.get(
+            "new_password"
+        )
+
+        confirm_password = attrs.get(
+            "confirm_password"
+        )
+
+        if not user.check_password(current_password):
+            raise serializers.ValidationError(
+                {
+                    "current_password": (
+                        "Your current password is incorrect."
+                    )
+                }
+            )
+
+        if new_password != confirm_password:
+            raise serializers.ValidationError(
+                {
+                    "confirm_password": (
+                        "The new passwords do not match."
+                    )
+                }
+            )
+
+        validate_password(
+            new_password,
+            user=user,
+        )
+
+        return attrs    

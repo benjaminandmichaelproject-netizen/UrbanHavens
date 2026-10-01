@@ -17,7 +17,7 @@ import ScheduledViewings from "./Dashboard/Tenant/ScheduledViewings/ScheduledVie
 import Favorites from "./Dashboard/Tenant/Favorites";
 import Payments from "./Dashboard/Tenant/Payments";
 import HelpCenter from "./Dashboard/HelpCenter";
-import AccountSettings from "./Dashboard/AccountSettings";
+// import AccountSettings from "./Dashboard/AccountSettings";
 import Logout from "./Dashboard/Tenant/Logout";
 import MyBookings from "./Dashboard/Tenant/MyBookings";
 import Profile from "./Dashboard/Tenant/Profile";
@@ -69,6 +69,10 @@ import PaymentReceiptPage from "./Pages/payment/PaymentReceiptPage";
 import OwnerTransactions from "./Dashboard/Owner/OwnerTransactions/OwnerTransactions";
 import LeaseAgreementPage from "./Pages/LeaseAgreementPage/LeaseAgreementPage";
 import OwnerRenewal from "./Dashboard/Owner/OwnerRenewal/OwnerRenewal";
+import Privacy from "./Pages/privacy/Privacy";
+import Termofservice from "./Pages/termofservice/Termofservice";
+import Faq from "./Pages/faq/Faq";
+import Settings from "./Dashboard/Settings";
 const AppContent = () => {
   const location = useLocation();
 
@@ -143,6 +147,9 @@ const shouldShowAI =
         <Route path="/landlord/:type/:id" element={<Landlord />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/favorites" element={<FavoritePage />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Termofservice />} />
+        <Route path="/faq" element={<Faq />} />
         <Route path="/hostel" element={<Hostel />} />
         <Route path="/houseforrent" element={<HouseForRent />} />
 
@@ -223,14 +230,14 @@ const shouldShowAI =
               </ProtectedRoute>
             }
           />
-          <Route
-            path="owner/settings"
-            element={
-              <ProtectedRoute allowedRoles={["owner"]}>
-                <div>Owner Settings</div>
-              </ProtectedRoute>
-            }
-          />
+<Route
+  path="owner/settings"
+  element={
+    <ProtectedRoute allowedRoles={["owner"]}>
+      <Settings />
+    </ProtectedRoute>
+  }
+/>
           <Route
             path="owner/OwnerLeases/OwnerLeases"
             element={
@@ -275,7 +282,7 @@ const shouldShowAI =
             path="owner/help"
             element={
               <ProtectedRoute allowedRoles={["owner"]}>
-                <div>Help & Support</div>
+                <HelpCenter />
               </ProtectedRoute>
             }
           />
@@ -367,14 +374,14 @@ const shouldShowAI =
               </ProtectedRoute>
             }
           />
-          <Route
-            path="tenant/settings"
-            element={
-              <ProtectedRoute allowedRoles={["tenant"]}>
-                <AccountSettings />
-              </ProtectedRoute>
-            }
-          />
+         <Route
+  path="tenant/settings"
+  element={
+    <ProtectedRoute allowedRoles={["tenant"]}>
+      <Settings />
+    </ProtectedRoute>
+  }
+/>
           <Route
             path="tenant/bookings"
             element={
@@ -505,13 +512,13 @@ const shouldShowAI =
             }
           />
           <Route
-            path="admin/settings"
-            element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <div>Admin Settings</div>
-              </ProtectedRoute>
-            }
-          />
+  path="admin/settings"
+  element={
+    <ProtectedRoute allowedRoles={["admin"]}>
+      <Settings />
+    </ProtectedRoute>
+  }
+/>
           <Route
             path="admin/profile"
             element={

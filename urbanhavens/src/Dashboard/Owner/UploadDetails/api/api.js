@@ -640,3 +640,57 @@ export const getOwnerTransactions = async () => {
 };
 
 
+export const getMyAccount = async () => {
+  try {
+    const res = await api.get(
+      "/users/me/"
+    );
+
+    return res.data;
+  } catch (err) {
+    console.error(
+      "Fetch account settings error:",
+      err.response?.data || err.message
+    );
+
+    throw err.response?.data || err;
+  }
+};
+
+
+export const updateMyAccount = async (data) => {
+  try {
+    const res = await api.patch(
+      "/users/me/",
+      data
+    );
+
+    return res.data;
+  } catch (err) {
+    console.error(
+      "Update account settings error:",
+      err.response?.data || err.message
+    );
+
+    throw err.response?.data || err;
+  }
+};
+
+
+export const changeMyPassword = async (data) => {
+  try {
+    const res = await api.post(
+      "/users/change-password/",
+      data
+    );
+
+    return res.data;
+  } catch (err) {
+    console.error(
+      "Change password error:",
+      err.response?.data || err.message
+    );
+
+    throw err.response?.data || err;
+  }
+};
