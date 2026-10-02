@@ -16,7 +16,7 @@ from system_logs.logger import (
 
 from .models import Booking, BookingIdempotencyKey, InspectionMeeting
 from .serializers import BookingSerializer, InspectionMeetingSerializer
-
+from notifications.sms import send_meeting_completed_sms
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -754,6 +754,26 @@ class InspectionMeetingViewSet(viewsets.ModelViewSet):
                 f"marked completed by {request.user.username}"
             ),
         )
+        
+                
+        try:
+            send_meeting_completed_sms(meeting)
+
+            log_sms_success(
+                message="Meeting completed SMS sent successfully",
+                phone=booking.tenant.phone or "",
+                booking_id=booking.id,
+                meeting_id=meeting.id,
+            )
+
+        except Exception as exc:
+            log_sms_failure(
+                message="Meeting completed SMS failed",
+                phone=booking.tenant.phone or "",
+                booking_id=booking.id,
+                meeting_id=meeting.id,
+                detail=str(exc),
+            )
 
         serializer = self.get_serializer(meeting)
 

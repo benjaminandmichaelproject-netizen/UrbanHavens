@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../../Dashboard/Owner/UploadDetails/api/api";
 import "./PaymentVerify.css";
@@ -13,6 +13,13 @@ function PaymentVerify() {
     "Verifying your payment..."
   );
 
+  // Prevents the same Paystack reference from being verified twice.
+  // This is especially important during React development Strict Mode.
+  const verifiedReferenceRef = useRef(null);
+
+  // Keeps track of the redirect timer so it can be cleared safely.
+  const redirectTimerRef = useRef(null);
+
   useEffect(() => {
     if (!reference) {
       setLoading(false);
@@ -23,8 +30,18 @@ function PaymentVerify() {
       return;
     }
 
+    // Do not verify the same payment reference more than once
+    // while this component is active.
+    if (verifiedReferenceRef.current === reference) {
+      return;
+    }
+
+    verifiedReferenceRef.current = reference;
+
     const verifyPayment = async () => {
       try {
+        setLoading(true);
+
         const response = await api.get(
           `/payments/verify/${reference}/`
         );
@@ -41,7 +58,7 @@ function PaymentVerify() {
             "Payment verified successfully."
         );
 
-        setTimeout(() => {
+        redirectTimerRef.current = setTimeout(() => {
           navigate(
             "/dashboard/tenant/TenantBooking/TenantBooking",
             {
@@ -83,6 +100,13 @@ function PaymentVerify() {
     };
 
     verifyPayment();
+
+    return () => {
+      if (redirectTimerRef.current) {
+        clearTimeout(redirectTimerRef.current);
+        redirectTimerRef.current = null;
+      }
+    };
   }, [reference, navigate]);
 
   return (

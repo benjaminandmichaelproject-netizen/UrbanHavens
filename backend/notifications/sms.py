@@ -372,6 +372,36 @@ def send_meeting_updated_sms(meeting) -> Optional[Dict[str, Any]]:
         meeting_id=meeting.id,
     )
 
+def send_meeting_completed_sms(meeting) -> Optional[Dict[str, Any]]:
+    """
+    Notify the tenant after the inspection meeting is completed
+    and ask them to decide whether to continue with the rental.
+    """
+
+    tenant = getattr(meeting.booking, "tenant", None)
+    phone = getattr(tenant, "phone", None)
+
+    if not phone:
+        return None
+
+    property_name = meeting.booking.property.property_name
+
+    message = (
+        f"UrbanHavens: Your inspection for {property_name} "
+        f"has been completed. Please log in to UrbanHavens and "
+        f"decide whether you want to continue with the rental "
+        f"or decline it."
+    )
+
+    return send_sms(
+        phone=phone,
+        message=message,
+        booking_id=meeting.booking.id,
+        meeting_id=meeting.id,
+    )
+
+
+
 # ---------------------------------------------------------------------------
 # Payment lifecycle SMS helpers
 # ---------------------------------------------------------------------------
