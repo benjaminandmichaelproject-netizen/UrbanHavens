@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
 import { api } from "../../Dashboard/Owner/UploadDetails/api/api";
-import { FaArrowRight, FaEnvelope, FaLock } from "react-icons/fa";
+import { FaArrowRight, FaEnvelope, FaLock, FaEye, FaEyeSlash } from "react-icons/fa";
 import "./Login.css";
 
 const fadeUp = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } };
@@ -16,7 +16,7 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const successMessage = location.state?.message || "";
-
+const [showPassword, setShowPassword] = useState(false);
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError("");
@@ -103,25 +103,40 @@ const Login = () => {
               </div>
             </div>
 
-            <div className="lg-field">
-              <div className="lg-label-row">
-                <label>Password</label>
-                <span className="lg-forgot" onClick={() => navigate("/forgot-password")}>
-                  Forgot password?
-                </span>
-              </div>
-              <div className="lg-input-wrap">
-                <FaLock className="lg-input-icon" />
-                <input
-                  type="password"
-                  name="password"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
+           <div className="lg-field">
+  <div className="lg-label-row">
+    <label>Password</label>
+
+    <span
+      className="lg-forgot"
+      onClick={() => navigate("/forgot-password")}
+    >
+      Forgot password?
+    </span>
+  </div>
+
+  <div className="lg-input-wrap">
+    <FaLock className="lg-input-icon" />
+
+    <input
+      type={showPassword ? "text" : "password"}
+      name="password"
+      placeholder="••••••••"
+      value={formData.password}
+      onChange={handleChange}
+      required
+    />
+
+    <button
+      type="button"
+      className="lg-password-eye"
+      onClick={() => setShowPassword((prev) => !prev)}
+      aria-label={showPassword ? "Hide password" : "Show password"}
+    >
+      {showPassword ? <FaEyeSlash /> : <FaEye />}
+    </button>
+  </div>
+</div>
 
             <button type="submit" className="lg-submit-btn" disabled={loading}>
               {loading ? "Signing in..." : "Sign In"}

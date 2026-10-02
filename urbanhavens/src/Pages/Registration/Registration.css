@@ -523,3 +523,40 @@
     border-radius: 14px;
   }
 }
+
+
+.rg-password-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.rg-password-wrap input {
+  width: 100%;
+  padding-right: 42px;
+  box-sizing: border-box;
+}
+
+.rg-password-eye {
+  position: absolute;
+  right: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  padding: 4px;
+  cursor: pointer;
+  color: #4a7060;
+  font-size: 0.9rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rg-password-eye:hover {
+  color: #1a7a40;
+}
+
+.rg-password-eye:focus {
+  outline: none;
+}

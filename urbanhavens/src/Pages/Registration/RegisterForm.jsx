@@ -2,7 +2,13 @@ import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { motion } from "framer-motion";
 // import axios from "axios";
-import { FaArrowRight, FaHome, FaBuilding } from "react-icons/fa";
+import {
+  FaArrowRight,
+  FaHome,
+  FaBuilding,
+  FaEye,
+  FaEyeSlash,
+} from "react-icons/fa";
 import "./Registration.css";
 import { api } from "../../Dashboard/Owner/UploadDetails/api/api";
 const fadeUp  = { hidden: { opacity: 0, y: 24 }, show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } } };
@@ -21,6 +27,8 @@ const RegisterForm = () => {
 
   const [errors, setErrors]   = useState({});
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -169,22 +177,70 @@ const RegisterForm = () => {
               </div>
             </div>
 
-            {/* Section: Security */}
-            <p className="rg-form-section-label">Security</p>
+          {/* Section: Security */}
+<p className="rg-form-section-label">Security</p>
 
-            <div className="rg-row">
-              <div className="rg-field">
-                <label>Password</label>
-                <input type="password" name="password" value={formData.password} onChange={handleChange} placeholder="••••••••" />
-                {errors.password && <span className="rg-error">{errors.password}</span>}
-              </div>
-              <div className="rg-field">
-                <label>Confirm Password</label>
-                <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="••••••••" />
-                {errors.confirmPassword && <span className="rg-error">{errors.confirmPassword}</span>}
-              </div>
-            </div>
+<div className="rg-row">
 
+  <div className="rg-field">
+    <label>Password</label>
+
+    <div className="rg-password-wrap">
+      <input
+        type={showPassword ? "text" : "password"}
+        name="password"
+        value={formData.password}
+        onChange={handleChange}
+        placeholder="••••••••"
+      />
+
+      <button
+        type="button"
+        className="rg-password-eye"
+        onClick={() => setShowPassword((prev) => !prev)}
+        aria-label={showPassword ? "Hide password" : "Show password"}
+      >
+        {showPassword ? <FaEyeSlash /> : <FaEye />}
+      </button>
+    </div>
+
+    {errors.password && (
+      <span className="rg-error">{errors.password}</span>
+    )}
+  </div>
+
+  <div className="rg-field">
+    <label>Confirm Password</label>
+
+    <div className="rg-password-wrap">
+      <input
+        type={showConfirmPassword ? "text" : "password"}
+        name="confirmPassword"
+        value={formData.confirmPassword}
+        onChange={handleChange}
+        placeholder="••••••••"
+      />
+
+      <button
+        type="button"
+        className="rg-password-eye"
+        onClick={() => setShowConfirmPassword((prev) => !prev)}
+        aria-label={
+          showConfirmPassword
+            ? "Hide confirm password"
+            : "Show confirm password"
+        }
+      >
+        {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+      </button>
+    </div>
+
+    {errors.confirmPassword && (
+      <span className="rg-error">{errors.confirmPassword}</span>
+    )}
+  </div>
+
+</div>
             {/* Section: Landlord extras */}
             {isLandlord && (
               <>

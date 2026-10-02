@@ -197,7 +197,7 @@
 
 .lg-input-wrap input {
   width: 100%;
-  padding: 12px 14px 12px 40px;
+  padding: 12px 42px 12px 40px;
   border: 1px solid rgba(26, 122, 64, 0.2);
   border-radius: 10px;
   font-size: 0.875rem;
@@ -208,7 +208,6 @@
   transition: border-color 0.2s, box-shadow 0.2s;
   box-sizing: border-box;
 }
-
 .lg-input-wrap input:focus {
   border-color: var(--lg-green);
   box-shadow: 0 0 0 3px rgba(26, 122, 64, 0.1);
@@ -346,4 +345,24 @@
   font-weight: 600;
   color: #111;
   margin: 0 0 1.5rem;
+}
+
+.lg-password-eye {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--lg-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lg-password-eye:hover {
+  color: var(--lg-green);
 }
